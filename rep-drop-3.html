@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1B19">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rep Drop">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Rep%20Drop%22%2C%22short_name%22%3A%22Rep%20Drop%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%231C1B19%22%2C%22theme_color%22%3A%22%231C1B19%22%7D">
+<title>Rep Drop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E7E3D8;
+    --panel: #D8D2C1;
+    --ink: #262421;
+    --ink-dim: #6B665C;
+    --accent: #C1392B;
+    --accent-ink: #FFFFFF;
+    --good: #4C7A5A;
+    --track: #B9B2A0;
+    --hazard: #E8B84B;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1C1B19;
+      --panel: #26241F;
+      --ink: #EDEAE1;
+      --ink-dim: #9C978A;
+      --accent: #D9583F;
+      --accent-ink: #1C1B19;
+      --good: #7EB68F;
+      --track: #34312B;
+      --hazard: #E8B84B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1C1B19;
+    --panel: #26241F;
+    --ink: #EDEAE1;
+    --ink-dim: #9C978A;
+    --accent: #D9583F;
+    --accent-ink: #1C1B19;
+    --good: #7EB68F;
+    --track: #34312B;
+    --hazard: #E8B84B;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #app {
+    width: 100%;
+    max-width: 480px;
+    height: 100%;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 14px;
+  }
+  h1.wordmark {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.2rem, 9vw, 3rem);
+    letter-spacing: 0.5px;
+    margin: 0;
+    line-height: 0.95;
+  }
+  .wordmark span { color: var(--accent); }
+  p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.95rem; max-width: 34ch; }
+
+  /* ---- Start / End screens ---- */
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+  }
+  .card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .exercise-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .exercise-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--ink-dim); border-bottom: 1px solid var(--track); padding-bottom: 6px; }
+  .exercise-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .exercise-row b { color: var(--ink); font-weight: 600; }
+
+  button.primary {
+    appearance: none; border: none; border-radius: 12px;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1.05rem;
+    padding: 16px; cursor: pointer; width: 100%;
+  }
+  button.primary:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
+  button.ghost {
+    appearance: none; border: 1px solid var(--track); border-radius: 12px;
+    background: transparent; color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.95rem;
+    padding: 12px; cursor: pointer; width: 100%;
+  }
+  .fine-print { font-size: 0.78rem; color: var(--ink-dim); text-align: center; }
+
+  /* ---- Game HUD ---- */
+  #hud { display: none; flex: 1; flex-direction: column; gap: 12px; min-height: 0; }
+  .hud-top { display: flex; justify-content: space-between; align-items: center; }
+  .stat { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
+  .stat small { display: block; font-family: 'Inter', sans-serif; font-size: 0.65rem; color: var(--ink-dim); font-weight: 500; }
+  .lives { display: flex; gap: 5px; }
+  .life { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .life.spent { background: var(--track); }
+
+  #lane {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: var(--panel);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--track);
+  }
+  #target-zone {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 76px;
+    background: linear-gradient(180deg, transparent, var(--track) 40%);
+    border-top: 2px dashed var(--ink-dim);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #target-zone span { font-size: 0.75rem; color: var(--ink-dim); font-weight: 600; letter-spacing: 0.5px; }
+  #falling {
+    position: absolute;
+    left: 50%;
+    top: -80px;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+    max-width: 60%;
+    background: var(--bg);
+    border: 1px solid var(--track);
+    border-radius: 14px;
+    padding: 8px 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  #falling .word {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 4vw, 1.2rem);
+    line-height: 1.05;
+    color: var(--ink-dim);
+    letter-spacing: 0.3px;
+  }
+  #falling .reps-needed {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.4rem, 6vw, 1.8rem);
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  #falling.success .word { color: var(--good); }
+  #falling.fail .word { color: var(--accent); }
+  #falling.success .reps-needed { color: var(--good); }
+  #falling.fail .reps-needed { color: var(--accent); }
+
+  #rep-ring {
+    position: absolute;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #rep-count { font-family: 'Oswald', sans-serif; font-size: 2.4rem; line-height: 1; }
+  #rep-of { font-size: 0.75rem; color: var(--ink-dim); }
+
+  #tap-btn {
+    appearance: none; border: none; border-radius: 999px;
+    width: 84px; height: 84px;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.85rem;
+    align-self: center;
+  }
+  #tap-btn:active { transform: scale(0.94); }
+  #motion-badge { font-size: 0.72rem; color: var(--ink-dim); text-align: center; }
+  #motion-badge b { color: var(--good); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #falling { transition: none !important; }
+  }
+
+  /* ---- Motion check / debug screen ---- */
+  #motion-check { display: none; flex: 1; flex-direction: column; gap: 14px; }
+  .debug-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
+  .debug-cell { background: var(--panel); border-radius: 10px; padding: 10px 4px; }
+  .debug-cell .val { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
+  .debug-cell .lbl { font-size: 0.65rem; color: var(--ink-dim); }
+  #delta-meter { position: relative; height: 34px; background: var(--panel); border-radius: 8px; overflow: hidden; }
+  #delta-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--good); transition: width 60ms linear, background 60ms linear; }
+  #delta-threshold-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+  #rep-test-count { font-family: 'Oswald', sans-serif; font-size: 2rem; }
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .slider-row input[type=range] { flex: 1; }
+  #event-status { font-size: 0.85rem; }
+  #event-status b { color: var(--good); }
+  #event-status.warn b { color: var(--accent); }
+  .warn-box { background: var(--panel); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-dim); display: none; }
+
+  /* ---- Train / test screens ---- */
+  #train-hub, #train-record, #test-live { display: none; flex: 1; flex-direction: column; gap: 14px; }
+  .train-card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .train-card-actions button { flex: 1; padding: 10px; font-size: 0.82rem; }
+  #test-result { text-align: center; padding: 22px 0; }
+  #test-result-label { font-family: 'Oswald', sans-serif; font-size: 2.1rem; }
+  #test-result-conf { font-size: 0.85rem; color: var(--ink-dim); margin-top: 2px; }
+  #test-log { display: flex; flex-direction: column; gap: 6px; }
+  .test-log-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 8px 12px; background: var(--panel); border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="start-screen" class="screen">
+    <div>
+      <h1 class="wordmark">REP<br><span>DROP</span></h1>
+      <p class="tagline">An exercise name falls. Finish the reps before it hits the floor.</p>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Sensing</b><span id="motion-status">not checked</span></div>
+      <div class="exercise-list" id="preview-list"></div>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Fall speed</b><span id="fall-speed-value">7.0s</span></div>
+      <div class="slider-row" style="margin-top:6px;">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">slower</span>
+        <input type="range" id="fall-speed-slider" min="3" max="12" step="0.5" value="7">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">faster</span>
+      </div>
+    </div>
+    <div>
+      <button class="primary" id="enable-btn">Enable motion &amp; start</button>
+      <p class="fine-print">Hold your phone in the hand doing the movement. No motion access? You can tap to count reps instead.</p>
+      <button class="ghost" id="train-nav-btn" style="margin-top:10px;">Train &amp; test exercises</button>
+    </div>
+  </div>
+
+  <div id="train-hub" class="screen">
+    <div>
+      <h1 class="wordmark">TRAIN<br><span>&amp; TEST</span></h1>
+      <p class="tagline">Record a few reps of each move so the detector learns what it feels like, then test it live.</p>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Kettlebell Swings</b><span id="train-count-swing">not trained</span></div>
+      <div class="train-card-actions">
+        <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record reps</button>
+        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
+      <div class="train-card-actions">
+        <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record reps</button>
+        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset</button>
+      </div>
+    </div>
+    <div>
+      <button class="primary" id="test-nav-btn">Test detection live</button>
+      <button class="ghost" id="train-back-btn" style="margin-top:8px;">Back</button>
+    </div>
+  </div>
+
+  <div id="train-record" class="screen">
+    <div>
+      <h1 class="wordmark" id="train-record-title">RECORDING</h1>
+      <p class="tagline">Perform reps naturally — each one is caught automatically. Hit Done when you've done a handful.</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div id="train-rep-count" style="font-family:'Oswald',sans-serif;font-size:2.6rem;">0</div>
+      <div class="lbl" style="color:var(--ink-dim);font-size:0.78rem;">reps captured this session</div>
+      <div id="train-moving-status" style="margin-top:8px;font-size:0.8rem;color:var(--ink-dim);">Idle — start the movement</div>
+    </div>
+    <button class="ghost" id="train-mark-btn">Mark rep now (manual)</button>
+    <div>
+      <button class="primary" id="train-done-btn">Done — save reps</button>
+      <button class="ghost" id="train-cancel-btn" style="margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <div id="test-live" class="screen">
+    <div>
+      <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
+      <p class="tagline">Move naturally — each detected rep gets classified against your training data.</p>
+    </div>
+    <div class="card" id="test-result">
+      <div id="test-result-label">—</div>
+      <div id="test-result-conf">waiting for a rep&hellip;</div>
+    </div>
+    <div id="test-moving-status" style="text-align:center;font-size:0.8rem;color:var(--ink-dim);">Idle — start the movement</div>
+    <button class="ghost" id="test-mark-btn">Classify now (manual)</button>
+    <div id="test-log"></div>
+    <button class="ghost" id="test-back-btn">Back to hub</button>
+  </div>
+
+  <div id="motion-check" class="screen">
+    <div>
+      <h1 class="wordmark">CHECK<br><span>MOTION</span></h1>
+      <p class="tagline" id="event-status">waiting for the first sensor reading&hellip;</p>
+    </div>
+    <div class="warn-box" id="no-events-warning">No motion events have arrived. This page may be running inside a wrapper (like this chat) that blocks sensor access. Try opening it directly in Safari or Chrome on your phone, or use tap mode below.</div>
+    <div class="card" id="diag-card" style="font-size:0.78rem;color:var(--ink-dim);line-height:1.6;"></div>
+    <div class="debug-grid">
+      <div class="debug-cell"><div class="val" id="dbg-x">0.0</div><div class="lbl">X m/s²</div></div>
+      <div class="debug-cell"><div class="val" id="dbg-y">0.0</div><div class="lbl">Y m/s²</div></div>
+      <div class="debug-cell"><div class="val" id="dbg-z">0.0</div><div class="lbl">Z m/s²</div></div>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Delta vs threshold</b><span id="dbg-delta">0.0</span></div>
+      <div id="delta-meter"><div id="delta-fill"></div><div id="delta-threshold-line"></div></div>
+      <div class="slider-row" style="margin-top:10px;">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">sensitive</span>
+        <input type="range" id="threshold-slider" min="0.4" max="4" step="0.1" value="1.6">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">firm only</span>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div id="rep-test-count">0</div>
+      <div class="lbl" style="color:var(--ink-dim);font-size:0.75rem;">test reps detected — move the way you'll exercise</div>
+    </div>
+    <div>
+      <button class="primary" id="motion-ok-btn">Looks good — start workout</button>
+      <button class="ghost" id="motion-skip-btn" style="margin-top:8px;">Skip, use tap mode only</button>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-top">
+      <div class="stat"><span id="score">0</span><small>cleared</small></div>
+      <div class="lives" id="lives"></div>
+      <div class="stat"><span id="streak">0</span><small>streak</small></div>
+    </div>
+    <div id="lane">
+      <div id="falling">
+        <div class="word" id="word-text">—</div>
+        <div class="reps-needed" id="reps-needed"></div>
+      </div>
+      <div id="target-zone"><span>THE FLOOR</span></div>
+      <div id="rep-ring">
+        <div id="rep-count">0</div>
+        <div id="rep-of">of 0</div>
+      </div>
+    </div>
+    <button id="tap-btn">TAP<br>REP</button>
+    <div id="motion-badge">Move to count reps · tap works too</div>
+  </div>
+
+  <div id="end-screen" class="screen" style="display:none;">
+    <div>
+      <h1 class="wordmark">GAME<br><span>OVER</span></h1>
+      <p class="tagline" id="end-summary"></p>
+    </div>
+    <div>
+      <button class="primary" id="retry-btn">Run it back</button>
+      <button class="ghost" id="home-btn" style="margin-top:8px;">Back to start</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const EXERCISES = [
+    { name: "Kettlebell Swings", reps: 10 },
+    { name: "Goblet Squats", reps: 8 },
+    { name: "Push-ups", reps: 10 },
+    { name: "Mountain Climbers", reps: 16 },
+    { name: "Kettlebell Press", reps: 8 },
+    { name: "Jumping Jacks", reps: 15 },
+    { name: "Lunges", reps: 12 },
+    { name: "Burpees", reps: 6 },
+  ];
+  const TRAIN_EXERCISES = ["Kettlebell Swings", "Kettlebell Press"];
+  const TRAIN_SLUG = { "Kettlebell Swings": "swing", "Kettlebell Press": "press" };
+
+  const startScreen = document.getElementById('start-screen');
+  const motionCheck = document.getElementById('motion-check');
+  const hud = document.getElementById('hud');
+  const endScreen = document.getElementById('end-screen');
+  const enableBtn = document.getElementById('enable-btn');
+  const motionStatus = document.getElementById('motion-status');
+  const previewList = document.getElementById('preview-list');
+  const fallSpeedSlider = document.getElementById('fall-speed-slider');
+  const fallSpeedValue = document.getElementById('fall-speed-value');
+  fallSpeedSlider.addEventListener('input', () => {
+    fallSpeedValue.textContent = parseFloat(fallSpeedSlider.value).toFixed(1) + 's';
+  });
+  const eventStatus = document.getElementById('event-status');
+  const noEventsWarning = document.getElementById('no-events-warning');
+  const dbgX = document.getElementById('dbg-x');
+  const dbgY = document.getElementById('dbg-y');
+  const dbgZ = document.getElementById('dbg-z');
+  const dbgDelta = document.getElementById('dbg-delta');
+  const deltaFill = document.getElementById('delta-fill');
+  const deltaLine = document.getElementById('delta-threshold-line');
+  const thresholdSlider = document.getElementById('threshold-slider');
+  const repTestCountEl = document.getElementById('rep-test-count');
+  const motionOkBtn = document.getElementById('motion-ok-btn');
+  const motionSkipBtn = document.getElementById('motion-skip-btn');
+  const scoreEl = document.getElementById('score');
+  const streakEl = document.getElementById('streak');
+  const livesEl = document.getElementById('lives');
+  const falling = document.getElementById('falling');
+  const wordText = document.getElementById('word-text');
+  const repsNeededEl = document.getElementById('reps-needed');
+  const repCountEl = document.getElementById('rep-count');
+  const repOfEl = document.getElementById('rep-of');
+  const lane = document.getElementById('lane');
+  const tapBtn = document.getElementById('tap-btn');
+  const motionBadge = document.getElementById('motion-badge');
+  const retryBtn = document.getElementById('retry-btn');
+  const homeBtn = document.getElementById('home-btn');
+  const endSummary = document.getElementById('end-summary');
+  const trainNavBtn = document.getElementById('train-nav-btn');
+  const trainHub = document.getElementById('train-hub');
+  const trainBackBtn = document.getElementById('train-back-btn');
+  const trainRecord = document.getElementById('train-record');
+  const trainRecordTitle = document.getElementById('train-record-title');
+  const trainRepCount = document.getElementById('train-rep-count');
+  const trainDoneBtn = document.getElementById('train-done-btn');
+  const trainCancelBtn = document.getElementById('train-cancel-btn');
+  const testNavBtn = document.getElementById('test-nav-btn');
+  const testLive = document.getElementById('test-live');
+  const testBackBtn = document.getElementById('test-back-btn');
+  const testResultLabel = document.getElementById('test-result-label');
+  const testResultConf = document.getElementById('test-result-conf');
+  const testLog = document.getElementById('test-log');
+  const trainMovingStatus = document.getElementById('train-moving-status');
+  const trainMarkBtn = document.getElementById('train-mark-btn');
+  const testMovingStatus = document.getElementById('test-moving-status');
+  const testMarkBtn = document.getElementById('test-mark-btn');
+
+  previewList.innerHTML = EXERCISES.slice(0,4).map(e =>
+    `<div class="exercise-row"><b>${e.name}</b><span>${e.reps} reps</span></div>`
+  ).join('');
+
+  let state = null;
+  let motionEnabled = false;
+  let rafId = null;
+
+  function setLives(n, total){
+    livesEl.innerHTML = '';
+    for(let i=0;i<total;i++){
+      const d = document.createElement('div');
+      d.className = 'life' + (i >= n ? ' spent' : '');
+      livesEl.appendChild(d);
+    }
+  }
+
+  function pickExercise(prevName){
+    let pool = EXERCISES.filter(e => e.name !== prevName);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function startGame(){
+    startScreen.style.display = 'none';
+    endScreen.style.display = 'none';
+    hud.style.display = 'flex';
+    state = {
+      score: 0,
+      streak: 0,
+      lives: 3,
+      maxLives: 3,
+      reps: 0,
+      target: 0,
+      baseFallDuration: parseFloat(fallSpeedSlider.value) * 1000,
+      fallDuration: 7000,
+      startTime: null,
+      laneHeight: lane.clientHeight,
+      resolved: false,
+      lastRepTime: 0,
+    };
+    setLives(3,3);
+    scoreEl.textContent = '0';
+    streakEl.textContent = '0';
+    nextRound();
+  }
+
+  function nextRound(){
+    const ex = pickExercise(state.currentName);
+    state.currentName = ex.name;
+    state.target = ex.reps;
+    state.reps = 0;
+    state.resolved = false;
+    state.fallDuration = Math.max(state.baseFallDuration * 0.45, state.baseFallDuration - state.score * 250);
+    wordText.textContent = ex.name;
+    repsNeededEl.textContent = '0 / ' + ex.reps;
+    repCountEl.textContent = '0';
+    repOfEl.textContent = 'of ' + ex.reps;
+    falling.classList.remove('success','fail');
+    falling.style.transition = 'none';
+    falling.style.top = '-80px';
+    void falling.offsetHeight;
+    state.startTime = performance.now();
+    tick();
+  }
+
+  function tick(now){
+    if(!state || state.resolved){ return; }
+    now = now || performance.now();
+    const elapsed = now - state.startTime;
+    const laneH = lane.clientHeight;
+    const pct = Math.min(elapsed / state.fallDuration, 1);
+    const travel = (laneH - 40) * pct;
+    falling.style.top = (-80 + travel + 80) + 'px';
+    if(pct >= 1){
+      resolveRound(false);
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function registerRep(){
+    if(!state || state.resolved) return;
+    const now = performance.now();
+    if(now - state.lastRepTime < 260) return; // debounce
+    state.lastRepTime = now;
+    state.reps++;
+    repCountEl.textContent = state.reps;
+    repsNeededEl.textContent = state.reps + ' / ' + state.target;
+    if(state.reps >= state.target){
+      resolveRound(true);
+    }
+  }
+
+  function resolveRound(success){
+    if(state.resolved) return;
+    state.resolved = true;
+    cancelAnimationFrame(rafId);
+    if(success){
+      falling.classList.add('success');
+      state.score++;
+      state.streak++;
+      scoreEl.textContent = state.score;
+      streakEl.textContent = state.streak;
+      setTimeout(nextRound, 550);
+    } else {
+      falling.classList.add('fail');
+      state.streak = 0;
+      streakEl.textContent = '0';
+      state.lives--;
+      setLives(state.lives, state.maxLives);
+      if(state.lives <= 0){
+        setTimeout(endGame, 500);
+      } else {
+        setTimeout(nextRound, 650);
+      }
+    }
+  }
+
+  function endGame(){
+    hud.style.display = 'none';
+    endScreen.style.display = 'flex';
+    endSummary.textContent = `You cleared ${state.score} exercise${state.score===1?'':'s'} before the floor caught up.`;
+  }
+
+  tapBtn.addEventListener('click', registerRep);
+  tapBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); registerRep(); }, {passive:false});
+
+  // --- Motion sensing ---
+  let smoothed = 0;
+  let THRESHOLD = 1.6; // m/s^2 delta to count as a rep pulse
+  const REFRACTORY = 300;
+  let lastMotionRep = 0;
+  let totalMotionEvents = 0;
+  let testReps = 0;
+  let inMotionCheck = false;
+  let noEventsTimer = null;
+
+  // --- Train / test state ---
+  let motionBuffer = [];
+  const BUFFER_MS = 1200;
+  let isTrainingActive = false;
+  let trainingExercise = null;
+  let trainingSessionFeatures = [];
+  let isTestingActive = false;
+
+  function loadTemplates(){
+    try { return JSON.parse(localStorage.getItem('repdrop_templates') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveTemplates(t){
+    try { localStorage.setItem('repdrop_templates', JSON.stringify(t)); } catch(e){}
+  }
+
+  function extractFeaturesFromBuffer(win){
+    if(win.length < 3) return null;
+    let peakMag = 0, minZ=Infinity,maxZ=-Infinity, minX=Infinity,maxX=-Infinity, minY=Infinity,maxY=-Infinity;
+    win.forEach(s => {
+      peakMag = Math.max(peakMag, s.mag);
+      minZ = Math.min(minZ, s.z); maxZ = Math.max(maxZ, s.z);
+      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
+      minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y);
+    });
+    const duration = win[win.length-1].t - win[0].t;
+    const zRange = maxZ - minZ;
+    const xyRange = Math.sqrt(Math.pow(maxX-minX,2) + Math.pow(maxY-minY,2));
+    const ranges = { x: maxX-minX, y: maxY-minY, z: zRange };
+    const domAxis = Object.keys(ranges).reduce((a,b) => ranges[a] >= ranges[b] ? a : b);
+    let dirChanges = 0, prevSign = null;
+    for(let i=1;i<win.length;i++){
+      const d = win[i][domAxis] - win[i-1][domAxis];
+      const sign = d > 0 ? 1 : (d < 0 ? -1 : 0);
+      if(sign !== 0){
+        if(prevSign !== null && sign !== prevSign) dirChanges++;
+        prevSign = sign;
+      }
+    }
+    return [peakMag, duration, zRange, xyRange, dirChanges];
+  }
+
+  // Whole-motion segmentation: accumulate samples while moving, finalize as
+  // one rep once motion stops for IDLE_GAP_MS (or the user taps "mark now").
+  const MOVE_THRESHOLD = 0.5;
+  const IDLE_GAP_MS = 2000;
+  let repBuffer = [];
+  let repInProgress = false;
+  let lastMovingTime = 0;
+  let idleCheckTimer = null;
+
+  function finalizeCurrentRep(){
+    if(!repInProgress || repBuffer.length < 3){
+      repBuffer = []; repInProgress = false;
+      return;
+    }
+    const feat = extractFeaturesFromBuffer(repBuffer);
+    repBuffer = [];
+    repInProgress = false;
+    if(!feat) return;
+    if(isTrainingActive){
+      trainingSessionFeatures.push(feat);
+      trainRepCount.textContent = trainingSessionFeatures.length;
+      trainMovingStatus.textContent = 'Idle — start the movement';
+    } else if(isTestingActive){
+      renderTestResult(classify(feat));
+      testMovingStatus.textContent = 'Idle — start the movement';
+    }
+  }
+
+  function startIdleChecks(){
+    clearInterval(idleCheckTimer);
+    idleCheckTimer = setInterval(() => {
+      if(repInProgress && performance.now() - lastMovingTime > IDLE_GAP_MS){
+        finalizeCurrentRep();
+      }
+    }, 300);
+  }
+  function stopIdleChecks(){ clearInterval(idleCheckTimer); }
+
+  function classify(features){
+    const templates = loadTemplates();
+    const names = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0);
+    if(names.length === 0) return null;
+    let all = [];
+    names.forEach(n => { all = all.concat(templates[n]); });
+    const means = [], stds = [];
+    for(let i=0;i<features.length;i++){
+      const vals = all.map(r => r[i]);
+      const m = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const variance = vals.reduce((a,b)=>a+(b-m)*(b-m),0) / vals.length;
+      means.push(m); stds.push(Math.sqrt(variance) || 1);
+    }
+    const norm = vec => vec.map((v,i) => (v - means[i]) / stds[i]);
+    const nf = norm(features);
+    let best = null, bestDist = Infinity;
+    const distances = {};
+    names.forEach(n => {
+      const reps = templates[n];
+      const centroid = features.map((_,i) => reps.reduce((a,r)=>a+r[i],0) / reps.length);
+      const dist = Math.sqrt(norm(centroid).reduce((a,v,i)=>a+Math.pow(v-nf[i],2),0));
+      distances[n] = dist;
+      if(dist < bestDist){ bestDist = dist; best = n; }
+    });
+    const distVals = Object.values(distances);
+    const sumInv = distVals.reduce((a,d)=>a+1/(d+0.0001),0);
+    const confidence = names.length > 1 ? Math.round((1/(bestDist+0.0001)) / sumInv * 100) : 100;
+    return { label: best, confidence, onlyOne: names.length < 2 };
+  }
+
+  function refreshTrainCounts(){
+    const templates = loadTemplates();
+    TRAIN_EXERCISES.forEach(n => {
+      const el = document.getElementById('train-count-' + TRAIN_SLUG[n]);
+      const reps = templates[n];
+      el.textContent = (reps && reps.length) ? reps.length + ' reps' : 'not trained';
+    });
+  }
+
+  thresholdSlider.addEventListener('input', () => {
+    THRESHOLD = parseFloat(thresholdSlider.value);
+  });
+
+  function handleMotion(e){
+    const a = e.accelerationIncludingGravity || e.acceleration;
+    if(!a || a.x === null || a.x === undefined) return;
+    totalMotionEvents++;
+    if(totalMotionEvents === 1){
+      eventStatus.innerHTML = '<b>Live</b> — sensor data is arriving';
+      noEventsWarning.style.display = 'none';
+    }
+    const now = performance.now();
+    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    motionBuffer.push({ t: now, x: a.x, y: a.y, z: a.z, mag });
+    while(motionBuffer.length && now - motionBuffer[0].t > BUFFER_MS) motionBuffer.shift();
+    smoothed = smoothed * 0.8 + mag * 0.2;
+    const delta = Math.abs(mag - smoothed);
+
+    if(inMotionCheck){
+      dbgX.textContent = a.x.toFixed(1);
+      dbgY.textContent = a.y.toFixed(1);
+      dbgZ.textContent = a.z.toFixed(1);
+      dbgDelta.textContent = delta.toFixed(2);
+      const pct = Math.min((delta / (THRESHOLD * 1.5)) * 100, 100);
+      deltaFill.style.width = pct + '%';
+      deltaFill.style.background = delta > THRESHOLD ? 'var(--accent)' : 'var(--good)';
+      deltaLine.style.left = Math.min((THRESHOLD / (THRESHOLD * 1.5)) * 100, 100) + '%';
+    }
+
+    if(isTrainingActive || isTestingActive){
+      if(delta > MOVE_THRESHOLD){
+        if(!repInProgress){
+          repInProgress = true;
+          repBuffer = [];
+          if(isTrainingActive) trainMovingStatus.textContent = 'Moving…';
+          if(isTestingActive) testMovingStatus.textContent = 'Moving…';
+        }
+        lastMovingTime = now;
+      }
+      if(repInProgress) repBuffer.push({ t: now, x: a.x, y: a.y, z: a.z, mag });
+    }
+
+    if(delta > THRESHOLD && now - lastMotionRep > REFRACTORY){
+      lastMotionRep = now;
+      if(inMotionCheck){
+        testReps++;
+        repTestCountEl.textContent = testReps;
+      }
+      if(!isTrainingActive && !isTestingActive){
+        registerRep();
+      }
+    }
+  }
+
+  function armMotion(){
+    window.addEventListener('devicemotion', handleMotion);
+    motionEnabled = true;
+    motionStatus.innerHTML = '<b>enabled</b>';
+    motionBadge.innerHTML = '<b>Motion is live</b> · move the weight, or tap as backup';
+  }
+
+  function runDiagnostics(){
+    const diagCard = document.getElementById('diag-card');
+    const lines = [];
+    lines.push('DeviceMotionEvent in window: ' + (('DeviceMotionEvent' in window) ? 'yes' : 'NO'));
+    lines.push('Secure context (https): ' + (window.isSecureContext ? 'yes' : 'NO'));
+    lines.push('requestPermission needed: ' + (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? 'yes (iOS-style)' : 'no'));
+    try {
+      if (document.featurePolicy && document.featurePolicy.allowsFeature) {
+        lines.push('Accelerometer allowed by page policy: ' + (document.featurePolicy.allowsFeature('accelerometer') ? 'yes' : 'NO — blocked by host'));
+        lines.push('Gyroscope allowed by page policy: ' + (document.featurePolicy.allowsFeature('gyroscope') ? 'yes' : 'NO — blocked by host'));
+      } else {
+        lines.push('Page policy check: unsupported in this browser');
+      }
+    } catch(e) {
+      lines.push('Page policy check failed: ' + e.message);
+    }
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'accelerometer' }).then(res => {
+        diagCard.innerHTML += '<br>Accelerometer permission state: <b>' + res.state + '</b>';
+      }).catch(() => {
+        diagCard.innerHTML += '<br>Accelerometer permission state: not queryable';
+      });
+    }
+    diagCard.innerHTML = lines.join('<br>');
+  }
+
+  function showMotionCheck(){
+    startScreen.style.display = 'none';
+    motionCheck.style.display = 'flex';
+    inMotionCheck = true;
+    totalMotionEvents = 0;
+    testReps = 0;
+    repTestCountEl.textContent = '0';
+    eventStatus.textContent = 'waiting for the first sensor reading…';
+    noEventsWarning.style.display = 'none';
+    runDiagnostics();
+    clearTimeout(noEventsTimer);
+    noEventsTimer = setTimeout(() => {
+      if(totalMotionEvents === 0){
+        eventStatus.innerHTML = '<b style="color:var(--accent)">No signal</b>';
+        noEventsWarning.style.display = 'block';
+      }
+    }, 2500);
+  }
+
+  enableBtn.addEventListener('click', async () => {
+    try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        const res = await DeviceMotionEvent.requestPermission();
+        if (res === 'granted') armMotion();
+        else motionStatus.textContent = 'denied — tap mode only';
+      } else if (window.DeviceMotionEvent) {
+        armMotion();
+      } else {
+        motionStatus.textContent = 'unsupported — tap mode only';
+      }
+    } catch (err) {
+      motionStatus.textContent = 'unavailable — tap mode only';
+    }
+    showMotionCheck();
+  });
+
+  motionOkBtn.addEventListener('click', () => {
+    inMotionCheck = false;
+    clearTimeout(noEventsTimer);
+    motionCheck.style.display = 'none';
+    startGame();
+  });
+
+  motionSkipBtn.addEventListener('click', () => {
+    inMotionCheck = false;
+    clearTimeout(noEventsTimer);
+    motionCheck.style.display = 'none';
+    motionBadge.textContent = 'Tap mode — tap the button for each rep';
+    startGame();
+  });
+
+  retryBtn.addEventListener('click', startGame);
+  homeBtn.addEventListener('click', () => {
+    endScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+  });
+
+  window.addEventListener('resize', () => { if(lane) state && (state.laneHeight = lane.clientHeight); });
+
+  // --- Train / test navigation ---
+  function goToTrainHub(){
+    [startScreen, motionCheck, hud, endScreen, trainRecord, testLive].forEach(s => s.style.display = 'none');
+    trainHub.style.display = 'flex';
+    refreshTrainCounts();
+  }
+
+  trainNavBtn.addEventListener('click', goToTrainHub);
+  trainBackBtn.addEventListener('click', () => {
+    trainHub.style.display = 'none';
+    startScreen.style.display = 'flex';
+  });
+
+  function ensureMotionArmed(){
+    if(!motionEnabled){
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().then(res => { if(res === 'granted') armMotion(); });
+      } else if (window.DeviceMotionEvent) {
+        armMotion();
+      }
+    }
+  }
+
+  document.querySelectorAll('[data-action="record"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ensureMotionArmed();
+      trainingExercise = btn.getAttribute('data-exercise');
+      trainingSessionFeatures = [];
+      trainRepCount.textContent = '0';
+      repBuffer = []; repInProgress = false;
+      trainMovingStatus.textContent = 'Idle — start the movement';
+      trainRecordTitle.innerHTML = 'RECORDING<br><span style="color:var(--accent)">' + trainingExercise + '</span>';
+      trainHub.style.display = 'none';
+      trainRecord.style.display = 'flex';
+      isTrainingActive = true;
+      startIdleChecks();
+    });
+  });
+
+  document.querySelectorAll('[data-action="reset"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ex = btn.getAttribute('data-exercise');
+      const templates = loadTemplates();
+      delete templates[ex];
+      saveTemplates(templates);
+      refreshTrainCounts();
+    });
+  });
+
+  trainDoneBtn.addEventListener('click', () => {
+    isTrainingActive = false;
+    stopIdleChecks();
+    if(repInProgress) finalizeCurrentRep();
+    if(trainingSessionFeatures.length > 0){
+      const templates = loadTemplates();
+      const existing = templates[trainingExercise] || [];
+      const merged = existing.concat(trainingSessionFeatures).slice(-30);
+      templates[trainingExercise] = merged;
+      saveTemplates(templates);
+    }
+    trainRecord.style.display = 'none';
+    goToTrainHub();
+  });
+
+  trainCancelBtn.addEventListener('click', () => {
+    isTrainingActive = false;
+    stopIdleChecks();
+    repBuffer = []; repInProgress = false;
+    trainRecord.style.display = 'none';
+    goToTrainHub();
+  });
+
+  trainMarkBtn.addEventListener('click', () => {
+    if(repInProgress) finalizeCurrentRep();
+  });
+
+  testNavBtn.addEventListener('click', () => {
+    ensureMotionArmed();
+    testResultLabel.textContent = '—';
+    testResultConf.textContent = 'waiting for a rep…';
+    testMovingStatus.textContent = 'Idle — start the movement';
+    testLog.innerHTML = '';
+    repBuffer = []; repInProgress = false;
+    trainHub.style.display = 'none';
+    testLive.style.display = 'flex';
+    isTestingActive = true;
+    startIdleChecks();
+  });
+
+  testBackBtn.addEventListener('click', () => {
+    isTestingActive = false;
+    stopIdleChecks();
+    repBuffer = []; repInProgress = false;
+    testLive.style.display = 'none';
+    goToTrainHub();
+  });
+
+  testMarkBtn.addEventListener('click', () => {
+    if(repInProgress) finalizeCurrentRep();
+  });
+
+  function renderTestResult(result){
+    if(!result){
+      testResultLabel.textContent = 'no training yet';
+      testResultConf.textContent = 'record both exercises first';
+      return;
+    }
+    testResultLabel.textContent = result.label;
+    testResultConf.textContent = result.onlyOne
+      ? 'only this exercise is trained — add the other to compare'
+      : result.confidence + '% confidence';
+    const row = document.createElement('div');
+    row.className = 'test-log-row';
+    row.innerHTML = '<span>' + result.label + '</span><span>' + (result.onlyOne ? '—' : result.confidence + '%') + '</span>';
+    testLog.prepend(row);
+    while(testLog.children.length > 5) testLog.removeChild(testLog.lastChild);
+  }
+})();
+</script>
+</body>
+</html>
