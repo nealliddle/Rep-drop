@@ -180,6 +180,8 @@
   #falling.fail .word { color: var(--accent); }
   #falling.success .reps-needed { color: var(--good); }
   #falling.fail .reps-needed { color: var(--accent); }
+  #falling.mismatch { border-color: var(--accent); }
+  #falling.mismatch .reps-needed { color: var(--accent); }
 
   #rep-ring {
     position: absolute;
@@ -453,10 +455,6 @@
   const testMovingStatus = document.getElementById('test-moving-status');
   const testMarkBtn = document.getElementById('test-mark-btn');
 
-  previewList.innerHTML = EXERCISES.slice(0,4).map(e =>
-    `<div class="exercise-row"><b>${e.name}</b><span>${e.reps} reps</span></div>`
-  ).join('');
-
   let state = null;
   let motionEnabled = false;
   let rafId = null;
@@ -471,9 +469,24 @@
   }
 
   function pickExercise(prevName){
-    let pool = EXERCISES.filter(e => e.name !== prevName);
+    let pool = getGamePool().filter(e => e.name !== prevName);
+    if(pool.length === 0) pool = getGamePool();
     return pool[Math.floor(Math.random() * pool.length)];
   }
+
+  function getGamePool(){
+    const templates = loadTemplates();
+    const trained = EXERCISES.filter(e => templates[e.name] && templates[e.name].length > 0);
+    return trained.length > 0 ? trained : EXERCISES;
+  }
+
+  function refreshPreviewList(){
+    const pool = getGamePool();
+    previewList.innerHTML = pool.slice(0,4).map(e =>
+      `<div class="exercise-row"><b>${e.name}</b><span>${e.reps} reps</span></div>`
+    ).join('');
+  }
+  refreshPreviewList();
 
   function startGame(){
     startScreen.style.display = 'none';
@@ -505,6 +518,18 @@
     state.target = ex.reps;
     state.reps = 0;
     state.resolved = false;
+    const templates = loadTemplates();
+    const trained = templates[ex.name];
+    if(trained && trained.length > 0){
+      const avgDuration = trained.reduce((a,r) => a + r[1], 0) / trained.length;
+      state.repDebounce = Math.max(450, avgDuration * 0.65);
+      state.classifyWindowMs = Math.min(1800, Math.max(500, avgDuration));
+    } else {
+      state.repDebounce = 260;
+      state.classifyWindowMs = 700;
+    }
+    const trainedCount = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0).length;
+    state.classifierGate = trainedCount >= 2;
     state.fallDuration = Math.max(state.baseFallDuration * 0.45, state.baseFallDuration - state.score * 250);
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + ex.reps;
@@ -533,10 +558,33 @@
     rafId = requestAnimationFrame(tick);
   }
 
+  function flashMismatch(){
+    falling.classList.add('mismatch');
+    setTimeout(() => falling.classList.remove('mismatch'), 350);
+  }
+
+  function attemptGameRep(now){
+    if(!state || state.resolved) return;
+    if(now - state.lastRepTime < (state.repDebounce || 260)) return;
+    if(state.classifierGate){
+      const win = motionBuffer.filter(s => s.t <= now && now - s.t <= state.classifyWindowMs);
+      const feat = extractFeaturesFromBuffer(win);
+      if(feat){
+        const result = classify(feat);
+        if(result && !result.onlyOne && result.label !== state.currentName){
+          state.lastRepTime = now;
+          flashMismatch();
+          return;
+        }
+      }
+    }
+    registerRep();
+  }
+
   function registerRep(){
     if(!state || state.resolved) return;
     const now = performance.now();
-    if(now - state.lastRepTime < 260) return; // debounce
+    if(now - state.lastRepTime < (state.repDebounce || 260)) return; // debounce
     state.lastRepTime = now;
     state.reps++;
     repCountEl.textContent = state.reps;
@@ -592,7 +640,7 @@
 
   // --- Train / test state ---
   let motionBuffer = [];
-  const BUFFER_MS = 1200;
+  const BUFFER_MS = 2000;
   let isTrainingActive = false;
   let trainingExercise = null;
   let trainingSessionFeatures = [];
@@ -759,7 +807,7 @@
         repTestCountEl.textContent = testReps;
       }
       if(!isTrainingActive && !isTestingActive){
-        registerRep();
+        attemptGameRep(now);
       }
     }
   }
@@ -867,6 +915,7 @@
   trainBackBtn.addEventListener('click', () => {
     trainHub.style.display = 'none';
     startScreen.style.display = 'flex';
+    refreshPreviewList();
   });
 
   function ensureMotionArmed(){
