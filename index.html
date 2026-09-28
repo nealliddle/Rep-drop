@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rep Drop">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
-<title>Rep Drop - Gamified Kettlebell Workout</title>
+<title>Rep Drop - Gamified Motion Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -111,19 +111,22 @@
     border: 1px solid var(--track);
     overflow: hidden;
     user-select: none;
+    touch-action: none; /* Allows full gesture pinch & pan inside canvas */
     -webkit-user-select: none;
   }
   canvas.motion-canvas {
     display: block;
     width: 100%;
     height: 220px;
-    cursor: crosshair;
+    cursor: grab;
   }
-  .zoom-controls {
-    display: flex; flex-direction: column; gap: 6px; margin: 6px 0; font-size: 0.75rem; color: var(--ink-dim);
+  canvas.motion-canvas:active {
+    cursor: grabbing;
   }
-  .zoom-slider-row { display: flex; align-items: center; gap: 8px; }
-  .zoom-slider-row input[type=range] { flex: 1; }
+  .gesture-hint {
+    font-size: 0.72rem; color: var(--ink-dim); text-align: center; margin-top: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
 
   .series-toggles {
     display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; justify-content: flex-start;
@@ -166,7 +169,7 @@
   button.ghost:active { background: rgba(0,0,0,0.05); }
   .fine-print { font-size: 0.75rem; color: var(--ink-dim); text-align: center; }
 
-  /* Game HUD */
+  /* Game HUD & Controls */
   #hud { display: none; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
   .hud-top { display: flex; justify-content: space-between; align-items: center; }
   .stat { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
@@ -176,13 +179,8 @@
   .life.spent { background: var(--track); }
 
   #lane {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    background: var(--panel);
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--track);
+    position: relative; flex: 1; min-height: 0; background: var(--panel);
+    border-radius: 16px; overflow: hidden; border: 1px solid var(--track);
   }
   #target-zone {
     position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
@@ -223,14 +221,14 @@
   }
   #tap-btn:active { transform: scale(0.94); }
 
-  /* Visual Checkpoint Step Indicators */
   .checkpoint-steps { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
   .step-dot {
     width: 22px; height: 22px; border-radius: 50%; background: var(--track);
     color: var(--bg); font-size: 0.68rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
+    transition: all 150ms ease;
   }
-  .step-dot.active { background: var(--hazard); color: #000; }
+  .step-dot.active { background: var(--hazard); color: #000; transform: scale(1.15); }
   .step-dot.done { background: var(--good); color: #fff; }
 
   /* Debug & Sensors */
@@ -257,6 +255,11 @@
   .condition-row select, .condition-row input {
     background: var(--panel); color: var(--ink); border: 1px solid var(--track);
     border-radius: 4px; padding: 3px 5px; font-family: inherit; font-size: 0.75rem;
+  }
+  
+  .select-input {
+    width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--track);
+    border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 0.9rem;
   }
 </style>
 </head>
@@ -293,7 +296,7 @@
       <button class="primary" id="enable-btn">Enable Motion &amp; Start Workout</button>
       <p class="fine-print" style="margin-top:6px;">Hold phone in exercise hand. Tap mode available if motion sensor is unavailable.</p>
       <button class="ghost" id="train-nav-btn" style="margin-top:8px;">Train &amp; Map Exercise Curves</button>
-      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; Hammer Clang: On</button>
+      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; Audio Effects: On</button>
       <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View Last Workout Graph</button>
     </div>
   </div>
@@ -343,79 +346,72 @@
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">TRAIN<br><span>EXERCISES</span></h1>
-      <p class="tagline">Record single rep movement curves &amp; set compound keyframe markers.</p>
+      <p class="tagline">Select an exercise to record movement curves &amp; map compound keyframe markers.</p>
     </div>
-    <div class="card">
-      <div class="exercise-row"><b>Kettlebell Swings</b><span id="train-count-swing">not trained</span></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record Demo</button>
-        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset</button>
-      </div>
-      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Trim &amp; Compound Markers (<span id="marker-count-swing">0</span>)</button>
-    </div>
-    <div class="card">
-      <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record Demo</button>
-        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset</button>
-      </div>
-      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Trim &amp; Compound Markers (<span id="marker-count-press">0</span>)</button>
-    </div>
+    <div id="train-exercise-list" style="display:flex;flex-direction:column;gap:10px;"></div>
     <div>
-      <button class="primary" id="test-nav-btn">Test Live Detection</button>
+      <button class="primary" id="test-nav-btn">Live Interactive Test Mode</button>
       <button class="ghost" id="train-back-btn" style="margin-top:8px;">Back</button>
     </div>
   </div>
 
-  <!-- 4. RECORDING SCREEN -->
-  <div id="train-record" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
-    <div>
-      <h1 class="wordmark" id="train-record-title">RECORDING</h1>
-      <p class="tagline">Perform 1 or 2 reps naturally — curve data will be captured.</p>
-    </div>
-    <div class="card" style="text-align:center;">
-      <div id="train-rep-count" style="font-family:'Oswald',sans-serif;font-size:2.6rem;">0</div>
-      <div style="color:var(--ink-dim);font-size:0.78rem;">Motion Samples Logged</div>
-      <div id="train-moving-status" style="margin-top:8px;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
-    </div>
-    <div>
-      <button class="primary" id="train-done-btn">Done — Edit Curves &amp; Trim Rep</button>
-      <button class="ghost" id="train-cancel-btn" style="margin-top:8px;">Cancel</button>
-    </div>
-  </div>
-
-  <!-- 5. TEST LIVE SCREEN -->
+  <!-- 4. TEST LIVE SCREEN (WITH SELECTOR, PAUSE/RESET & REAL-TIME GRAPH) -->
   <div id="test-live" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
-      <p class="tagline">Move naturally — system evaluates multi-axis compound conditions.</p>
+      <p class="tagline">Select exercise and observe live real-time motion graphs and keyframe line-crossing triggers.</p>
     </div>
-    <div class="card" style="text-align:center;padding:16px 0;">
-      <div id="test-result-label" style="font-family:'Oswald',sans-serif;font-size:2rem;">—</div>
-      <div id="test-result-conf" style="font-size:0.85rem;color:var(--ink-dim);">Waiting for movement...</div>
+    
+    <div class="card">
+      <div class="exercise-row" style="margin-bottom:8px;"><b>Target Exercise</b></div>
+      <select id="test-exercise-select" class="select-input"></select>
+    </div>
+
+    <div class="card" style="text-align:center;padding:12px 14px;">
+      <div id="test-result-label" style="font-family:'Oswald',sans-serif;font-size:1.8rem;line-height:1.1;">—</div>
+      <div id="test-result-conf" style="font-size:0.8rem;color:var(--ink-dim);margin-top:2px;">Waiting for movement...</div>
       <div class="checkpoint-steps" id="test-checkpoints"></div>
     </div>
-    <div id="test-moving-status" style="text-align:center;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
-    <div id="test-log" style="display:flex;flex-direction:column;gap:6px;"></div>
-    <button class="ghost" id="test-back-btn">Back to Hub</button>
+
+    <!-- Live Real-Time Motion Graph Canvas Card -->
+    <div class="card">
+      <div class="exercise-row"><b>Live Oscilloscope Stream</b><span id="test-live-fps" style="font-size:0.75rem;">LIVE</span></div>
+      <div class="series-toggles" id="test-series-toggles" style="margin-top:8px;">
+        <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
+        <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
+        <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y Accel</div>
+        <div class="toggle-chip active" data-series="mag"><span class="toggle-dot" style="background:var(--mag-clr);"></span>Mag</div>
+      </div>
+      <div class="graph-container">
+        <canvas id="test-live-canvas" class="motion-canvas" style="height:180px;cursor:default;"></canvas>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="primary" id="test-toggle-btn" style="flex:1;">Pause Stream</button>
+      <button class="ghost" id="test-reset-btn" style="flex:1;">Reset Session</button>
+    </div>
+    <button class="ghost" id="test-back-btn">Back to Training Hub</button>
   </div>
 
-  <!-- 6. MARKER / CURVE EDITOR SCREEN (WITH MULTI-CONDITION MARKERS) -->
+  <!-- 5. MARKER / CURVE EDITOR SCREEN (WITH PINCH/ZOOM & LINE-CROSSING AUTO KEYING) -->
   <div id="marker-screen" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
-      <h1 class="wordmark" id="marker-title">COMPOUND<br><span>KEYFRAMES</span></h1>
-      <p class="tagline">Define compound pose keyframes requiring multiple sensor conditions (AND logic) at once.</p>
+      <h1 class="wordmark" id="marker-title">MOTION<br><span>CURVES</span></h1>
+      <p class="tagline">Record movement, pinch/drag graph to inspect curves, and map line-crossing keyframes.</p>
     </div>
     
-    <div id="marker-rec-prompt" class="card" style="display:none;text-align:center;">
-      <p style="margin:0 0 10px;font-size:0.9rem;">No exercise recording found. Record motion first.</p>
-      <button class="primary" id="marker-record-btn">Record Demo Motion</button>
+    <div class="card" style="text-align:center;">
+      <div style="display:flex;gap:8px;">
+        <button class="primary" id="marker-record-btn" style="flex:1;">⏺ Record Demo Motion</button>
+        <button class="ghost" id="marker-clear-rec-btn" style="width:auto;padding:0 12px;display:none;">Clear</button>
+      </div>
+      <div id="marker-rec-status" style="margin-top:6px;font-size:0.78rem;color:var(--ink-dim);">Tap to record 1–2 reps naturally</div>
     </div>
 
-    <!-- Canvas Graph Card -->
+    <!-- Canvas Graph Card with Direct Pinch/Zoom and Drag/Pan Controls -->
     <div class="card" id="marker-chart-card" style="display:none;">
       
       <div class="series-toggles" id="marker-series-toggles">
@@ -424,60 +420,41 @@
         <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
         <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
         <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
-        <div class="toggle-chip active" data-series="mag"><span class="toggle-dot" style="background:var(--mag-clr);"></span>Mag</div>
-      </div>
-
-      <div class="zoom-controls">
-        <div class="zoom-slider-row">
-          <span>Width Zoom</span>
-          <input type="range" id="marker-zoom-x" min="1" max="10" step="0.2" value="1">
-          <span id="marker-zoom-x-val">1×</span>
-        </div>
-        <div class="zoom-slider-row">
-          <span>Height Zoom</span>
-          <input type="range" id="marker-zoom-y" min="0.5" max="4" step="0.1" value="1">
-          <span id="marker-zoom-y-val">1×</span>
-        </div>
-        <div class="zoom-slider-row" style="margin-top:4px;">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" id="smooth-curves-cb" checked>
-            <b>Smooth Motion &amp; Live Filter Active</b>
-          </label>
-        </div>
       </div>
 
       <div class="graph-container" id="marker-graph-container">
         <canvas id="marker-canvas" class="motion-canvas"></canvas>
       </div>
 
+      <div class="gesture-hint">
+        <span>👈 Drag to Pan | Pinch to Zoom 👉</span>
+        <button id="marker-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
+      </div>
+
       <div id="marker-sim" class="fine-print" style="margin-top:6px;font-weight:600;color:var(--good);"></div>
     </div>
 
-    <!-- Trim Controls Card -->
-    <div class="card" id="trim-card" style="display:none;">
-      <div class="exercise-row"><b>Trim Window (Single Rep)</b></div>
-      <div class="zoom-slider-row" style="margin-top:8px;">
-        <span style="font-size:0.75rem;">Start</span>
-        <input type="range" id="trim-start-slider" min="0" max="100" value="0">
-        <span style="font-size:0.75rem;">End</span>
-        <input type="range" id="trim-end-slider" min="0" max="100" value="100">
-      </div>
-      <button class="ghost" id="auto-gen-markers-btn" style="margin-top:10px;background:var(--bg);font-weight:600;">
-        ✨ Auto-Generate Compound Keyframes (Multi-Axis)
+    <!-- Automated Line Crossing Keyframe Generator -->
+    <div class="card" id="auto-key-card" style="display:none;">
+      <div class="exercise-row"><b>Automated Curve Intersections</b></div>
+      <p style="font-size:0.75rem;color:var(--ink-dim);margin:4px 0 8px;">
+        Automatically detects points where motion curves cross each other (e.g. Pitch crossing Roll or Y acceleration) to set reliable compound anchor keyframes.
+      </p>
+      <button class="ghost" id="auto-gen-crossings-btn" style="background:var(--bg);font-weight:600;width:100%;">
+        ✨ Auto-Key Line Crossings &amp; Intersections
       </button>
     </div>
 
     <div id="marker-list" style="display:flex;flex-direction:column;gap:8px;"></div>
 
     <div id="marker-actions" style="display:none;">
-      <button class="ghost" id="marker-add-btn">+ Add Compound Keyframe Step</button>
-      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record Demo</button>
+      <button class="ghost" id="marker-add-btn">+ Add Custom Keyframe Step</button>
       <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Keyframes &amp; Settings</button>
-      <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back without Saving</button>
+      <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back to Hub</button>
     </div>
   </div>
 
-  <!-- 7. GAME HUD SCREEN -->
+  <!-- 6. GAME HUD SCREEN -->
   <div id="hud">
     <div class="chip-row">
       <button class="home-chip" data-home>⌂ Home</button>
@@ -503,7 +480,7 @@
     <button id="tap-btn">TAP<br>REP</button>
   </div>
 
-  <!-- 8. SESSION GRAPH SCREEN -->
+  <!-- 7. SESSION GRAPH SCREEN -->
   <div id="session-screen" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
@@ -525,7 +502,7 @@
     <button class="ghost" id="session-back-btn">Back</button>
   </div>
 
-  <!-- 9. END SCREEN -->
+  <!-- 8. END SCREEN -->
   <div id="end-screen" class="screen">
     <div>
       <h1 class="wordmark">GAME<br><span>OVER</span></h1>
@@ -595,6 +572,24 @@
     } catch(e){}
   }
 
+  function playCrossingTone() {
+    if(!audioOn) return;
+    initAudio();
+    if(!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(1320, t + 0.08);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.11);
+    } catch(e){}
+  }
+
   function speak(text, interrupt){
     if(!audioOn || !('speechSynthesis' in window)) return;
     try {
@@ -607,15 +602,14 @@
 
   const EXERCISES = [
     { name: "Kettlebell Swings", reps: 10 },
+    { name: "Kettlebell Press", reps: 8 },
     { name: "Goblet Squats", reps: 8 },
     { name: "Push-ups", reps: 10 },
     { name: "Mountain Climbers", reps: 16 },
-    { name: "Kettlebell Press", reps: 8 },
     { name: "Jumping Jacks", reps: 15 },
     { name: "Lunges", reps: 12 },
     { name: "Burpees", reps: 6 },
   ];
-  const TRAIN_EXERCISES = ["Kettlebell Swings", "Kettlebell Press"];
 
   // DOM Elements
   const startScreen = document.getElementById('start-screen');
@@ -661,43 +655,35 @@
   
   const trainNavBtn = document.getElementById('train-nav-btn');
   const trainHub = document.getElementById('train-hub');
+  const trainExerciseList = document.getElementById('train-exercise-list');
   const trainBackBtn = document.getElementById('train-back-btn');
-  const trainRecord = document.getElementById('train-record');
-  const trainRecordTitle = document.getElementById('train-record-title');
-  const trainRepCount = document.getElementById('train-rep-count');
-  const trainDoneBtn = document.getElementById('train-done-btn');
-  const trainCancelBtn = document.getElementById('train-cancel-btn');
+  
   const testNavBtn = document.getElementById('test-nav-btn');
   const testLive = document.getElementById('test-live');
   const testBackBtn = document.getElementById('test-back-btn');
   const testResultLabel = document.getElementById('test-result-label');
   const testResultConf = document.getElementById('test-result-conf');
-  const testLog = document.getElementById('test-log');
-  const trainMovingStatus = document.getElementById('train-moving-status');
+  const testExerciseSelect = document.getElementById('test-exercise-select');
+  const testToggleBtn = document.getElementById('test-toggle-btn');
+  const testResetBtn = document.getElementById('test-reset-btn');
+  const testLiveCanvas = document.getElementById('test-live-canvas');
   
   const markerScreen = document.getElementById('marker-screen');
   const markerTitle = document.getElementById('marker-title');
-  const markerRecPrompt = document.getElementById('marker-rec-prompt');
   const markerRecordBtn = document.getElementById('marker-record-btn');
+  const markerClearRecBtn = document.getElementById('marker-clear-rec-btn');
+  const markerRecStatus = document.getElementById('marker-rec-status');
   const markerChartCard = document.getElementById('marker-chart-card');
   const markerCanvas = document.getElementById('marker-canvas');
   const markerListEl = document.getElementById('marker-list');
   const markerActions = document.getElementById('marker-actions');
   const markerAddBtn = document.getElementById('marker-add-btn');
-  const markerRerecordBtn = document.getElementById('marker-rerecord-btn');
   const markerSaveBtn = document.getElementById('marker-save-btn');
   const markerBackBtn = document.getElementById('marker-back-btn');
-  const markerZoomX = document.getElementById('marker-zoom-x');
-  const markerZoomXVal = document.getElementById('marker-zoom-x-val');
-  const markerZoomY = document.getElementById('marker-zoom-y');
-  const markerZoomYVal = document.getElementById('marker-zoom-y-val');
-  const smoothCb = document.getElementById('smooth-curves-cb');
+  const markerResetViewBtn = document.getElementById('marker-reset-view-btn');
   const markerSim = document.getElementById('marker-sim');
-  
-  const trimCard = document.getElementById('trim-card');
-  const trimStartSlider = document.getElementById('trim-start-slider');
-  const trimEndSlider = document.getElementById('trim-end-slider');
-  const autoGenBtn = document.getElementById('auto-gen-markers-btn');
+  const autoKeyCard = document.getElementById('auto-key-card');
+  const autoGenCrossingsBtn = document.getElementById('auto-gen-crossings-btn');
 
   const sessionScreen = document.getElementById('session-screen');
   const sessionCanvas = document.getElementById('session-canvas');
@@ -714,7 +700,7 @@
   repsSlider.addEventListener('input', () => { repsValue.textContent = repsPerFall(); refreshPreviewList(); });
   audioToggle.addEventListener('click', () => {
     audioOn = !audioOn;
-    audioToggle.innerHTML = 'Voice &amp; Hammer Clang: ' + (audioOn ? 'On' : 'Off');
+    audioToggle.innerHTML = 'Voice &amp; Audio Effects: ' + (audioOn ? 'On' : 'Off');
     if(audioOn) initAudio(); else { try { speechSynthesis.cancel(); } catch(e){} }
   });
 
@@ -728,7 +714,7 @@
     lastSessionBtn.style.display = (lastSession && (lastSession.samples.length > 2 || lastSession.events.length)) ? 'block' : 'none';
   }
 
-  const ALL_SCREENS = [startScreen, motionCheck, hud, endScreen, trainHub, trainRecord, testLive, markerScreen, sessionScreen];
+  const ALL_SCREENS = [startScreen, motionCheck, hud, endScreen, trainHub, testLive, markerScreen, sessionScreen];
   function showOnly(screen){
     ALL_SCREENS.forEach(x => x.style.display = 'none');
     screen.style.display = 'flex';
@@ -742,12 +728,11 @@
       if(session.samples.length > 2 || session.events.length) lastSession = session;
     }
     state = null;
-    isTrainingActive = false; isTestingActive = false; isMarkerRecording = false; inMotionCheck = false;
+    isTestingActive = false; isMarkerRecording = false; inMotionCheck = false;
     try { speechSynthesis.cancel(); } catch(e){}
     showOnly(startScreen);
     refreshPreviewList();
     updateLastSessionBtn();
-    updateTrainHubStatus();
   }
   document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
 
@@ -914,8 +899,8 @@
   let motionBuffer = [];
   let testReps = 0;
   let inMotionCheck = false;
-  let isTrainingActive = false;
   let isTestingActive = false;
+  let isTestingPaused = false;
   let isMarkerRecording = false;
 
   // Real-Time Exponential Moving Average (EMA) Filter
@@ -928,7 +913,7 @@
     const rawPitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
     const rawRoll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
 
-    // Live continuous smoothing update
+    // Continuous exponential smoothing update
     smoothedState.x = smoothedState.x + ALPHA * (x - smoothedState.x);
     smoothedState.y = smoothedState.y + ALPHA * (y - smoothedState.y);
     smoothedState.z = smoothedState.z + ALPHA * (z - smoothedState.z);
@@ -937,34 +922,26 @@
     smoothedState.mag = smoothedState.mag + ALPHA * (rawMag - smoothedState.mag);
 
     const dirY = smoothedState.y > 1.8 ? '↑ Moving Up' : (smoothedState.y < -1.8 ? '↓ Moving Down' : '• Neutral');
-    
-    // Evaluate sample based on global smooth toggle
-    const useSmooth = smoothCb.checked;
-    const evalX = useSmooth ? smoothedState.x : x;
-    const evalY = useSmooth ? smoothedState.y : y;
-    const evalZ = useSmooth ? smoothedState.z : z;
-    const evalPitch = useSmooth ? smoothedState.pitch : rawPitch;
-    const evalRoll = useSmooth ? smoothedState.roll : rawRoll;
-    const evalMag = useSmooth ? smoothedState.mag : rawMag;
 
     const sample = {
-      t, x: evalX, y: evalY, z: evalZ, mag: evalMag, pitch: evalPitch, roll: evalRoll, dirY,
+      t, x: smoothedState.x, y: smoothedState.y, z: smoothedState.z,
+      mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll, dirY,
       rawX: x, rawY: y, rawZ: z, rawPitch, rawRoll, rawMag
     };
 
     motionBuffer.push(sample);
-    if(motionBuffer.length > 250) motionBuffer.shift();
+    if(motionBuffer.length > 300) motionBuffer.shift();
 
     if(session && session.active) session.samples.push(sample);
 
     if(inMotionCheck){
-      dbgX.textContent = evalX.toFixed(1); dbgY.textContent = evalY.toFixed(1); dbgZ.textContent = evalZ.toFixed(1);
-      dbgPitch.textContent = evalPitch.toFixed(0) + '°'; dbgRoll.textContent = evalRoll.toFixed(0) + '°'; dbgMag.textContent = evalMag.toFixed(1);
-      const dirColor = evalY > 1.8 ? 'var(--good)' : (evalY < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
+      dbgX.textContent = sample.x.toFixed(1); dbgY.textContent = sample.y.toFixed(1); dbgZ.textContent = sample.z.toFixed(1);
+      dbgPitch.textContent = sample.pitch.toFixed(0) + '°'; dbgRoll.textContent = sample.roll.toFixed(0) + '°'; dbgMag.textContent = sample.mag.toFixed(1);
+      const dirColor = sample.y > 1.8 ? 'var(--good)' : (sample.y < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
       dbgDirBadge.innerHTML = `<span style="color:${dirColor}">${dirY}</span>`;
 
       const threshold = parseFloat(thresholdSlider.value);
-      const delta = Math.abs(evalMag - 9.8);
+      const delta = Math.abs(sample.mag - 9.8);
       dbgDelta.textContent = delta.toFixed(1);
       deltaFill.style.width = Math.min(100, (delta / 4) * 100) + '%';
       document.getElementById('delta-threshold-line').style.left = (threshold / 4 * 100) + '%';
@@ -978,15 +955,20 @@
       }
     }
 
-    if(isMarkerRecording || isTrainingActive) markerRecordBuffer.push(sample);
+    if(isMarkerRecording) {
+      markerRecordBuffer.push(sample);
+      markerRecStatus.textContent = `Recording... ${markerRecordBuffer.length} samples logged`;
+    }
 
     // Active Game Compound Checkpoint Matcher
     if(state && !state.resolved && state.markers && state.markers.length > 0){
       checkCompoundMarkersForRep(sample);
     }
     
-    if(isTestingActive){
+    // Live Testing Engine Stream & Crossing Audio Trigger
+    if(isTestingActive && !isTestingPaused){
       checkLiveTestingCompoundMarkers(sample);
+      renderLiveTestCanvas();
     }
   }
 
@@ -1008,6 +990,7 @@
     if(matchesKeyframe(sample, targetKeyframe)){
       state.markerIndex = (state.markerIndex || 0) + 1;
       renderHudCheckpoints(state.markers, state.markerIndex);
+      playCrossingTone(); // Audio sound trigger on keyframe/line crossing match!
       if(state.markerIndex >= state.markers.length){
         state.markerIndex = 0;
         registerRep();
@@ -1017,24 +1000,37 @@
   }
 
   let testMarkerIndex = 0;
+  let testCrossingTriggerHistory = [];
+
   function checkLiveTestingCompoundMarkers(sample){
+    const activeEx = testExerciseSelect.value;
     const markerData = loadMarkerData();
-    const activeEx = currentMarkerExercise || TRAIN_EXERCISES[0];
     const mData = markerData[activeEx];
-    if(!mData || !mData.markers || mData.markers.length === 0) return;
+    if(!mData || !mData.markers || mData.markers.length === 0){
+      testResultLabel.textContent = 'No Keyframes Set';
+      testResultConf.textContent = 'Record motion demo for ' + activeEx + ' first.';
+      return;
+    }
 
     const targetKeyframe = mData.markers[testMarkerIndex];
 
     if(matchesKeyframe(sample, targetKeyframe)){
+      testCrossingTriggerHistory.push({ t: sample.t, step: testMarkerIndex + 1 });
+      if(testCrossingTriggerHistory.length > 50) testCrossingTriggerHistory.shift();
+
       testMarkerIndex++;
       renderHudCheckpoints(mData.markers, testMarkerIndex);
-      playMetalClang(false);
+      playCrossingTone(); // Sound effect trigger whenever keyframe/line crosses target condition
+
       if(testMarkerIndex >= mData.markers.length){
         testMarkerIndex = 0;
         playMetalClang(true);
         testResultLabel.textContent = '✔ Rep Complete!';
         testResultConf.textContent = `${activeEx} multi-axis compound match!`;
         renderHudCheckpoints(mData.markers, 0);
+      } else {
+        testResultLabel.textContent = `Step #${testMarkerIndex} Matched`;
+        testResultConf.textContent = `Moving towards Step #${testMarkerIndex + 1}...`;
       }
     }
   }
@@ -1068,68 +1064,245 @@
   motionOkBtn.addEventListener('click', () => { inMotionCheck = false; startGame(); });
   motionSkipBtn.addEventListener('click', () => { inMotionCheck = false; startGame(); });
 
-  trainNavBtn.addEventListener('click', () => { showOnly(trainHub); updateTrainHubStatus(); });
+  trainNavBtn.addEventListener('click', () => { showOnly(trainHub); renderTrainHub(); });
   trainBackBtn.addEventListener('click', goHome);
 
-  function updateTrainHubStatus(){
+  function renderTrainHub(){
     const markerData = loadMarkerData();
-    TRAIN_EXERCISES.forEach(ex => {
-      const slug = ex.includes('Swing') ? 'swing' : 'press';
-      const countEl = document.getElementById(`train-count-${slug}`);
-      const markerCountEl = document.getElementById(`marker-count-${slug}`);
-      const m = markerData[ex];
-      if(countEl) countEl.textContent = (m && m.recording && m.recording.length) ? 'Demo recorded' : 'not trained';
-      if(markerCountEl) markerCountEl.textContent = (m && m.markers) ? m.markers.length : 0;
-    });
+    trainExerciseList.innerHTML = EXERCISES.map(ex => {
+      const data = markerData[ex.name];
+      const hasRec = data && data.recording && data.recording.length > 5;
+      const keyframeCount = (data && data.markers) ? data.markers.length : 0;
+      const statusText = hasRec ? `${keyframeCount} keyframe(s) set` : 'Not trained';
+      
+      return `
+        <div class="card">
+          <div class="exercise-row">
+            <b>${ex.name}</b>
+            <span style="font-size:0.78rem;color:${hasRec?'var(--good)':'var(--ink-dim)'}">${statusText}</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="primary" style="font-size:0.88rem;padding:10px;" onclick="window.openMarkerEditor('${ex.name}')">
+              ${hasRec ? '⚙ Edit Keyframes & Curves' : '⏺ Record Demo & Map Keyframes'}
+            </button>
+            ${hasRec ? `<button class="ghost" style="width:auto;padding:0 12px;" onclick="window.clearExerciseData('${ex.name}')">Clear</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  document.querySelectorAll('[data-action]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const ex = e.currentTarget.getAttribute('data-exercise');
-      const act = e.currentTarget.getAttribute('data-action');
-      if(act === 'record'){ startTrainRecord(ex); }
-      else if(act === 'reset'){
-        const m = loadMarkerData(); delete m[ex]; saveMarkerData(m); updateTrainHubStatus();
-      } else if(act === 'markers'){ openMarkerEditor(ex); }
-    });
-  });
-
-  function startTrainRecord(ex){
-    ensureMotionArmed();
-    isTrainingActive = true;
-    currentMarkerExercise = ex;
-    markerRecordBuffer = [];
-    trainRecordTitle.innerHTML = `RECORD<br><span>${ex.toUpperCase()}</span>`;
-    trainRepCount.textContent = '0';
-    trainMovingStatus.textContent = 'Idle — Start movement';
-    showOnly(trainRecord);
-  }
-
-  trainDoneBtn.addEventListener('click', () => {
-    isTrainingActive = false;
-    openMarkerEditor(currentMarkerExercise);
-  });
-  trainCancelBtn.addEventListener('click', () => {
-    isTrainingActive = false; showOnly(trainHub);
-  });
+  window.clearExerciseData = function(exName){
+    const m = loadMarkerData(); delete m[exName]; saveMarkerData(m); renderTrainHub();
+  };
 
   testNavBtn.addEventListener('click', () => {
-    ensureMotionArmed(); isTestingActive = true; testLog.innerHTML = '';
-    testResultLabel.textContent = '—'; testResultConf.textContent = 'Waiting for movement...';
-    const activeEx = currentMarkerExercise || TRAIN_EXERCISES[0];
-    const markerData = loadMarkerData();
-    const mData = markerData[activeEx];
-    if(mData && mData.markers) renderHudCheckpoints(mData.markers, 0);
+    ensureMotionArmed();
+    isTestingActive = true;
+    isTestingPaused = false;
+    testMarkerIndex = 0;
+    testCrossingTriggerHistory = [];
+    
+    // Populate Exercise Selector
+    testExerciseSelect.innerHTML = EXERCISES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+    updateTestExerciseSelection();
+    
     showOnly(testLive);
   });
+
+  function updateTestExerciseSelection(){
+    testMarkerIndex = 0;
+    const activeEx = testExerciseSelect.value;
+    const markerData = loadMarkerData();
+    const mData = markerData[activeEx];
+    
+    if(mData && mData.markers && mData.markers.length > 0){
+      renderHudCheckpoints(mData.markers, 0);
+      testResultLabel.textContent = 'Ready';
+      testResultConf.textContent = `Perform ${activeEx} motion...`;
+    } else {
+      renderHudCheckpoints([], 0);
+      testResultLabel.textContent = 'No Keyframes Set';
+      testResultConf.textContent = 'Record demo in Training Hub first.';
+    }
+  }
+
+  testExerciseSelect.addEventListener('change', updateTestExerciseSelection);
+
+  testToggleBtn.addEventListener('click', () => {
+    isTestingPaused = !isTestingPaused;
+    testToggleBtn.textContent = isTestingPaused ? 'Resume Stream' : 'Pause Stream';
+    document.getElementById('test-live-fps').textContent = isTestingPaused ? 'PAUSED' : 'LIVE';
+  });
+
+  testResetBtn.addEventListener('click', () => {
+    testMarkerIndex = 0;
+    testCrossingTriggerHistory = [];
+    updateTestExerciseSelection();
+  });
+
   testBackBtn.addEventListener('click', () => { isTestingActive = false; showOnly(trainHub); });
+
+  // Live Test Real-Time Oscilloscope Canvas Renderer
+  let liveSeriesActive = { pitch: true, roll: true, y: true, mag: true };
+  document.querySelectorAll('#test-series-toggles .toggle-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const s = chip.getAttribute('data-series');
+      liveSeriesActive[s] = !liveSeriesActive[s];
+      chip.classList.toggle('active', liveSeriesActive[s]);
+    });
+  });
+
+  function renderLiveTestCanvas(){
+    const canvas = testLiveCanvas;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = 180 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = 180;
+    const samples = motionBuffer;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    if(samples.length < 2) return;
+
+    const valToY = v => (H / 2) - (v / 40) * (H - 20);
+    const idxToX = i => (i / (samples.length - 1)) * W;
+
+    // Center Baseline
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const seriesList = [
+      { key: 'pitch', clr: 'var(--pitch-clr)' },
+      { key: 'roll', clr: 'var(--roll-clr)' },
+      { key: 'y', clr: 'var(--good)' },
+      { key: 'mag', clr: 'var(--mag-clr)' }
+    ];
+
+    seriesList.forEach(s => {
+      if(!liveSeriesActive[s.key]) return;
+      const clrVal = getComputedStyle(document.documentElement).getPropertyValue(s.clr.replace('var(','').replace(')','')).trim();
+      ctx.strokeStyle = clrVal || '#888';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      samples.forEach((sample, i) => {
+        const xPx = idxToX(i);
+        const yPx = valToY(sample[s.key] || 0);
+        if(i === 0) ctx.moveTo(xPx, yPx);
+        else ctx.lineTo(xPx, yPx);
+      });
+      ctx.stroke();
+    });
+
+    // Draw Live Keyframe Crossing Sound Triggers as vertical markers
+    const now = performance.now();
+    testCrossingTriggerHistory.forEach(trig => {
+      const age = now - trig.t;
+      if(age < 4000){ // Show vertical line for 4 seconds
+        const sampleIdx = samples.findIndex(s => s.t >= trig.t);
+        if(sampleIdx >= 0){
+          const trigX = idxToX(sampleIdx);
+          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(trigX, 0); ctx.lineTo(trigX, H); ctx.stroke();
+          ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+          ctx.font = 'bold 10px sans-serif';
+          ctx.fillText(`Step #${trig.step}`, trigX + 3, 14);
+        }
+      }
+    });
+  }
 
   let currentMarkerExercise = null;
   let markerRecordBuffer = [];
-  let editingMarkers = []; // Array of compound keyframe objects: { id, label, conditions: [{axis, val, dir}] }
-  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true, mag: true };
-  let zoomX = 1.0, zoomY = 1.0;
-  let trimStartPct = 0, trimEndPct = 100;
+  let editingMarkers = []; // Array of compound keyframe objects
+  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true };
+
+  // Pinch & Pan View Transformation State
+  let viewScaleX = 1.0;
+  let viewPanX = 0.0;
+  let viewScaleY = 1.0;
+  let isDragging = false;
+  let dragStartX = 0;
+  let initialPanX = 0;
+  let initialPinchDistance = 0;
+  let initialPinchScale = 1.0;
+
+  // Touch Gesture Listeners on Canvas
+  const canvasEl = markerCanvas;
+
+  canvasEl.addEventListener('touchstart', (e) => {
+    if(e.touches.length === 1){
+      isDragging = true;
+      dragStartX = e.touches[0].clientX;
+      initialPanX = viewPanX;
+    } else if(e.touches.length === 2){
+      isDragging = false;
+      initialPinchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialPinchScale = viewScaleX;
+    }
+  }, { passive: true });
+
+  canvasEl.addEventListener('touchmove', (e) => {
+    if(isDragging && e.touches.length === 1){
+      const dx = e.touches[0].clientX - dragStartX;
+      viewPanX = initialPanX + dx;
+      renderMarkerCanvas();
+    } else if(e.touches.length === 2){
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if(initialPinchDistance > 0){
+        const factor = dist / initialPinchDistance;
+        viewScaleX = Math.max(0.5, Math.min(8.0, initialPinchScale * factor));
+        renderMarkerCanvas();
+      }
+    }
+  }, { passive: true });
+
+  canvasEl.addEventListener('touchend', () => { isDragging = false; });
+
+  // Mouse Drag / Pan Listeners
+  canvasEl.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    dragStartX = e.clientX;
+    initialPanX = viewPanX;
+  });
+  window.addEventListener('mousemove', (e) => {
+    if(!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    viewPanX = initialPanX + dx;
+    renderMarkerCanvas();
+  });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Wheel Zoom Listener
+  canvasEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+    viewScaleX = Math.max(0.5, Math.min(8.0, viewScaleX * zoomFactor));
+    renderMarkerCanvas();
+  }, { passive: false });
+
+  markerResetViewBtn.addEventListener('click', () => {
+    viewScaleX = 1.0; viewPanX = 0; viewScaleY = 1.0;
+    renderMarkerCanvas();
+  });
 
   // Toggle Series Visibility
   document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
@@ -1141,130 +1314,157 @@
     });
   });
 
-  markerZoomX.addEventListener('input', () => {
-    zoomX = parseFloat(markerZoomX.value);
-    markerZoomXVal.textContent = zoomX.toFixed(1) + '×';
-    renderMarkerCanvas();
-  });
-  markerZoomY.addEventListener('input', () => {
-    zoomY = parseFloat(markerZoomY.value);
-    markerZoomYVal.textContent = zoomY.toFixed(1) + '×';
-    renderMarkerCanvas();
-  });
-  smoothCb.addEventListener('change', renderMarkerCanvas);
-
-  trimStartSlider.addEventListener('input', () => {
-    trimStartPct = parseInt(trimStartSlider.value);
-    if(trimStartPct >= trimEndPct) trimStartPct = trimEndPct - 1;
-    renderMarkerCanvas();
-  });
-  trimEndSlider.addEventListener('input', () => {
-    trimEndPct = parseInt(trimEndSlider.value);
-    if(trimEndPct <= trimStartPct) trimEndPct = trimStartPct + 1;
-    renderMarkerCanvas();
-  });
-
-  function openMarkerEditor(exercise){
+  window.openMarkerEditor = function(exercise){
     currentMarkerExercise = exercise;
-    markerTitle.innerHTML = 'COMPOUND<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
+    markerTitle.innerHTML = 'MOTION<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
     
     const markerData = loadMarkerData();
     const existing = markerData[exercise];
 
+    viewScaleX = 1.0; viewPanX = 0;
+
     if(existing && existing.recording && existing.recording.length > 5){
       markerRecordBuffer = existing.recording;
       editingMarkers = existing.markers || [];
-      trimStartPct = existing.trimStart || 0;
-      trimEndPct = existing.trimEnd || 100;
-      trimStartSlider.value = trimStartPct;
-      trimEndSlider.value = trimEndPct;
 
-      markerRecPrompt.style.display = 'none';
       markerChartCard.style.display = 'block';
-      trimCard.style.display = 'block';
+      autoKeyCard.style.display = 'block';
       markerActions.style.display = 'block';
+      markerClearRecBtn.style.display = 'inline-block';
+      markerRecStatus.textContent = `${markerRecordBuffer.length} motion samples logged`;
       renderMarkerCanvas();
       renderMarkerList();
     } else {
       markerChartCard.style.display = 'none';
-      trimCard.style.display = 'none';
+      autoKeyCard.style.display = 'none';
       markerActions.style.display = 'none';
-      markerRecPrompt.style.display = 'block';
+      markerClearRecBtn.style.display = 'none';
+      markerRecStatus.textContent = 'Tap to record 1–2 reps naturally';
       markerListEl.innerHTML = '';
+      editingMarkers = [];
     }
     showOnly(markerScreen);
-  }
+  };
 
   markerRecordBtn.addEventListener('click', () => {
-    ensureMotionArmed();
-    isMarkerRecording = true;
-    markerRecordBuffer = [];
-    markerRecPrompt.style.display = 'none';
-    markerChartCard.style.display = 'block';
-    trimCard.style.display = 'block';
-    markerActions.style.display = 'block';
-    markerRerecordBtn.textContent = 'Done Recording';
-  });
-
-  markerRerecordBtn.addEventListener('click', () => {
     if(isMarkerRecording){
+      // Finish recording
       isMarkerRecording = false;
-      markerRerecordBtn.textContent = 'Re-record Demo';
-      if(markerRecordBuffer.length > 5 && editingMarkers.length === 0){
-        autoGenerateCompoundMarkers();
+      markerRecordBtn.textContent = '⏺ Record Demo Motion';
+      markerRecordBtn.style.background = 'var(--accent)';
+      
+      if(markerRecordBuffer.length > 5){
+        markerChartCard.style.display = 'block';
+        autoKeyCard.style.display = 'block';
+        markerActions.style.display = 'block';
+        markerClearRecBtn.style.display = 'inline-block';
+        
+        if(editingMarkers.length === 0){
+          autoGenerateLineCrossingKeyframes();
+        } else {
+          renderMarkerCanvas();
+          renderMarkerList();
+        }
       }
-      renderMarkerCanvas();
-      renderMarkerList();
     } else {
+      // Start recording demo
+      ensureMotionArmed();
       isMarkerRecording = true;
       markerRecordBuffer = [];
-      markerRerecordBtn.textContent = 'Done Recording';
+      markerRecordBtn.textContent = '⏹ Stop & Processing Recording';
+      markerRecordBtn.style.background = 'var(--good)';
+      markerRecStatus.textContent = 'Recording motion... move now!';
     }
   });
 
-  autoGenBtn.addEventListener('click', autoGenerateCompoundMarkers);
-
-  // Auto-Generate Multi-Axis Compound Keyframes
-  function autoGenerateCompoundMarkers(){
-    if(markerRecordBuffer.length < 5) return;
-    const startIdx = Math.floor((trimStartPct / 100) * markerRecordBuffer.length);
-    const endIdx = Math.floor((trimEndPct / 100) * markerRecordBuffer.length);
-    const trimmed = markerRecordBuffer.slice(startIdx, endIdx);
-
-    if(trimmed.length < 3) return;
-
-    // Find peak & valley snapshots
-    let maxPitch = -Infinity, minPitch = Infinity, maxY = -Infinity, minY = Infinity;
-    let maxPitchSample = trimmed[0], maxYSample = trimmed[0];
-
-    trimmed.forEach(s => {
-      if(s.pitch > maxPitch){ maxPitch = s.pitch; maxPitchSample = s; }
-      if(s.pitch < minPitch){ minPitch = s.pitch; }
-      if(s.y > maxY){ maxY = s.y; maxYSample = s; }
-      if(s.y < minY){ minY = s.y; }
-    });
-
+  markerClearRecBtn.addEventListener('click', () => {
+    markerRecordBuffer = [];
     editingMarkers = [];
+    markerChartCard.style.display = 'none';
+    autoKeyCard.style.display = 'none';
+    markerActions.style.display = 'none';
+    markerClearRecBtn.style.display = 'none';
+    markerRecStatus.textContent = 'Tap to record 1–2 reps naturally';
+    markerListEl.innerHTML = '';
+  });
 
-    // Compound Keyframe 1: Start/Bottom Pose
-    editingMarkers.push({
-      id: 1,
-      label: "Bottom Pose",
-      conditions: [
-        { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 5) },
-        { axis: 'y', dir: 'below', val: parseFloat((minY + 2.0).toFixed(1)) }
-      ]
+  autoGenCrossingsBtn.addEventListener('click', autoGenerateLineCrossingKeyframes);
+
+  function autoGenerateLineCrossingKeyframes(){
+    if(markerRecordBuffer.length < 5) return;
+    const samples = markerRecordBuffer;
+    
+    // Find curve line intersections / crossings (Pitch crossing Roll or Y Accel)
+    let crossings = [];
+
+    for(let i = 1; i < samples.length - 1; i++){
+      const prev = samples[i-1];
+      const curr = samples[i];
+
+      // Intersection 1: Pitch crosses Roll
+      const diffPrevPR = prev.pitch - prev.roll;
+      const diffCurrPR = curr.pitch - curr.roll;
+      if((diffPrevPR <= 0 && diffCurrPR > 0) || (diffPrevPR >= 0 && diffCurrPR < 0)){
+        crossings.push({ idx: i, sample: curr, type: 'Pitch ✕ Roll', axisA: 'pitch', axisB: 'roll' });
+      }
+
+      // Intersection 2: Pitch crosses Y Acceleration
+      const diffPrevPY = prev.pitch - prev.y;
+      const diffCurrPY = curr.pitch - curr.y;
+      if((diffPrevPY <= 0 && diffCurrPY > 0) || (diffPrevPY >= 0 && diffCurrPY < 0)){
+        crossings.push({ idx: i, sample: curr, type: 'Pitch ✕ Vertical Y', axisA: 'pitch', axisB: 'y' });
+      }
+    }
+
+    // Filter crossings to ensure minimum temporal separation
+    let distinctCrossings = [];
+    crossings.forEach(c => {
+      if(distinctCrossings.length === 0 || (c.idx - distinctCrossings[distinctCrossings.length-1].idx) > 12){
+        distinctCrossings.push(c);
+      }
     });
 
-    // Compound Keyframe 2: Peak/Top Pose (Combines Pitch AND Acceleration)
-    editingMarkers.push({
-      id: 2,
-      label: "Apex Pose",
-      conditions: [
-        { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 6) },
-        { axis: 'y', dir: 'above', val: parseFloat((maxYSample.y - 1.2).toFixed(1)) }
-      ]
-    });
+    // If no direct crossings found, fallback to peak/valley inflections
+    if(distinctCrossings.length < 2){
+      let maxPitch = -Infinity, minPitch = Infinity;
+      let maxS = samples[0], minS = samples[0];
+      samples.forEach(s => {
+        if(s.pitch > maxPitch){ maxPitch = s.pitch; maxS = s; }
+        if(s.pitch < minPitch){ minPitch = s.pitch; minS = s; }
+      });
+      editingMarkers = [
+        {
+          id: 1, label: "Bottom Pose Intersection",
+          conditions: [
+            { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 4) },
+            { axis: 'y', dir: 'below', val: parseFloat((minS.y + 1.5).toFixed(1)) }
+          ]
+        },
+        {
+          id: 2, label: "Apex Pose Crossing",
+          conditions: [
+            { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 4) },
+            { axis: 'y', dir: 'above', val: parseFloat((maxS.y - 1.5).toFixed(1)) }
+          ]
+        }
+      ];
+    } else {
+      // Build Compound AND Keyframes from Crossing Intersections
+      editingMarkers = distinctCrossings.slice(0, 3).map((c, idx) => {
+        const valA = Math.round(c.sample[c.axisA]);
+        const valB = parseFloat((c.sample[c.axisB]).toFixed(1));
+        const dirA = c.sample[c.axisA] >= 0 ? 'above' : 'below';
+
+        return {
+          id: Date.now() + idx,
+          label: `Crossing #${idx+1}: ${c.type}`,
+          conditions: [
+            { axis: c.axisA, dir: dirA, val: valA },
+            { axis: c.axisB, dir: 'above', val: valB }
+          ]
+        };
+      });
+    }
 
     renderMarkerCanvas();
     renderMarkerList();
@@ -1291,11 +1491,10 @@
     if(samples.length < 3) return;
 
     const totalPts = samples.length;
-    const renderW = W * zoomX;
+    const renderW = W * viewScaleX;
 
-    const valRange = 80 / zoomY;
-    const valToY = v => (H / 2) - (v / valRange) * (H - 20);
-    const idxToX = i => (i / (totalPts - 1)) * renderW;
+    const valToY = v => (H / 2) - (v / 40) * (H - 20);
+    const idxToX = i => ((i / (totalPts - 1)) * renderW) + viewPanX;
 
     // Draw baseline
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
@@ -1309,8 +1508,7 @@
       { key: 'y', clr: 'var(--good)' },
       { key: 'z', clr: 'var(--hazard)' },
       { key: 'pitch', clr: 'var(--pitch-clr)' },
-      { key: 'roll', clr: 'var(--roll-clr)' },
-      { key: 'mag', clr: 'var(--mag-clr)' }
+      { key: 'roll', clr: 'var(--roll-clr)' }
     ];
 
     seriesList.forEach(s => {
@@ -1329,28 +1527,11 @@
       ctx.stroke();
     });
 
-    // Draw Trim Regions
-    const startXPx = (trimStartPct / 100) * renderW;
-    const endXPx = (trimEndPct / 100) * renderW;
-
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(0, 0, startXPx, H);
-    ctx.fillRect(endXPx, 0, W - endXPx, H);
-
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 2]);
-    ctx.beginPath(); ctx.moveTo(startXPx, 0); ctx.lineTo(startXPx, H); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(endXPx, 0); ctx.lineTo(endXPx, H); ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Simulate compound rep matching over trimmed window
+    // Simulate compound rep matching over motion recording
     let hitsCount = 0;
     let mIdx = 0;
-    const startIdx = Math.floor((trimStartPct / 100) * samples.length);
-    const endIdx = Math.floor((trimEndPct / 100) * samples.length);
 
-    for(let i=startIdx; i<endIdx; i++){
+    for(let i=0; i<samples.length; i++){
       if(editingMarkers.length === 0) break;
       const targetKeyframe = editingMarkers[mIdx];
       const sample = samples[i];
@@ -1366,13 +1547,13 @@
         }
       }
     }
-    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in trimmed window.`;
+    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in recorded curve.`;
   }
 
   function renderMarkerList(){
     markerListEl.innerHTML = '';
     if(editingMarkers.length === 0){
-      markerListEl.innerHTML = '<div class="fine-print">No compound keyframes set. Tap "+ Add Compound Keyframe Step" or Auto-Generate.</div>';
+      markerListEl.innerHTML = '<div class="fine-print">No compound keyframes set. Tap "+ Add Custom Keyframe Step" or Auto-Key.</div>';
       return;
     }
 
@@ -1455,12 +1636,10 @@
     const markerData = loadMarkerData();
     markerData[currentMarkerExercise] = {
       recording: markerRecordBuffer,
-      markers: editingMarkers,
-      trimStart: trimStartPct,
-      trimEnd: trimEndPct
+      markers: editingMarkers
     };
     saveMarkerData(markerData);
-    updateTrainHubStatus();
+    renderTrainHub();
     showOnly(trainHub);
   });
 
