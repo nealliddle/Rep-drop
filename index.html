@@ -232,6 +232,11 @@
   #test-result-conf { font-size: 0.85rem; color: var(--ink-dim); margin-top: 2px; }
   #test-log { display: flex; flex-direction: column; gap: 6px; }
   .test-log-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 8px 12px; background: var(--panel); border-radius: 8px; }
+
+  #marker-screen { display: none; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; }
+  #marker-chart-wrap svg { width: 100%; height: auto; touch-action: none; }
+  .marker-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; background: var(--panel); border-radius: 8px; padding: 8px 12px; }
+  .marker-row button { background: none; border: none; color: var(--accent); font-size: 0.8rem; padding: 2px 6px; }
 </style>
 </head>
 <body>
@@ -272,6 +277,7 @@
         <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record reps</button>
         <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset</button>
       </div>
+      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Set markers (<span id="marker-count-swing">0</span>)</button>
     </div>
     <div class="card">
       <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
@@ -279,6 +285,7 @@
         <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record reps</button>
         <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset</button>
       </div>
+      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Set markers (<span id="marker-count-press">0</span>)</button>
     </div>
     <div>
       <button class="primary" id="test-nav-btn">Test detection live</button>
@@ -316,6 +323,27 @@
     <button class="ghost" id="test-mark-btn">Classify now (manual)</button>
     <div id="test-log"></div>
     <button class="ghost" id="test-back-btn">Back to hub</button>
+  </div>
+
+  <div id="marker-screen" class="screen">
+    <div>
+      <h1 class="wordmark" id="marker-title">SET<br><span>MARKERS</span></h1>
+      <p class="tagline" id="marker-instructions">Record one demo motion, then tap on the graph where a line crosses a meaningful point.</p>
+    </div>
+    <button class="primary" id="marker-record-btn">Start recording</button>
+    <div class="card" id="marker-chart-card" style="display:none;">
+      <div id="marker-legend" style="display:flex;gap:10px;font-size:0.72rem;color:var(--ink-dim);margin-bottom:6px;flex-wrap:wrap;">
+        <span>⬤ X</span><span>⬤ Y</span><span>⬤ Z</span><span>⬤ Magnitude</span>
+      </div>
+      <div id="marker-chart-wrap" style="width:100%;"></div>
+    </div>
+    <div id="marker-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <div>
+      <button class="ghost" id="marker-clear-btn">Clear markers</button>
+      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record demo</button>
+      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save markers</button>
+      <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back without saving</button>
+    </div>
   </div>
 
   <div id="motion-check" class="screen">
@@ -454,6 +482,16 @@
   const trainMarkBtn = document.getElementById('train-mark-btn');
   const testMovingStatus = document.getElementById('test-moving-status');
   const testMarkBtn = document.getElementById('test-mark-btn');
+  const markerScreen = document.getElementById('marker-screen');
+  const markerTitle = document.getElementById('marker-title');
+  const markerRecordBtn = document.getElementById('marker-record-btn');
+  const markerChartCard = document.getElementById('marker-chart-card');
+  const markerChartWrap = document.getElementById('marker-chart-wrap');
+  const markerListEl = document.getElementById('marker-list');
+  const markerClearBtn = document.getElementById('marker-clear-btn');
+  const markerRerecordBtn = document.getElementById('marker-rerecord-btn');
+  const markerSaveBtn = document.getElementById('marker-save-btn');
+  const markerBackBtn = document.getElementById('marker-back-btn');
 
   let state = null;
   let motionEnabled = false;
@@ -476,7 +514,11 @@
 
   function getGamePool(){
     const templates = loadTemplates();
-    const trained = EXERCISES.filter(e => templates[e.name] && templates[e.name].length > 0);
+    const markerSets = loadMarkerSets();
+    const trained = EXERCISES.filter(e =>
+      (templates[e.name] && templates[e.name].length > 0) ||
+      (markerSets[e.name] && markerSets[e.name].length > 0)
+    );
     return trained.length > 0 ? trained : EXERCISES;
   }
 
@@ -530,6 +572,10 @@
     }
     const trainedCount = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0).length;
     state.classifierGate = trainedCount >= 2;
+    const markerSets = loadMarkerSets();
+    state.markers = markerSets[ex.name] || null;
+    state.markerIndex = 0;
+    state.markerLastTime = null;
     state.fallDuration = Math.max(state.baseFallDuration * 0.45, state.baseFallDuration - state.score * 250);
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + ex.reps;
@@ -653,6 +699,13 @@
   function saveTemplates(t){
     try { localStorage.setItem('repdrop_templates', JSON.stringify(t)); } catch(e){}
   }
+  function loadMarkerSets(){
+    try { return JSON.parse(localStorage.getItem('repdrop_markers') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveMarkerSets(m){
+    try { localStorage.setItem('repdrop_markers', JSON.stringify(m)); } catch(e){}
+  }
 
   function extractFeaturesFromBuffer(win){
     if(win.length < 3) return null;
@@ -718,6 +771,155 @@
   }
   function stopIdleChecks(){ clearInterval(idleCheckTimer); }
 
+  // --- Marker (checkpoint) recording & editing ---
+  let markerExercise = null;
+  let isMarkerRecording = false;
+  let markerRecordBuffer = [];
+  let markerRecordStart = 0;
+  let currentMarkers = [];
+  let chartScale = null; // {tToX, valToY, tMax, valMin, valMax}
+  const AXIS_COLORS = { x: 'var(--accent)', y: 'var(--good)', z: 'var(--hazard)', mag: 'var(--ink)' };
+
+  function goToMarkerScreen(exercise){
+    markerExercise = exercise;
+    currentMarkers = [];
+    markerRecordBuffer = [];
+    markerTitle.innerHTML = 'SET<br><span style="color:var(--accent)">' + exercise + '</span>';
+    markerChartCard.style.display = 'none';
+    markerRecordBtn.style.display = 'block';
+    markerRecordBtn.textContent = 'Start recording';
+    markerListEl.innerHTML = '';
+    trainHub.style.display = 'none';
+    markerScreen.style.display = 'flex';
+  }
+
+  markerRecordBtn.addEventListener('click', () => {
+    ensureMotionArmed();
+    if(!isMarkerRecording){
+      isMarkerRecording = true;
+      markerRecordBuffer = [];
+      markerRecordStart = performance.now();
+      markerRecordBtn.textContent = 'Stop recording';
+    } else {
+      isMarkerRecording = false;
+      markerRecordBtn.style.display = 'none';
+      currentMarkers = [];
+      renderMarkerChart();
+      renderMarkerList();
+      markerChartCard.style.display = 'block';
+    }
+  });
+
+  markerRerecordBtn.addEventListener('click', () => {
+    markerChartCard.style.display = 'none';
+    markerRecordBtn.style.display = 'block';
+    markerRecordBtn.textContent = 'Start recording';
+    currentMarkers = [];
+    markerListEl.innerHTML = '';
+  });
+
+  function renderMarkerChart(){
+    const samples = markerRecordBuffer;
+    if(samples.length < 3){
+      markerChartWrap.innerHTML = '<p class="fine-print">Not enough motion captured — try again with a clearer movement.</p>';
+      return;
+    }
+    const W = 340, H = 200, PAD = 6;
+    const tMax = samples[samples.length-1].t;
+    let valMin = Infinity, valMax = -Infinity;
+    samples.forEach(s => {
+      [s.x, s.y, s.z, s.mag].forEach(v => { valMin = Math.min(valMin, v); valMax = Math.max(valMax, v); });
+    });
+    if(valMax - valMin < 1) valMax += 1;
+    const tToX = t => PAD + (t / tMax) * (W - PAD*2);
+    const valToY = v => H - PAD - ((v - valMin) / (valMax - valMin)) * (H - PAD*2);
+    chartScale = { tToX, valToY, tMax, valMin, valMax, samples, W, H };
+
+    function poly(axis){
+      return samples.map(s => tToX(s.t) + ',' + valToY(axis === 'mag' ? s.mag : s[axis])).join(' ');
+    }
+    let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<polyline points="${poly('x')}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>`;
+    svg += `<polyline points="${poly('y')}" fill="none" stroke="var(--good)" stroke-width="1.5"/>`;
+    svg += `<polyline points="${poly('z')}" fill="none" stroke="var(--hazard)" stroke-width="1.5"/>`;
+    svg += `<polyline points="${poly('mag')}" fill="none" stroke="var(--ink)" stroke-width="1.8"/>`;
+    currentMarkers.forEach((m, i) => {
+      const x = tToX(m.tAbs);
+      svg += `<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
+      svg += `<text x="${x+3}" y="${12+i*11}" font-size="8" fill="var(--ink)">${i+1}</text>`;
+    });
+    svg += '</svg>';
+    markerChartWrap.innerHTML = svg;
+    const svgEl = markerChartWrap.querySelector('svg');
+    svgEl.addEventListener('click', onChartClick);
+  }
+
+  function onChartClick(evt){
+    if(!chartScale) return;
+    const rect = evt.currentTarget.getBoundingClientRect();
+    const scaleX = chartScale.W / rect.width;
+    const scaleY = chartScale.H / rect.height;
+    const px = (evt.clientX - rect.left) * scaleX;
+    const py = (evt.clientY - rect.top) * scaleY;
+    const t = ((px - 6) / (chartScale.W - 12)) * chartScale.tMax;
+    const samples = chartScale.samples;
+    let nearest = samples[0], nd = Infinity;
+    samples.forEach(s => { const d = Math.abs(s.t - t); if(d < nd){ nd = d; nearest = s; } });
+    const axes = ['x','y','z','mag'];
+    let bestAxis = 'mag', bestDist = Infinity;
+    axes.forEach(ax => {
+      const v = ax === 'mag' ? nearest.mag : nearest[ax];
+      const y = chartScale.valToY(v);
+      const d = Math.abs(y - py);
+      if(d < bestDist){ bestDist = d; bestAxis = ax; }
+    });
+    const idx = samples.indexOf(nearest);
+    const prevIdx = Math.max(0, idx - 4);
+    const prevVal = axes.indexOf(bestAxis) >= 0 ? (bestAxis === 'mag' ? samples[prevIdx].mag : samples[prevIdx][bestAxis]) : 0;
+    const curVal = bestAxis === 'mag' ? nearest.mag : nearest[bestAxis];
+    const dir = curVal >= prevVal ? 'above' : 'below';
+    const prevMarkerT = currentMarkers.length ? currentMarkers[currentMarkers.length-1].tAbs : 0;
+    currentMarkers.push({ axis: bestAxis, dir, value: curVal, tAbs: nearest.t, gapMs: nearest.t - prevMarkerT });
+    renderMarkerChart();
+    renderMarkerList();
+  }
+
+  function renderMarkerList(){
+    markerListEl.innerHTML = currentMarkers.map((m,i) =>
+      `<div class="marker-row"><span>M${i+1}: ${m.axis.toUpperCase()} ${m.dir === 'above' ? '↑' : '↓'} ${m.value.toFixed(1)}</span><button data-idx="${i}" class="marker-del">✕</button></div>`
+    ).join('');
+    markerListEl.querySelectorAll('.marker-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMarkers.splice(parseInt(btn.getAttribute('data-idx')), 1);
+        renderMarkerChart();
+        renderMarkerList();
+      });
+    });
+  }
+
+  markerClearBtn.addEventListener('click', () => {
+    currentMarkers = [];
+    renderMarkerChart();
+    renderMarkerList();
+  });
+
+  markerSaveBtn.addEventListener('click', () => {
+    if(currentMarkers.length >= 2){
+      const sets = loadMarkerSets();
+      sets[markerExercise] = currentMarkers.map(m => ({ axis: m.axis, dir: m.dir, value: m.value, gapMs: m.gapMs }));
+      saveMarkerSets(sets);
+    }
+    isMarkerRecording = false;
+    markerScreen.style.display = 'none';
+    goToTrainHub();
+  });
+
+  markerBackBtn.addEventListener('click', () => {
+    isMarkerRecording = false;
+    markerScreen.style.display = 'none';
+    goToTrainHub();
+  });
+
   function classify(features){
     const templates = loadTemplates();
     const names = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0);
@@ -750,10 +952,14 @@
 
   function refreshTrainCounts(){
     const templates = loadTemplates();
+    const markerSets = loadMarkerSets();
     TRAIN_EXERCISES.forEach(n => {
       const el = document.getElementById('train-count-' + TRAIN_SLUG[n]);
       const reps = templates[n];
       el.textContent = (reps && reps.length) ? reps.length + ' reps' : 'not trained';
+      const mc = document.getElementById('marker-count-' + TRAIN_SLUG[n]);
+      const markers = markerSets[n];
+      mc.textContent = markers ? markers.length : 0;
     });
   }
 
@@ -775,6 +981,10 @@
     while(motionBuffer.length && now - motionBuffer[0].t > BUFFER_MS) motionBuffer.shift();
     smoothed = smoothed * 0.8 + mag * 0.2;
     const delta = Math.abs(mag - smoothed);
+
+    if(isMarkerRecording){
+      markerRecordBuffer.push({ t: now - markerRecordStart, x: a.x, y: a.y, z: a.z, mag });
+    }
 
     if(inMotionCheck){
       dbgX.textContent = a.x.toFixed(1);
@@ -800,15 +1010,44 @@
       if(repInProgress) repBuffer.push({ t: now, x: a.x, y: a.y, z: a.z, mag });
     }
 
+    if(state && !state.resolved && !isTrainingActive && !isTestingActive && state.markers && state.markers.length){
+      runMarkerStateMachine(now, a, mag);
+    }
+
     if(delta > THRESHOLD && now - lastMotionRep > REFRACTORY){
       lastMotionRep = now;
       if(inMotionCheck){
         testReps++;
         repTestCountEl.textContent = testReps;
       }
-      if(!isTrainingActive && !isTestingActive){
+      if(!isTrainingActive && !isTestingActive && !(state && state.markers && state.markers.length)){
         attemptGameRep(now);
       }
+    }
+  }
+
+  function runMarkerStateMachine(now, a, mag){
+    const markers = state.markers;
+    const m = markers[state.markerIndex];
+    const val = m.axis === 'mag' ? mag : a[m.axis];
+    const hit = m.dir === 'above' ? val >= m.value : val <= m.value;
+    if(!hit) return;
+    if(state.markerIndex > 0 && state.markerLastTime){
+      const gap = now - state.markerLastTime;
+      if(gap < 80) return; // debounce rapid re-triggers
+      const tolerance = Math.max(400, m.gapMs * 2);
+      if(gap > tolerance){
+        state.markerIndex = 0;
+        state.markerLastTime = null;
+        return;
+      }
+    }
+    state.markerLastTime = now;
+    state.markerIndex++;
+    if(state.markerIndex >= markers.length){
+      state.markerIndex = 0;
+      state.markerLastTime = null;
+      registerRep();
     }
   }
 
@@ -951,6 +1190,12 @@
       delete templates[ex];
       saveTemplates(templates);
       refreshTrainCounts();
+    });
+  });
+
+  document.querySelectorAll('[data-action="markers"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      goToMarkerScreen(btn.getAttribute('data-exercise'));
     });
   });
 
