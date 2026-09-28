@@ -91,11 +91,20 @@
   /* ---- Start / End screens ---- */
   .screen {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    justify-content: safe center;
     gap: 18px;
   }
+  .home-chip { appearance: none; border: 1px solid var(--track); background: transparent; color: var(--ink-dim); border-radius: 999px; font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 6px 12px; cursor: pointer; align-self: flex-start; flex-shrink: 0; }
+  .chip-row { display: flex; gap: 8px; justify-content: space-between; flex-shrink: 0; }
+  .chart-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+  .zoom-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.75rem; color: var(--ink-dim); }
+  .zoom-row input[type=range] { flex: 1; }
+  .legend { display: flex; gap: 10px; font-size: 0.72rem; color: var(--ink-dim); flex-wrap: wrap; margin-bottom: 4px; }
   .card {
     background: var(--panel);
     border-radius: 14px;
@@ -233,8 +242,7 @@
   #test-log { display: flex; flex-direction: column; gap: 6px; }
   .test-log-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 8px 12px; background: var(--panel); border-radius: 8px; }
 
-  #marker-screen { display: none; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; }
-  #marker-chart-wrap svg { width: 100%; height: auto; touch-action: none; }
+  #marker-screen, #session-screen { display: none; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; justify-content: flex-start; }
   .marker-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; background: var(--panel); border-radius: 8px; padding: 8px 12px; }
   .marker-row button { background: none; border: none; color: var(--accent); font-size: 0.8rem; padding: 2px 6px; }
 </style>
@@ -252,21 +260,32 @@
       <div class="exercise-list" id="preview-list"></div>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Fall speed</b><span id="fall-speed-value">7.0s</span></div>
+      <div class="exercise-row"><b>Fall time per set</b><span id="fall-speed-value">30s</span></div>
       <div class="slider-row" style="margin-top:6px;">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">slower</span>
-        <input type="range" id="fall-speed-slider" min="3" max="12" step="0.5" value="7">
         <span style="font-size:0.75rem;color:var(--ink-dim);">faster</span>
+        <input type="range" id="fall-speed-slider" min="10" max="90" step="5" value="30">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">slower</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Reps per fall</b><span id="reps-per-fall-value">10</span></div>
+      <div class="slider-row" style="margin-top:6px;">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">1</span>
+        <input type="range" id="reps-per-fall-slider" min="1" max="30" step="1" value="10">
+        <span style="font-size:0.75rem;color:var(--ink-dim);">30</span>
       </div>
     </div>
     <div>
       <button class="primary" id="enable-btn">Enable motion &amp; start</button>
       <p class="fine-print">Hold your phone in the hand doing the movement. No motion access? You can tap to count reps instead.</p>
       <button class="ghost" id="train-nav-btn" style="margin-top:10px;">Train &amp; test exercises</button>
+      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; sounds: on</button>
+      <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View last session graph</button>
     </div>
   </div>
 
   <div id="train-hub" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">TRAIN<br><span>&amp; TEST</span></h1>
       <p class="tagline">Record a few reps of each move so the detector learns what it feels like, then test it live.</p>
@@ -294,6 +313,7 @@
   </div>
 
   <div id="train-record" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark" id="train-record-title">RECORDING</h1>
       <p class="tagline">Perform reps naturally — each one is caught automatically. Hit Done when you've done a handful.</p>
@@ -311,6 +331,7 @@
   </div>
 
   <div id="test-live" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
       <p class="tagline">Move naturally — each detected rep gets classified against your training data.</p>
@@ -326,16 +347,20 @@
   </div>
 
   <div id="marker-screen" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark" id="marker-title">SET<br><span>MARKERS</span></h1>
       <p class="tagline" id="marker-instructions">Record one demo motion, then tap on the graph where a line crosses a meaningful point.</p>
     </div>
     <button class="primary" id="marker-record-btn">Start recording</button>
     <div class="card" id="marker-chart-card" style="display:none;">
-      <div id="marker-legend" style="display:flex;gap:10px;font-size:0.72rem;color:var(--ink-dim);margin-bottom:6px;flex-wrap:wrap;">
-        <span>⬤ X</span><span>⬤ Y</span><span>⬤ Z</span><span>⬤ Magnitude</span>
+      <div class="legend">
+        <span style="color:var(--accent)">⬤ X</span><span style="color:var(--good)">⬤ Y</span><span style="color:var(--hazard)">⬤ Z</span><span style="color:var(--ink)">⬤ Magnitude</span>
       </div>
-      <div id="marker-chart-wrap" style="width:100%;"></div>
+      <div class="legend"><span>dashed = your markers</span><span>green line = rep this would count</span><span>▼ = marker hit</span></div>
+      <div class="zoom-row"><span>Zoom</span><input type="range" id="marker-zoom" min="1" max="30" step="1" value="1"><span id="marker-zoom-val">1×</span></div>
+      <div id="marker-chart-wrap" class="chart-wrap"></div>
+      <div id="marker-sim" class="fine-print" style="margin-top:6px;"></div>
     </div>
     <div id="marker-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     <div>
@@ -347,6 +372,7 @@
   </div>
 
   <div id="motion-check" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">CHECK<br><span>MOTION</span></h1>
       <p class="tagline" id="event-status">waiting for the first sensor reading&hellip;</p>
@@ -378,6 +404,7 @@
   </div>
 
   <div id="hud">
+    <div class="chip-row"><button class="home-chip" data-home>⌂ Home</button><button class="home-chip" id="end-session-btn">End session</button></div>
     <div class="hud-top">
       <div class="stat"><span id="score">0</span><small>cleared</small></div>
       <div class="lives" id="lives"></div>
@@ -398,6 +425,23 @@
     <div id="motion-badge">Move to count reps · tap works too</div>
   </div>
 
+  <div id="session-screen" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
+    <div>
+      <h1 class="wordmark">SESSION<br><span>GRAPH</span></h1>
+      <p class="tagline" id="session-summary"></p>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span style="color:var(--accent)">⬤ X</span><span style="color:var(--good)">⬤ Y</span><span style="color:var(--hazard)">⬤ Z</span><span style="color:var(--ink)">⬤ Magnitude</span>
+      </div>
+      <div class="legend"><span>green line = rep counted</span><span>▼ = marker hit</span><span>dashed = new exercise</span><span style="color:var(--accent)">✕ = wrong move</span></div>
+      <div class="zoom-row"><span>Zoom</span><input type="range" id="session-zoom" min="1" max="40" step="1" value="1"><span id="session-zoom-val">1×</span></div>
+      <div id="session-chart-wrap" class="chart-wrap"></div>
+    </div>
+    <button class="ghost" id="session-back-btn">Back</button>
+  </div>
+
   <div id="end-screen" class="screen" style="display:none;">
     <div>
       <h1 class="wordmark">GAME<br><span>OVER</span></h1>
@@ -405,6 +449,7 @@
     </div>
     <div>
       <button class="primary" id="retry-btn">Run it back</button>
+      <button class="ghost" id="session-btn" style="margin-top:8px;">View session graph</button>
       <button class="ghost" id="home-btn" style="margin-top:8px;">Back to start</button>
     </div>
   </div>
@@ -436,7 +481,14 @@
   const fallSpeedSlider = document.getElementById('fall-speed-slider');
   const fallSpeedValue = document.getElementById('fall-speed-value');
   fallSpeedSlider.addEventListener('input', () => {
-    fallSpeedValue.textContent = parseFloat(fallSpeedSlider.value).toFixed(1) + 's';
+    fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's';
+  });
+  const repsSlider = document.getElementById('reps-per-fall-slider');
+  const repsValue = document.getElementById('reps-per-fall-value');
+  function repsPerFall(){ return parseInt(repsSlider.value) || 10; }
+  repsSlider.addEventListener('input', () => {
+    repsValue.textContent = repsPerFall();
+    refreshPreviewList();
   });
   const eventStatus = document.getElementById('event-status');
   const noEventsWarning = document.getElementById('no-events-warning');
@@ -492,6 +544,94 @@
   const markerRerecordBtn = document.getElementById('marker-rerecord-btn');
   const markerSaveBtn = document.getElementById('marker-save-btn');
   const markerBackBtn = document.getElementById('marker-back-btn');
+  const markerZoomEl = document.getElementById('marker-zoom');
+  const markerZoomVal = document.getElementById('marker-zoom-val');
+  const markerSim = document.getElementById('marker-sim');
+  const sessionScreen = document.getElementById('session-screen');
+  const sessionWrap = document.getElementById('session-chart-wrap');
+  const sessionZoomEl = document.getElementById('session-zoom');
+  const sessionZoomLbl = document.getElementById('session-zoom-val');
+  const sessionSummary = document.getElementById('session-summary');
+  const sessionBtn = document.getElementById('session-btn');
+  const sessionBackBtn = document.getElementById('session-back-btn');
+  const lastSessionBtn = document.getElementById('last-session-btn');
+  const audioToggle = document.getElementById('audio-toggle');
+  const endSessionBtn = document.getElementById('end-session-btn');
+
+  // --- Voice & sounds ---
+  let audioOn = true;
+  let audioCtx = null;
+  function initAudio(){
+    try {
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+    } catch(e){}
+  }
+  function speak(text, interrupt){
+    if(!audioOn || !('speechSynthesis' in window)) return;
+    try {
+      if(interrupt) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.1;
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
+  function beep(idx){
+    if(!audioOn || !audioCtx) return;
+    try {
+      const freqs = [392, 494, 587, 698, 880, 1047];
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      const t = audioCtx.currentTime;
+      o.type = 'sine';
+      o.frequency.value = freqs[idx % freqs.length];
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + 0.18);
+    } catch(e){}
+  }
+  audioToggle.addEventListener('click', () => {
+    audioOn = !audioOn;
+    audioToggle.innerHTML = 'Voice &amp; sounds: ' + (audioOn ? 'on' : 'off');
+    if(audioOn) initAudio(); else { try { speechSynthesis.cancel(); } catch(e){} }
+  });
+
+  // --- Session recording (for the after-workout graph) ---
+  let session = null;
+  let lastSession = null;
+  function pushEvent(type, extra){
+    if(!session || !session.active) return;
+    session.events.push(Object.assign({ type, t: performance.now() - session.t0 }, extra || {}));
+  }
+  function updateLastSessionBtn(){
+    lastSessionBtn.style.display = (lastSession && (lastSession.samples.length > 2 || lastSession.events.length)) ? 'block' : 'none';
+  }
+
+  // --- Screen helpers ---
+  const ALL_SCREENS = [startScreen, motionCheck, hud, endScreen, trainHub, trainRecord, testLive, markerScreen, sessionScreen];
+  function showOnly(screen){
+    ALL_SCREENS.forEach(x => x.style.display = 'none');
+    screen.style.display = 'flex';
+  }
+  function goHome(){
+    if(state){ state.resolved = true; state.ended = true; }
+    cancelAnimationFrame(rafId);
+    if(session && session.active){
+      session.active = false;
+      if(session.samples.length > 2 || session.events.length) lastSession = session;
+    }
+    state = null;
+    isTrainingActive = false; isTestingActive = false; isMarkerRecording = false; inMotionCheck = false;
+    stopIdleChecks();
+    clearTimeout(noEventsTimer);
+    repBuffer = []; repInProgress = false;
+    try { speechSynthesis.cancel(); } catch(e){}
+    showOnly(startScreen);
+    refreshPreviewList();
+    updateLastSessionBtn();
+  }
+  document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
 
   let state = null;
   let motionEnabled = false;
@@ -525,7 +665,7 @@
   function refreshPreviewList(){
     const pool = getGamePool();
     previewList.innerHTML = pool.slice(0,4).map(e =>
-      `<div class="exercise-row"><b>${e.name}</b><span>${e.reps} reps</span></div>`
+      `<div class="exercise-row"><b>${e.name}</b><span>${repsPerFall()} reps</span></div>`
     ).join('');
   }
   refreshPreviewList();
@@ -542,12 +682,14 @@
       reps: 0,
       target: 0,
       baseFallDuration: parseFloat(fallSpeedSlider.value) * 1000,
+      repsPerFall: repsPerFall(),
       fallDuration: 7000,
       startTime: null,
       laneHeight: lane.clientHeight,
       resolved: false,
       lastRepTime: 0,
     };
+    session = { t0: performance.now(), samples: [], events: [], active: true };
     setLives(3,3);
     scoreEl.textContent = '0';
     streakEl.textContent = '0';
@@ -555,9 +697,10 @@
   }
 
   function nextRound(){
+    if(!state || state.ended) return;
     const ex = pickExercise(state.currentName);
     state.currentName = ex.name;
-    state.target = ex.reps;
+    state.target = state.repsPerFall;
     state.reps = 0;
     state.resolved = false;
     const templates = loadTemplates();
@@ -576,11 +719,14 @@
     state.markers = markerSets[ex.name] || null;
     state.markerIndex = 0;
     state.markerLastTime = null;
-    state.fallDuration = Math.max(state.baseFallDuration * 0.45, state.baseFallDuration - state.score * 250);
+    if(state.markers && state.markers.length) state.repDebounce = 200;
+    state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
     wordText.textContent = ex.name;
-    repsNeededEl.textContent = '0 / ' + ex.reps;
+    repsNeededEl.textContent = '0 / ' + state.target;
     repCountEl.textContent = '0';
-    repOfEl.textContent = 'of ' + ex.reps;
+    repOfEl.textContent = 'of ' + state.target;
+    speak(ex.name);
+    pushEvent('round', { name: ex.name });
     falling.classList.remove('success','fail');
     falling.style.transition = 'none';
     falling.style.top = '-80px';
@@ -605,6 +751,7 @@
   }
 
   function flashMismatch(){
+    pushEvent('mismatch');
     falling.classList.add('mismatch');
     setTimeout(() => falling.classList.remove('mismatch'), 350);
   }
@@ -635,22 +782,26 @@
     state.reps++;
     repCountEl.textContent = state.reps;
     repsNeededEl.textContent = state.reps + ' / ' + state.target;
+    speak(String(state.reps), true);
+    pushEvent('rep', { n: state.reps, name: state.currentName });
     if(state.reps >= state.target){
       resolveRound(true);
     }
   }
 
   function resolveRound(success){
-    if(state.resolved) return;
+    if(!state || state.resolved) return;
     state.resolved = true;
     cancelAnimationFrame(rafId);
+    pushEvent('end', { success });
     if(success){
+      speak('Set complete');
       falling.classList.add('success');
       state.score++;
       state.streak++;
       scoreEl.textContent = state.score;
       streakEl.textContent = state.streak;
-      setTimeout(nextRound, 550);
+      setTimeout(nextRound, 900);
     } else {
       falling.classList.add('fail');
       state.streak = 0;
@@ -666,8 +817,16 @@
   }
 
   function endGame(){
-    hud.style.display = 'none';
-    endScreen.style.display = 'flex';
+    if(!state || state.ended) return;
+    state.ended = true;
+    state.resolved = true;
+    cancelAnimationFrame(rafId);
+    if(session && session.active){
+      session.active = false;
+      lastSession = session;
+    }
+    updateLastSessionBtn();
+    showOnly(endScreen);
     endSummary.textContent = `You cleared ${state.score} exercise${state.score===1?'':'s'} before the floor caught up.`;
   }
 
@@ -785,6 +944,10 @@
     currentMarkers = [];
     markerRecordBuffer = [];
     markerTitle.innerHTML = 'SET<br><span style="color:var(--accent)">' + exercise + '</span>';
+    markerZoomLevel = 1;
+    markerZoomEl.value = 1;
+    markerZoomVal.textContent = '1×';
+    markerSim.textContent = '';
     markerChartCard.style.display = 'none';
     markerRecordBtn.style.display = 'block';
     markerRecordBtn.textContent = 'Start recording';
@@ -818,70 +981,151 @@
     markerListEl.innerHTML = '';
   });
 
-  function renderMarkerChart(){
-    const samples = markerRecordBuffer;
-    if(samples.length < 3){
-      markerChartWrap.innerHTML = '<p class="fine-print">Not enough motion captured — try again with a clearer movement.</p>';
-      return;
-    }
-    const W = 340, H = 200, PAD = 6;
-    const tMax = samples[samples.length-1].t;
-    let valMin = Infinity, valMax = -Infinity;
-    samples.forEach(s => {
-      [s.x, s.y, s.z, s.mag].forEach(v => { valMin = Math.min(valMin, v); valMax = Math.max(valMax, v); });
-    });
-    if(valMax - valMin < 1) valMax += 1;
-    const tToX = t => PAD + (t / tMax) * (W - PAD*2);
-    const valToY = v => H - PAD - ((v - valMin) / (valMax - valMin)) * (H - PAD*2);
-    chartScale = { tToX, valToY, tMax, valMin, valMax, samples, W, H };
+  let markerZoomLevel = 1;
 
-    function poly(axis){
-      return samples.map(s => tToX(s.t) + ',' + valToY(axis === 'mag' ? s.mag : s[axis])).join(' ');
+  // Generic zoomable chart used by both the marker editor and the session graph.
+  // overlay items: {t, kind: 'marker'|'rep'|'mk'|'round'|'mismatch', label}
+  function drawChart(wrap, samples, zoom, overlay, onClick){
+    const oldScrollW = wrap.scrollWidth || 1;
+    const centerFrac = (wrap.scrollLeft + wrap.clientWidth / 2) / oldScrollW;
+    if(!samples || samples.length < 3){
+      wrap.innerHTML = '<p class="fine-print">No motion data captured for this one (tap mode, or the sensor was off).</p>';
+      return null;
     }
-    let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<polyline points="${poly('x')}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>`;
-    svg += `<polyline points="${poly('y')}" fill="none" stroke="var(--good)" stroke-width="1.5"/>`;
-    svg += `<polyline points="${poly('z')}" fill="none" stroke="var(--hazard)" stroke-width="1.5"/>`;
-    svg += `<polyline points="${poly('mag')}" fill="none" stroke="var(--ink)" stroke-width="1.8"/>`;
-    currentMarkers.forEach((m, i) => {
-      const x = tToX(m.tAbs);
-      svg += `<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
-      svg += `<text x="${x+3}" y="${12+i*11}" font-size="8" fill="var(--ink)">${i+1}</text>`;
+    const BASE_W = 340, PLOT_H = 220, TOT_H = 238, PAD = 8;
+    const W = BASE_W * zoom;
+    let tMax = samples[samples.length-1].t;
+    overlay.forEach(o => { if(o.t > tMax) tMax = o.t; });
+    if(tMax <= 0) tMax = 1;
+    let valMin = Infinity, valMax = -Infinity;
+    samples.forEach(sm => [sm.x, sm.y, sm.z, sm.mag].forEach(v => { if(v < valMin) valMin = v; if(v > valMax) valMax = v; }));
+    if(valMax - valMin < 1) valMax = valMin + 1;
+    const tToX = t => PAD + (Math.min(t, tMax) / tMax) * (W - PAD*2);
+    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
+    const stride = Math.max(1, Math.ceil(samples.length / (W * 1.5)));
+    function poly(ax){
+      const pts = [];
+      for(let k=0;k<samples.length;k+=stride){
+        const sm = samples[k];
+        pts.push(tToX(sm.t).toFixed(1) + ',' + valToY(ax === 'mag' ? sm.mag : sm[ax]).toFixed(1));
+      }
+      return pts.join(' ');
+    }
+    let svg = `<svg viewBox="0 0 ${W} ${TOT_H}" style="width:${zoom*100}%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">`;
+    // time grid
+    const pxPerSec = (W - PAD*2) / (tMax / 1000);
+    const steps = [0.1,0.2,0.5,1,2,5,10,15,30,60,120];
+    const step = steps.find(x => x * pxPerSec >= 48) || 120;
+    for(let tt = 0; tt <= tMax/1000 + 1e-6; tt += step){
+      const x = tToX(tt*1000);
+      svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--track)" stroke-width="0.5"/>`;
+      svg += `<text x="${x+2}" y="${TOT_H-3}" font-size="9" fill="var(--ink-dim)">${(Math.round(tt*10)/10)}s</text>`;
+    }
+    svg += `<polyline points="${poly('x')}" fill="none" stroke="var(--accent)" stroke-width="1.4"/>`;
+    svg += `<polyline points="${poly('y')}" fill="none" stroke="var(--good)" stroke-width="1.4"/>`;
+    svg += `<polyline points="${poly('z')}" fill="none" stroke="var(--hazard)" stroke-width="1.4"/>`;
+    svg += `<polyline points="${poly('mag')}" fill="none" stroke="var(--ink)" stroke-width="1.7"/>`;
+    overlay.forEach(o => {
+      const x = tToX(o.t);
+      if(o.kind === 'marker'){
+        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
+        svg += `<text x="${x+3}" y="12" font-size="10" font-weight="700" fill="var(--ink)">${o.label}</text>`;
+      } else if(o.kind === 'rep'){
+        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2"/>`;
+        svg += `<text x="${x+3}" y="26" font-size="10" font-weight="700" fill="var(--good)">#${o.label}</text>`;
+      } else if(o.kind === 'mk'){
+        svg += `<polygon points="${x-3.5},0 ${x+3.5},0 ${x},8" fill="var(--hazard)"/>`;
+      } else if(o.kind === 'round'){
+        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--ink-dim)" stroke-width="1" stroke-dasharray="5 4"/>`;
+        svg += `<text x="${x+3}" y="${PLOT_H-5}" font-size="9" fill="var(--ink-dim)">${o.label}</text>`;
+      } else if(o.kind === 'mismatch'){
+        svg += `<text x="${x-4}" y="${PLOT_H-18}" font-size="11" fill="var(--accent)">✕</text>`;
+      }
     });
     svg += '</svg>';
-    markerChartWrap.innerHTML = svg;
-    const svgEl = markerChartWrap.querySelector('svg');
-    svgEl.addEventListener('click', onChartClick);
+    wrap.innerHTML = svg;
+    wrap.scrollLeft = centerFrac * wrap.scrollWidth - wrap.clientWidth / 2;
+    const scale = { W, H: TOT_H, PAD, tMax, valToY, samples };
+    if(onClick){
+      wrap.querySelector('svg').addEventListener('click', evt => {
+        const rect = evt.currentTarget.getBoundingClientRect();
+        const px = (evt.clientX - rect.left) * (W / rect.width);
+        const py = (evt.clientY - rect.top) * (TOT_H / rect.height);
+        const t = ((px - PAD) / (W - PAD*2)) * tMax;
+        onClick(Math.max(0, t), py, scale);
+      });
+    }
+    return scale;
   }
 
-  function onChartClick(evt){
-    if(!chartScale) return;
-    const rect = evt.currentTarget.getBoundingClientRect();
-    const scaleX = chartScale.W / rect.width;
-    const scaleY = chartScale.H / rect.height;
-    const px = (evt.clientX - rect.left) * scaleX;
-    const py = (evt.clientY - rect.top) * scaleY;
-    const t = ((px - 6) / (chartScale.W - 12)) * chartScale.tMax;
-    const samples = chartScale.samples;
-    let nearest = samples[0], nd = Infinity;
-    samples.forEach(s => { const d = Math.abs(s.t - t); if(d < nd){ nd = d; nearest = s; } });
+  function simulateMarkers(samples, markers){
+    const st = { markerIndex: 0, markerLastTime: null };
+    const hits = [], reps = [];
+    samples.forEach(sm => {
+      const r = stepMarkers(st, markers, sm.t, sm, sm.mag);
+      if(r){ hits.push({ t: sm.t, idx: r.idx }); if(r.rep) reps.push(sm.t); }
+    });
+    return { hits, reps };
+  }
+
+  function recomputeGaps(){
+    currentMarkers.sort((a,b) => a.tAbs - b.tAbs);
+    currentMarkers.forEach((m,i) => { m.gapMs = i ? m.tAbs - currentMarkers[i-1].tAbs : 0; });
+  }
+
+  function renderMarkerChart(){
+    const overlay = currentMarkers.map((m,i) => ({ t: m.tAbs, kind: 'marker', label: String(i+1) }));
+    let simText = '';
+    if(currentMarkers.length >= 2){
+      const sim = simulateMarkers(markerRecordBuffer, currentMarkers);
+      sim.hits.forEach(h => overlay.push({ t: h.t, kind: 'mk', label: String(h.idx+1) }));
+      sim.reps.forEach((t,i) => overlay.push({ t, kind: 'rep', label: String(i+1) }));
+      simText = 'On this recording, your markers would count ' + sim.reps.length + ' rep' + (sim.reps.length === 1 ? '' : 's') + '.';
+    }
+    markerSim.textContent = simText;
+    chartScale = drawChart(markerChartWrap, markerRecordBuffer, markerZoomLevel, overlay, onChartClick);
+  }
+
+  function onChartClick(t, py, sc){
+    const samples = sc.samples;
+    let nearest = samples[0], nd = Infinity, idx = 0;
+    samples.forEach((sm,k) => { const d = Math.abs(sm.t - t); if(d < nd){ nd = d; nearest = sm; idx = k; } });
     const axes = ['x','y','z','mag'];
+    const val = (sm, ax) => ax === 'mag' ? sm.mag : sm[ax];
     let bestAxis = 'mag', bestDist = Infinity;
     axes.forEach(ax => {
-      const v = ax === 'mag' ? nearest.mag : nearest[ax];
-      const y = chartScale.valToY(v);
-      const d = Math.abs(y - py);
+      const d = Math.abs(sc.valToY(val(nearest, ax)) - py);
       if(d < bestDist){ bestDist = d; bestAxis = ax; }
     });
-    const idx = samples.indexOf(nearest);
-    const prevIdx = Math.max(0, idx - 4);
-    const prevVal = axes.indexOf(bestAxis) >= 0 ? (bestAxis === 'mag' ? samples[prevIdx].mag : samples[prevIdx][bestAxis]) : 0;
-    const curVal = bestAxis === 'mag' ? nearest.mag : nearest[bestAxis];
-    const dir = curVal >= prevVal ? 'above' : 'below';
-    const prevMarkerT = currentMarkers.length ? currentMarkers[currentMarkers.length-1].tAbs : 0;
-    currentMarkers.push({ axis: bestAxis, dir, value: curVal, tAbs: nearest.t, gapMs: nearest.t - prevMarkerT });
+    const curVal = val(nearest, bestAxis);
+    const prevVal = val(samples[Math.max(0, idx - 4)], bestAxis);
+    currentMarkers.push({ axis: bestAxis, dir: curVal >= prevVal ? 'above' : 'below', value: curVal, tAbs: nearest.t, gapMs: 0 });
+    recomputeGaps();
     renderMarkerChart();
     renderMarkerList();
+  }
+
+  markerZoomEl.addEventListener('input', () => {
+    markerZoomLevel = parseInt(markerZoomEl.value);
+    markerZoomVal.textContent = markerZoomLevel + '×';
+    renderMarkerChart();
+  });
+
+  function renderSessionChart(){
+    if(!lastSession) return;
+    const ev = lastSession.events;
+    const overlay = [];
+    ev.forEach(e => {
+      if(e.type === 'round') overlay.push({ t: e.t, kind: 'round', label: e.name });
+      else if(e.type === 'rep') overlay.push({ t: e.t, kind: 'rep', label: String(e.n) });
+      else if(e.type === 'marker') overlay.push({ t: e.t, kind: 'mk', label: String(e.idx+1) });
+      else if(e.type === 'mismatch') overlay.push({ t: e.t, kind: 'mismatch', label: '' });
+    });
+    const reps = ev.filter(e => e.type === 'rep').length;
+    const sets = ev.filter(e => e.type === 'end' && e.success).length;
+    const last = lastSession.samples.length ? lastSession.samples[lastSession.samples.length-1].t : (ev.length ? ev[ev.length-1].t : 0);
+    sessionSummary.textContent = reps + ' reps counted · ' + sets + ' set' + (sets === 1 ? '' : 's') + ' completed · ' + Math.round(last/1000) + 's recorded';
+    drawChart(sessionWrap, lastSession.samples, sessionZoomVal, overlay, null);
   }
 
   function renderMarkerList(){
@@ -891,6 +1135,7 @@
     markerListEl.querySelectorAll('.marker-del').forEach(btn => {
       btn.addEventListener('click', () => {
         currentMarkers.splice(parseInt(btn.getAttribute('data-idx')), 1);
+        recomputeGaps();
         renderMarkerChart();
         renderMarkerList();
       });
@@ -985,6 +1230,9 @@
     if(isMarkerRecording){
       markerRecordBuffer.push({ t: now - markerRecordStart, x: a.x, y: a.y, z: a.z, mag });
     }
+    if(session && session.active){
+      session.samples.push({ t: now - session.t0, x: a.x, y: a.y, z: a.z, mag });
+    }
 
     if(inMotionCheck){
       dbgX.textContent = a.x.toFixed(1);
@@ -1026,29 +1274,35 @@
     }
   }
 
-  function runMarkerStateMachine(now, a, mag){
-    const markers = state.markers;
-    const m = markers[state.markerIndex];
+  function stepMarkers(st, markers, t, a, mag){
+    const m = markers[st.markerIndex];
     const val = m.axis === 'mag' ? mag : a[m.axis];
     const hit = m.dir === 'above' ? val >= m.value : val <= m.value;
-    if(!hit) return;
-    if(state.markerIndex > 0 && state.markerLastTime){
-      const gap = now - state.markerLastTime;
-      if(gap < 80) return; // debounce rapid re-triggers
-      const tolerance = Math.max(400, m.gapMs * 2);
-      if(gap > tolerance){
-        state.markerIndex = 0;
-        state.markerLastTime = null;
-        return;
+    if(!hit) return null;
+    if(st.markerIndex > 0 && st.markerLastTime !== null){
+      const gap = t - st.markerLastTime;
+      if(gap < 80) return null;
+      if(gap > Math.max(400, m.gapMs * 2)){
+        st.markerIndex = 0; st.markerLastTime = null;
+        return null;
       }
     }
-    state.markerLastTime = now;
-    state.markerIndex++;
-    if(state.markerIndex >= markers.length){
-      state.markerIndex = 0;
-      state.markerLastTime = null;
-      registerRep();
+    const idx = st.markerIndex;
+    st.markerLastTime = t;
+    st.markerIndex++;
+    let rep = false;
+    if(st.markerIndex >= markers.length){
+      st.markerIndex = 0; st.markerLastTime = null; rep = true;
     }
+    return { idx, rep };
+  }
+
+  function runMarkerStateMachine(now, a, mag){
+    const r = stepMarkers(state, state.markers, now, a, mag);
+    if(!r) return;
+    beep(r.idx);
+    pushEvent('marker', { idx: r.idx });
+    if(r.rep) registerRep();
   }
 
   function armMotion(){
@@ -1104,6 +1358,7 @@
   }
 
   enableBtn.addEventListener('click', async () => {
+    initAudio();
     try {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         const res = await DeviceMotionEvent.requestPermission();
@@ -1121,6 +1376,7 @@
   });
 
   motionOkBtn.addEventListener('click', () => {
+    initAudio();
     inMotionCheck = false;
     clearTimeout(noEventsTimer);
     motionCheck.style.display = 'none';
@@ -1128,6 +1384,7 @@
   });
 
   motionSkipBtn.addEventListener('click', () => {
+    initAudio();
     inMotionCheck = false;
     clearTimeout(noEventsTimer);
     motionCheck.style.display = 'none';
@@ -1136,9 +1393,25 @@
   });
 
   retryBtn.addEventListener('click', startGame);
-  homeBtn.addEventListener('click', () => {
-    endScreen.style.display = 'none';
-    startScreen.style.display = 'flex';
+  homeBtn.addEventListener('click', goHome);
+  endSessionBtn.addEventListener('click', endGame);
+  let sessionReturn = 'start';
+  let sessionZoomVal = 1;
+  function openSession(from){
+    sessionReturn = from;
+    showOnly(sessionScreen);
+    renderSessionChart();
+  }
+  sessionBtn.addEventListener('click', () => openSession('end'));
+  lastSessionBtn.addEventListener('click', () => openSession('start'));
+  sessionBackBtn.addEventListener('click', () => {
+    showOnly(sessionReturn === 'end' ? endScreen : startScreen);
+    refreshPreviewList();
+  });
+  sessionZoomEl.addEventListener('input', () => {
+    sessionZoomVal = parseInt(sessionZoomEl.value);
+    sessionZoomLbl.textContent = sessionZoomVal + '×';
+    renderSessionChart();
   });
 
   window.addEventListener('resize', () => { if(lane) state && (state.laneHeight = lane.clientHeight); });
