@@ -9,12 +9,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rep Drop">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Rep%20Drop%22%2C%22short_name%22%3A%22Rep%20Drop%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%231C1B19%22%2C%22theme_color%22%3A%22%231C1B19%22%7D">
-<title>Rep Drop</title>
+<title>Rep Drop - Gamified Kettlebell Workout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #E7E3D8;
@@ -26,6 +24,8 @@
     --good: #4C7A5A;
     --track: #B9B2A0;
     --hazard: #E8B84B;
+    --pitch-clr: #3B82F6;
+    --roll-clr: #8B5CF6;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -41,6 +41,8 @@
       --good: #7EB68F;
       --track: #34312B;
       --hazard: #E8B84B;
+      --pitch-clr: #60A5FA;
+      --roll-clr: #A78BFA;
     }
   }
   :root[data-theme="dark"] {
@@ -53,6 +55,8 @@
     --good: #7EB68F;
     --track: #34312B;
     --hazard: #E8B84B;
+    --pitch-clr: #60A5FA;
+    --roll-clr: #A78BFA;
   }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
   * { box-sizing: border-box; }
@@ -71,11 +75,11 @@
     width: 100%;
     max-width: 480px;
     height: 100%;
-    max-height: 900px;
+    max-height: 920px;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    gap: 14px;
+    padding: 16px;
+    gap: 12px;
   }
   h1.wordmark {
     font-family: 'Oswald', sans-serif;
@@ -86,57 +90,64 @@
     line-height: 0.95;
   }
   .wordmark span { color: var(--accent); }
-  p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.95rem; max-width: 34ch; }
+  p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.92rem; max-width: 36ch; }
 
-  /* ---- Start / End screens ---- */
+  /* ---- Screens ---- */
   .screen {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    justify-content: safe center;
-    gap: 18px;
+    justify-content: flex-start;
+    gap: 14px;
+    padding-bottom: 12px;
   }
-  .home-chip { appearance: none; border: 1px solid var(--track); background: transparent; color: var(--ink-dim); border-radius: 999px; font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 6px 12px; cursor: pointer; align-self: flex-start; flex-shrink: 0; }
+  .home-chip {
+    appearance: none; border: 1px solid var(--track); background: transparent; color: var(--ink-dim);
+    border-radius: 999px; font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 6px 12px;
+    cursor: pointer; align-self: flex-start; flex-shrink: 0;
+  }
   .chip-row { display: flex; gap: 8px; justify-content: space-between; flex-shrink: 0; }
-  .chart-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
-  .zoom-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.75rem; color: var(--ink-dim); }
+  .chart-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px; background: var(--bg); }
+  .zoom-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.75rem; color: var(--ink-dim); }
   .zoom-row input[type=range] { flex: 1; }
-  .legend { display: flex; gap: 10px; font-size: 0.72rem; color: var(--ink-dim); flex-wrap: wrap; margin-bottom: 4px; }
+  .legend { display: flex; gap: 8px; font-size: 0.7rem; color: var(--ink-dim); flex-wrap: wrap; margin-bottom: 4px; }
   .card {
     background: var(--panel);
     border-radius: 14px;
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
   .exercise-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-  .exercise-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--ink-dim); border-bottom: 1px solid var(--track); padding-bottom: 6px; }
+  .exercise-row { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--ink-dim); border-bottom: 1px solid var(--track); padding-bottom: 6px; align-items: center;}
   .exercise-row:last-child { border-bottom: none; padding-bottom: 0; }
   .exercise-row b { color: var(--ink); font-weight: 600; }
 
   button.primary {
     appearance: none; border: none; border-radius: 12px;
     background: var(--accent); color: var(--accent-ink);
-    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1.05rem;
-    padding: 16px; cursor: pointer; width: 100%;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1rem;
+    padding: 14px; cursor: pointer; width: 100%;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   }
+  button.primary:active { transform: translateY(1px); }
   button.primary:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
   button.ghost {
     appearance: none; border: 1px solid var(--track); border-radius: 12px;
     background: transparent; color: var(--ink);
-    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.95rem;
-    padding: 12px; cursor: pointer; width: 100%;
+    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.9rem;
+    padding: 11px; cursor: pointer; width: 100%;
   }
-  .fine-print { font-size: 0.78rem; color: var(--ink-dim); text-align: center; }
+  button.ghost:active { background: rgba(0,0,0,0.05); }
+  .fine-print { font-size: 0.76rem; color: var(--ink-dim); text-align: center; }
 
   /* ---- Game HUD ---- */
-  #hud { display: none; flex: 1; flex-direction: column; gap: 12px; min-height: 0; }
+  #hud { display: none; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
   .hud-top { display: flex; justify-content: space-between; align-items: center; }
   .stat { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
   .stat small { display: block; font-family: 'Inter', sans-serif; font-size: 0.65rem; color: var(--ink-dim); font-weight: 500; }
   .lives { display: flex; gap: 5px; }
-  .life { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .life { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
   .life.spent { background: var(--track); }
 
   #lane {
@@ -151,7 +162,7 @@
   #target-zone {
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    height: 76px;
+    height: 70px;
     background: linear-gradient(180deg, transparent, var(--track) 40%);
     border-top: 2px dashed var(--ink-dim);
     display: flex; align-items: center; justify-content: center;
@@ -164,20 +175,19 @@
     transform: translateX(-50%);
     text-align: center;
     width: auto;
-    max-width: 60%;
+    max-width: 70%;
     background: var(--bg);
     border: 1px solid var(--track);
     border-radius: 14px;
     padding: 8px 14px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   #falling .word {
     font-family: 'Oswald', sans-serif;
     font-weight: 700;
-    font-size: clamp(0.95rem, 4vw, 1.2rem);
+    font-size: clamp(1rem, 4vw, 1.25rem);
     line-height: 1.05;
     color: var(--ink-dim);
-    letter-spacing: 0.3px;
   }
   #falling .reps-needed {
     font-family: 'Oswald', sans-serif;
@@ -185,90 +195,80 @@
     color: var(--ink);
     margin-top: 2px;
   }
-  #falling.success .word { color: var(--good); }
-  #falling.fail .word { color: var(--accent); }
-  #falling.success .reps-needed { color: var(--good); }
-  #falling.fail .reps-needed { color: var(--accent); }
-  #falling.mismatch { border-color: var(--accent); }
-  #falling.mismatch .reps-needed { color: var(--accent); }
+  #falling.success .word, #falling.success .reps-needed { color: var(--good); }
+  #falling.fail .word, #falling.fail .reps-needed { color: var(--accent); }
 
   #rep-ring {
     position: absolute;
-    bottom: 14px; left: 50%; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    bottom: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
   }
-  #rep-count { font-family: 'Oswald', sans-serif; font-size: 2.4rem; line-height: 1; }
-  #rep-of { font-size: 0.75rem; color: var(--ink-dim); }
+  #rep-count { font-family: 'Oswald', sans-serif; font-size: 2.2rem; line-height: 1; }
+  #rep-of { font-size: 0.72rem; color: var(--ink-dim); }
 
   #tap-btn {
     appearance: none; border: none; border-radius: 999px;
-    width: 84px; height: 84px;
+    width: 80px; height: 80px;
     background: var(--accent); color: var(--accent-ink);
     font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.85rem;
-    align-self: center;
+    align-self: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
   #tap-btn:active { transform: scale(0.94); }
-  #motion-badge { font-size: 0.72rem; color: var(--ink-dim); text-align: center; }
-  #motion-badge b { color: var(--good); }
 
-  @media (prefers-reduced-motion: reduce) {
-    #falling { transition: none !important; }
-  }
-
-  /* ---- Motion check / debug screen ---- */
-  #motion-check { display: none; flex: 1; flex-direction: column; gap: 14px; }
-  .debug-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
-  .debug-cell { background: var(--panel); border-radius: 10px; padding: 10px 4px; }
-  .debug-cell .val { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
-  .debug-cell .lbl { font-size: 0.65rem; color: var(--ink-dim); }
-  #delta-meter { position: relative; height: 34px; background: var(--panel); border-radius: 8px; overflow: hidden; }
-  #delta-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--good); transition: width 60ms linear, background 60ms linear; }
+  /* ---- Motion Check & Debug ---- */
+  #motion-check { display: none; flex: 1; flex-direction: column; gap: 12px; }
+  .debug-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+  .debug-cell { background: var(--panel); border-radius: 10px; padding: 8px 4px; }
+  .debug-cell .val { font-family: 'Oswald', sans-serif; font-size: 1.2rem; }
+  .debug-cell .lbl { font-size: 0.62rem; color: var(--ink-dim); }
+  #delta-meter { position: relative; height: 28px; background: var(--panel); border-radius: 8px; overflow: hidden; }
+  #delta-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--good); transition: width 60ms linear; }
   #delta-threshold-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
   #rep-test-count { font-family: 'Oswald', sans-serif; font-size: 2rem; }
   .slider-row { display: flex; align-items: center; gap: 10px; }
   .slider-row input[type=range] { flex: 1; }
-  #event-status { font-size: 0.85rem; }
-  #event-status b { color: var(--good); }
-  #event-status.warn b { color: var(--accent); }
-  .warn-box { background: var(--panel); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-dim); display: none; }
+  .dir-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem;
+    background: var(--bg); border: 1px solid var(--track);
+  }
 
-  /* ---- Train / test screens ---- */
-  #train-hub, #train-record, #test-live { display: none; flex: 1; flex-direction: column; gap: 14px; }
-  .train-card-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .train-card-actions button { flex: 1; padding: 10px; font-size: 0.82rem; }
-  #test-result { text-align: center; padding: 22px 0; }
-  #test-result-label { font-family: 'Oswald', sans-serif; font-size: 2.1rem; }
-  #test-result-conf { font-size: 0.85rem; color: var(--ink-dim); margin-top: 2px; }
-  #test-log { display: flex; flex-direction: column; gap: 6px; }
-  .test-log-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 8px 12px; background: var(--panel); border-radius: 8px; }
-
-  #marker-screen, #session-screen { display: none; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; justify-content: flex-start; }
-  .marker-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; background: var(--panel); border-radius: 8px; padding: 8px 12px; }
-  .marker-row button { background: none; border: none; color: var(--accent); font-size: 0.8rem; padding: 2px 6px; }
+  /* ---- Marker Editor List ---- */
+  .marker-item {
+    background: var(--panel); border-radius: 10px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--track);
+  }
+  .marker-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.85rem; }
+  .marker-controls { display: flex; gap: 8px; align-items: center; font-size: 0.78rem; flex-wrap: wrap; }
+  .marker-controls select, .marker-controls input {
+    background: var(--bg); color: var(--ink); border: 1px solid var(--track);
+    border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 0.78rem;
+  }
 </style>
 </head>
 <body>
 <div id="app">
 
+  <!-- START SCREEN -->
   <div id="start-screen" class="screen">
     <div>
       <h1 class="wordmark">REP<br><span>DROP</span></h1>
-      <p class="tagline">An exercise name falls. Finish the reps before it hits the floor.</p>
+      <p class="tagline">An exercise name falls. Complete your reps before it hits the floor!</p>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Sensing</b><span id="motion-status">not checked</span></div>
+      <div class="exercise-row"><b>Sensing Status</b><span id="motion-status">not checked</span></div>
       <div class="exercise-list" id="preview-list"></div>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Fall time per set</b><span id="fall-speed-value">30s</span></div>
+      <div class="exercise-row"><b>Fall Time Per Set</b><span id="fall-speed-value">30s</span></div>
       <div class="slider-row" style="margin-top:6px;">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">faster</span>
+        <span style="font-size:0.75rem;color:var(--ink-dim);">Faster</span>
         <input type="range" id="fall-speed-slider" min="10" max="90" step="5" value="30">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">slower</span>
+        <span style="font-size:0.75rem;color:var(--ink-dim);">Slower</span>
       </div>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Reps per fall</b><span id="reps-per-fall-value">10</span></div>
+      <div class="exercise-row"><b>Reps Per Fall</b><span id="reps-per-fall-value">10</span></div>
       <div class="slider-row" style="margin-top:6px;">
         <span style="font-size:0.75rem;color:var(--ink-dim);">1</span>
         <input type="range" id="reps-per-fall-slider" min="1" max="30" step="1" value="10">
@@ -276,139 +276,174 @@
       </div>
     </div>
     <div>
-      <button class="primary" id="enable-btn">Enable motion &amp; start</button>
-      <p class="fine-print">Hold your phone in the hand doing the movement. No motion access? You can tap to count reps instead.</p>
-      <button class="ghost" id="train-nav-btn" style="margin-top:10px;">Train &amp; test exercises</button>
-      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; sounds: on</button>
-      <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View last session graph</button>
+      <button class="primary" id="enable-btn">Enable Motion &amp; Start Workout</button>
+      <p class="fine-print" style="margin-top:6px;">Hold phone in exercise hand. Tap mode available if motion sensor is unavailable.</p>
+      <button class="ghost" id="train-nav-btn" style="margin-top:8px;">Train &amp; Set Exercise Markers</button>
+      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; Hammer Clang: On</button>
+      <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View Last Workout Graph</button>
     </div>
   </div>
 
-  <div id="train-hub" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
-    <div>
-      <h1 class="wordmark">TRAIN<br><span>&amp; TEST</span></h1>
-      <p class="tagline">Record a few reps of each move so the detector learns what it feels like, then test it live.</p>
-    </div>
-    <div class="card">
-      <div class="exercise-row"><b>Kettlebell Swings</b><span id="train-count-swing">not trained</span></div>
-      <div class="train-card-actions">
-        <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record reps</button>
-        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset</button>
-      </div>
-      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Set markers (<span id="marker-count-swing">0</span>)</button>
-    </div>
-    <div class="card">
-      <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
-      <div class="train-card-actions">
-        <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record reps</button>
-        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset</button>
-      </div>
-      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Set markers (<span id="marker-count-press">0</span>)</button>
-    </div>
-    <div>
-      <button class="primary" id="test-nav-btn">Test detection live</button>
-      <button class="ghost" id="train-back-btn" style="margin-top:8px;">Back</button>
-    </div>
-  </div>
-
-  <div id="train-record" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
-    <div>
-      <h1 class="wordmark" id="train-record-title">RECORDING</h1>
-      <p class="tagline">Perform reps naturally — each one is caught automatically. Hit Done when you've done a handful.</p>
-    </div>
-    <div class="card" style="text-align:center;">
-      <div id="train-rep-count" style="font-family:'Oswald',sans-serif;font-size:2.6rem;">0</div>
-      <div class="lbl" style="color:var(--ink-dim);font-size:0.78rem;">reps captured this session</div>
-      <div id="train-moving-status" style="margin-top:8px;font-size:0.8rem;color:var(--ink-dim);">Idle — start the movement</div>
-    </div>
-    <button class="ghost" id="train-mark-btn">Mark rep now (manual)</button>
-    <div>
-      <button class="primary" id="train-done-btn">Done — save reps</button>
-      <button class="ghost" id="train-cancel-btn" style="margin-top:8px;">Cancel</button>
-    </div>
-  </div>
-
-  <div id="test-live" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
-    <div>
-      <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
-      <p class="tagline">Move naturally — each detected rep gets classified against your training data.</p>
-    </div>
-    <div class="card" id="test-result">
-      <div id="test-result-label">—</div>
-      <div id="test-result-conf">waiting for a rep&hellip;</div>
-    </div>
-    <div id="test-moving-status" style="text-align:center;font-size:0.8rem;color:var(--ink-dim);">Idle — start the movement</div>
-    <button class="ghost" id="test-mark-btn">Classify now (manual)</button>
-    <div id="test-log"></div>
-    <button class="ghost" id="test-back-btn">Back to hub</button>
-  </div>
-
-  <div id="marker-screen" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
-    <div>
-      <h1 class="wordmark" id="marker-title">SET<br><span>MARKERS</span></h1>
-      <p class="tagline" id="marker-instructions">Record one demo motion, then tap on the graph where a line crosses a meaningful point.</p>
-    </div>
-    <button class="primary" id="marker-record-btn">Start recording</button>
-    <div class="card" id="marker-chart-card" style="display:none;">
-      <div class="legend">
-        <span style="color:var(--accent)">⬤ X</span><span style="color:var(--good)">⬤ Y</span><span style="color:var(--hazard)">⬤ Z</span><span style="color:var(--ink)">⬤ Magnitude</span>
-      </div>
-      <div class="legend"><span>dashed = your markers</span><span>green line = rep this would count</span><span>▼ = marker hit</span></div>
-      <div class="zoom-row"><span>Zoom</span><input type="range" id="marker-zoom" min="1" max="30" step="1" value="1"><span id="marker-zoom-val">1×</span></div>
-      <div id="marker-chart-wrap" class="chart-wrap"></div>
-      <div id="marker-sim" class="fine-print" style="margin-top:6px;"></div>
-    </div>
-    <div id="marker-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-    <div>
-      <button class="ghost" id="marker-clear-btn">Clear markers</button>
-      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record demo</button>
-      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save markers</button>
-      <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back without saving</button>
-    </div>
-  </div>
-
+  <!-- MOTION CHECK / DEBUG SCREEN -->
   <div id="motion-check" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
-      <h1 class="wordmark">CHECK<br><span>MOTION</span></h1>
-      <p class="tagline" id="event-status">waiting for the first sensor reading&hellip;</p>
-    </div>
-    <div class="warn-box" id="no-events-warning">No motion events have arrived. This page may be running inside a wrapper (like this chat) that blocks sensor access. Try opening it directly in Safari or Chrome on your phone, or use tap mode below.</div>
-    <div class="card" id="diag-card" style="font-size:0.78rem;color:var(--ink-dim);line-height:1.6;"></div>
-    <div class="debug-grid">
-      <div class="debug-cell"><div class="val" id="dbg-x">0.0</div><div class="lbl">X m/s²</div></div>
-      <div class="debug-cell"><div class="val" id="dbg-y">0.0</div><div class="lbl">Y m/s²</div></div>
-      <div class="debug-cell"><div class="val" id="dbg-z">0.0</div><div class="lbl">Z m/s²</div></div>
+      <h1 class="wordmark">MOTION<br><span>SENSORS</span></h1>
+      <p class="tagline" id="event-status">Waiting for sensor stream...</p>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Delta vs threshold</b><span id="dbg-delta">0.0</span></div>
-      <div id="delta-meter"><div id="delta-fill"></div><div id="delta-threshold-line"></div></div>
+      <div class="exercise-row">
+        <b>Live Inclination &amp; Vector</b>
+        <span id="dbg-dir-badge" class="dir-badge"><span>—</span></span>
+      </div>
+      <div class="debug-grid" style="margin-top:8px;">
+        <div class="debug-cell"><div class="val" id="dbg-x">0.0</div><div class="lbl">X (m/s²)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-y">0.0</div><div class="lbl">Y (m/s²)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-z">0.0</div><div class="lbl">Z (m/s²)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-pitch">0°</div><div class="lbl" style="color:var(--pitch-clr);">Pitch (Tilt)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-roll">0°</div><div class="lbl" style="color:var(--roll-clr);">Roll (Lean)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-mag">0.0</div><div class="lbl">Magnitude</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Acceleration Pulse</b><span id="dbg-delta">0.0</span></div>
+      <div id="delta-meter" style="margin-top:6px;"><div id="delta-fill"></div><div id="delta-threshold-line"></div></div>
       <div class="slider-row" style="margin-top:10px;">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">sensitive</span>
+        <span style="font-size:0.75rem;color:var(--ink-dim);">Sensitive</span>
         <input type="range" id="threshold-slider" min="0.4" max="4" step="0.1" value="1.6">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">firm only</span>
+        <span style="font-size:0.75rem;color:var(--ink-dim);">Firm Only</span>
       </div>
     </div>
     <div class="card" style="text-align:center;">
       <div id="rep-test-count">0</div>
-      <div class="lbl" style="color:var(--ink-dim);font-size:0.75rem;">test reps detected — move the way you'll exercise</div>
+      <div class="lbl" style="color:var(--ink-dim);font-size:0.75rem;">Test Reps Detected (Perform motion)</div>
     </div>
     <div>
-      <button class="primary" id="motion-ok-btn">Looks good — start workout</button>
-      <button class="ghost" id="motion-skip-btn" style="margin-top:8px;">Skip, use tap mode only</button>
+      <button class="primary" id="motion-ok-btn">Sensors Ready — Start Workout</button>
+      <button class="ghost" id="motion-skip-btn" style="margin-top:8px;">Skip Sensor Check (Tap Mode)</button>
     </div>
   </div>
 
+  <!-- TRAIN & TEST HUB -->
+  <div id="train-hub" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
+    <div>
+      <h1 class="wordmark">TRAIN<br><span>EXERCISES</span></h1>
+      <p class="tagline">Record movements and adjust directional &amp; pitch markers for each exercise.</p>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Kettlebell Swings</b><span id="train-count-swing">not trained</span></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record Demo</button>
+        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset Data</button>
+      </div>
+      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Set/Edit Markers (<span id="marker-count-swing">0</span>)</button>
+    </div>
+    <div class="card">
+      <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record Demo</button>
+        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset Data</button>
+      </div>
+      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Set/Edit Markers (<span id="marker-count-press">0</span>)</button>
+    </div>
+    <div>
+      <button class="primary" id="test-nav-btn">Test Detection Live</button>
+      <button class="ghost" id="train-back-btn" style="margin-top:8px;">Back</button>
+    </div>
+  </div>
+
+  <!-- TRAIN RECORDING SCREEN -->
+  <div id="train-record" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
+    <div>
+      <h1 class="wordmark" id="train-record-title">RECORDING</h1>
+      <p class="tagline">Perform reps naturally — directional &amp; tilt data will be logged.</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div id="train-rep-count" style="font-family:'Oswald',sans-serif;font-size:2.6rem;">0</div>
+      <div style="color:var(--ink-dim);font-size:0.78rem;">Reps Captured</div>
+      <div id="train-moving-status" style="margin-top:8px;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
+    </div>
+    <button class="ghost" id="train-mark-btn">Mark Rep Manually</button>
+    <div>
+      <button class="primary" id="train-done-btn">Done — Save Recording</button>
+      <button class="ghost" id="train-cancel-btn" style="margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <!-- LIVE TEST SCREEN -->
+  <div id="test-live" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
+    <div>
+      <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
+      <p class="tagline">Move naturally — classifier checks exercise type against recorded profiles.</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px 0;">
+      <div id="test-result-label" style="font-family:'Oswald',sans-serif;font-size:2.1rem;">—</div>
+      <div id="test-result-conf" style="font-size:0.85rem;color:var(--ink-dim);">Waiting for movement...</div>
+    </div>
+    <div id="test-moving-status" style="text-align:center;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
+    <button class="ghost" id="test-mark-btn">Classify Manual Rep</button>
+    <div id="test-log" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <button class="ghost" id="test-back-btn">Back to Hub</button>
+  </div>
+
+  <!-- MARKER EDITOR SCREEN (Supports editing saved recording markers!) -->
+  <div id="marker-screen" class="screen">
+    <button class="home-chip" data-home>⌂ Home</button>
+    <div>
+      <h1 class="wordmark" id="marker-title">SET<br><span>MARKERS</span></h1>
+      <p class="tagline" id="marker-instructions">Tap on graph lines or use editor below to adjust threshold &amp; direction markers on saved motion recordings.</p>
+    </div>
+    
+    <div id="marker-rec-prompt" class="card" style="display:none;text-align:center;">
+      <p style="margin:0 0 10px;font-size:0.9rem;">No existing motion demo found for this exercise. Record one first.</p>
+      <button class="primary" id="marker-record-btn">Record Demo Motion</button>
+    </div>
+
+    <div class="card" id="marker-chart-card" style="display:none;">
+      <div class="legend">
+        <span style="color:var(--accent)">⬤ X</span>
+        <span style="color:var(--good)">⬤ Y (Vert)</span>
+        <span style="color:var(--hazard)">⬤ Z</span>
+        <span style="color:var(--pitch-clr)">⬤ Pitch</span>
+        <span style="color:var(--roll-clr)">⬤ Roll</span>
+        <span style="color:var(--ink)">⬤ Mag</span>
+      </div>
+      <div class="legend" style="margin-top:2px;">
+        <span>Dashed line = Marker threshold</span>
+        <span style="color:var(--good)">▼ Green = Marker Hit</span>
+      </div>
+      <div class="zoom-row">
+        <span>Zoom</span>
+        <input type="range" id="marker-zoom" min="1" max="25" step="1" value="1">
+        <span id="marker-zoom-val">1×</span>
+      </div>
+      <div id="marker-chart-wrap" class="chart-wrap"></div>
+      <div id="marker-sim" class="fine-print" style="margin-top:8px;font-weight:600;color:var(--good);"></div>
+    </div>
+
+    <div id="marker-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+    <div id="marker-actions" style="display:none;">
+      <button class="ghost" id="marker-add-btn">+ Add Custom Marker</button>
+      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record Demo Recording</button>
+      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Markers</button>
+      <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back without Saving</button>
+    </div>
+  </div>
+
+  <!-- GAME HUD SCREEN -->
   <div id="hud">
-    <div class="chip-row"><button class="home-chip" data-home>⌂ Home</button><button class="home-chip" id="end-session-btn">End session</button></div>
+    <div class="chip-row">
+      <button class="home-chip" data-home>⌂ Home</button>
+      <button class="home-chip" id="end-session-btn">End Workout</button>
+    </div>
     <div class="hud-top">
-      <div class="stat"><span id="score">0</span><small>cleared</small></div>
+      <div class="stat"><span id="score">0</span><small>Cleared</small></div>
       <div class="lives" id="lives"></div>
-      <div class="stat"><span id="streak">0</span><small>streak</small></div>
+      <div class="stat"><span id="streak">0</span><small>Streak</small></div>
     </div>
     <div id="lane">
       <div id="falling">
@@ -422,35 +457,50 @@
       </div>
     </div>
     <button id="tap-btn">TAP<br>REP</button>
-    <div id="motion-badge">Move to count reps · tap works too</div>
+    <div id="motion-badge" style="font-size:0.72rem;color:var(--ink-dim);text-align:center;">
+      Move phone to auto-count · Tap button works anytime
+    </div>
   </div>
 
+  <!-- SESSION GRAPH SCREEN -->
   <div id="session-screen" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
-      <h1 class="wordmark">SESSION<br><span>GRAPH</span></h1>
+      <h1 class="wordmark">WORKOUT<br><span>GRAPH</span></h1>
       <p class="tagline" id="session-summary"></p>
     </div>
     <div class="card">
       <div class="legend">
-        <span style="color:var(--accent)">⬤ X</span><span style="color:var(--good)">⬤ Y</span><span style="color:var(--hazard)">⬤ Z</span><span style="color:var(--ink)">⬤ Magnitude</span>
+        <span style="color:var(--accent)">⬤ X</span>
+        <span style="color:var(--good)">⬤ Y</span>
+        <span style="color:var(--hazard)">⬤ Z</span>
+        <span style="color:var(--pitch-clr)">⬤ Pitch</span>
+        <span style="color:var(--roll-clr)">⬤ Roll</span>
       </div>
-      <div class="legend"><span>green line = rep counted</span><span>▼ = marker hit</span><span>dashed = new exercise</span><span style="color:var(--accent)">✕ = wrong move</span></div>
-      <div class="zoom-row"><span>Zoom</span><input type="range" id="session-zoom" min="1" max="40" step="1" value="1"><span id="session-zoom-val">1×</span></div>
+      <div class="legend">
+        <span>▼ = Rep Triggered</span>
+        <span style="color:var(--accent)">✕ = Wrong Movement</span>
+      </div>
+      <div class="zoom-row">
+        <span>Zoom</span>
+        <input type="range" id="session-zoom" min="1" max="40" step="1" value="1">
+        <span id="session-zoom-val">1×</span>
+      </div>
       <div id="session-chart-wrap" class="chart-wrap"></div>
     </div>
     <button class="ghost" id="session-back-btn">Back</button>
   </div>
 
+  <!-- END SCREEN -->
   <div id="end-screen" class="screen" style="display:none;">
     <div>
       <h1 class="wordmark">GAME<br><span>OVER</span></h1>
       <p class="tagline" id="end-summary"></p>
     </div>
     <div>
-      <button class="primary" id="retry-btn">Run it back</button>
-      <button class="ghost" id="session-btn" style="margin-top:8px;">View session graph</button>
-      <button class="ghost" id="home-btn" style="margin-top:8px;">Back to start</button>
+      <button class="primary" id="retry-btn">Run It Back</button>
+      <button class="ghost" id="session-btn" style="margin-top:8px;">View Workout Graph</button>
+      <button class="ghost" id="home-btn" style="margin-top:8px;">Back to Home</button>
     </div>
   </div>
 
@@ -458,6 +508,90 @@
 
 <script>
 (function(){
+  // --- Audio Synthesis: Hammer on Metal Clang ---
+  let audioOn = true;
+  let audioCtx = null;
+
+  function initAudio(){
+    try {
+      if(!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if(audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    } catch(e){}
+  }
+
+  function playMetalClang(isHighPitch = false) {
+    if(!audioOn) return;
+    initAudio();
+    if(!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+
+      // 1. Initial Hammer Hit Transient (Noise Burst through highpass filter)
+      const bufferSize = Math.floor(audioCtx.sampleRate * 0.04);
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'highpass';
+      noiseFilter.frequency.setValueAtTime(1400, t);
+
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.5, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      noise.start(t);
+
+      // 2. Metallic Anvil Modal Resonances (Inharmonic frequency ratios for metal hit)
+      const baseFreq = isHighPitch ? 620 : 440;
+      const modalRatios = [1.0, 1.58, 2.24, 2.91, 3.82, 4.65];
+      const decays = [0.45, 0.35, 0.25, 0.2, 0.15, 0.1];
+
+      modalRatios.forEach((ratio, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // Alternate sine & square-ish triangle to give metallic overtone bite
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        const freq = baseFreq * ratio;
+        osc.frequency.setValueAtTime(freq, t);
+        // Subtle downward pitch-bend on impact (hammer deformation effect)
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.06);
+
+        const d = decays[idx] || 0.2;
+        gain.gain.setValueAtTime(0.22 / (idx + 1), t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + d);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(t);
+        osc.stop(t + d + 0.01);
+      });
+    } catch(e){}
+  }
+
+  function speak(text, interrupt){
+    if(!audioOn || !('speechSynthesis' in window)) return;
+    try {
+      if(interrupt) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.15;
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
+
   const EXERCISES = [
     { name: "Kettlebell Swings", reps: 10 },
     { name: "Goblet Squats", reps: 8 },
@@ -469,8 +603,8 @@
     { name: "Burpees", reps: 6 },
   ];
   const TRAIN_EXERCISES = ["Kettlebell Swings", "Kettlebell Press"];
-  const TRAIN_SLUG = { "Kettlebell Swings": "swing", "Kettlebell Press": "press" };
 
+  // UI DOM Elements
   const startScreen = document.getElementById('start-screen');
   const motionCheck = document.getElementById('motion-check');
   const hud = document.getElementById('hud');
@@ -480,28 +614,24 @@
   const previewList = document.getElementById('preview-list');
   const fallSpeedSlider = document.getElementById('fall-speed-slider');
   const fallSpeedValue = document.getElementById('fall-speed-value');
-  fallSpeedSlider.addEventListener('input', () => {
-    fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's';
-  });
   const repsSlider = document.getElementById('reps-per-fall-slider');
   const repsValue = document.getElementById('reps-per-fall-value');
-  function repsPerFall(){ return parseInt(repsSlider.value) || 10; }
-  repsSlider.addEventListener('input', () => {
-    repsValue.textContent = repsPerFall();
-    refreshPreviewList();
-  });
+  
   const eventStatus = document.getElementById('event-status');
-  const noEventsWarning = document.getElementById('no-events-warning');
   const dbgX = document.getElementById('dbg-x');
   const dbgY = document.getElementById('dbg-y');
   const dbgZ = document.getElementById('dbg-z');
+  const dbgPitch = document.getElementById('dbg-pitch');
+  const dbgRoll = document.getElementById('dbg-roll');
+  const dbgMag = document.getElementById('dbg-mag');
+  const dbgDirBadge = document.getElementById('dbg-dir-badge');
   const dbgDelta = document.getElementById('dbg-delta');
   const deltaFill = document.getElementById('delta-fill');
-  const deltaLine = document.getElementById('delta-threshold-line');
   const thresholdSlider = document.getElementById('threshold-slider');
   const repTestCountEl = document.getElementById('rep-test-count');
   const motionOkBtn = document.getElementById('motion-ok-btn');
   const motionSkipBtn = document.getElementById('motion-skip-btn');
+  
   const scoreEl = document.getElementById('score');
   const streakEl = document.getElementById('streak');
   const livesEl = document.getElementById('lives');
@@ -512,10 +642,10 @@
   const repOfEl = document.getElementById('rep-of');
   const lane = document.getElementById('lane');
   const tapBtn = document.getElementById('tap-btn');
-  const motionBadge = document.getElementById('motion-badge');
   const retryBtn = document.getElementById('retry-btn');
   const homeBtn = document.getElementById('home-btn');
   const endSummary = document.getElementById('end-summary');
+  
   const trainNavBtn = document.getElementById('train-nav-btn');
   const trainHub = document.getElementById('train-hub');
   const trainBackBtn = document.getElementById('train-back-btn');
@@ -534,19 +664,23 @@
   const trainMarkBtn = document.getElementById('train-mark-btn');
   const testMovingStatus = document.getElementById('test-moving-status');
   const testMarkBtn = document.getElementById('test-mark-btn');
+  
   const markerScreen = document.getElementById('marker-screen');
   const markerTitle = document.getElementById('marker-title');
+  const markerRecPrompt = document.getElementById('marker-rec-prompt');
   const markerRecordBtn = document.getElementById('marker-record-btn');
   const markerChartCard = document.getElementById('marker-chart-card');
   const markerChartWrap = document.getElementById('marker-chart-wrap');
   const markerListEl = document.getElementById('marker-list');
-  const markerClearBtn = document.getElementById('marker-clear-btn');
+  const markerActions = document.getElementById('marker-actions');
+  const markerAddBtn = document.getElementById('marker-add-btn');
   const markerRerecordBtn = document.getElementById('marker-rerecord-btn');
   const markerSaveBtn = document.getElementById('marker-save-btn');
   const markerBackBtn = document.getElementById('marker-back-btn');
   const markerZoomEl = document.getElementById('marker-zoom');
   const markerZoomVal = document.getElementById('marker-zoom-val');
   const markerSim = document.getElementById('marker-sim');
+  
   const sessionScreen = document.getElementById('session-screen');
   const sessionWrap = document.getElementById('session-chart-wrap');
   const sessionZoomEl = document.getElementById('session-zoom');
@@ -558,46 +692,21 @@
   const audioToggle = document.getElementById('audio-toggle');
   const endSessionBtn = document.getElementById('end-session-btn');
 
-  // --- Voice & sounds ---
-  let audioOn = true;
-  let audioCtx = null;
-  function initAudio(){
-    try {
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if(audioCtx.state === 'suspended') audioCtx.resume();
-    } catch(e){}
-  }
-  function speak(text, interrupt){
-    if(!audioOn || !('speechSynthesis' in window)) return;
-    try {
-      if(interrupt) speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.1;
-      speechSynthesis.speak(u);
-    } catch(e){}
-  }
-  function beep(idx){
-    if(!audioOn || !audioCtx) return;
-    try {
-      const freqs = [392, 494, 587, 698, 880, 1047];
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      const t = audioCtx.currentTime;
-      o.type = 'sine';
-      o.frequency.value = freqs[idx % freqs.length];
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(t); o.stop(t + 0.18);
-    } catch(e){}
-  }
+  // Sliders listeners
+  fallSpeedSlider.addEventListener('input', () => {
+    fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's';
+  });
+  function repsPerFall(){ return parseInt(repsSlider.value) || 10; }
+  repsSlider.addEventListener('input', () => {
+    repsValue.textContent = repsPerFall();
+    refreshPreviewList();
+  });
   audioToggle.addEventListener('click', () => {
     audioOn = !audioOn;
-    audioToggle.innerHTML = 'Voice &amp; sounds: ' + (audioOn ? 'on' : 'off');
+    audioToggle.innerHTML = 'Voice &amp; Hammer Clang: ' + (audioOn ? 'On' : 'Off');
     if(audioOn) initAudio(); else { try { speechSynthesis.cancel(); } catch(e){} }
   });
 
-  // --- Session recording (for the after-workout graph) ---
   let session = null;
   let lastSession = null;
   function pushEvent(type, extra){
@@ -608,12 +717,12 @@
     lastSessionBtn.style.display = (lastSession && (lastSession.samples.length > 2 || lastSession.events.length)) ? 'block' : 'none';
   }
 
-  // --- Screen helpers ---
   const ALL_SCREENS = [startScreen, motionCheck, hud, endScreen, trainHub, trainRecord, testLive, markerScreen, sessionScreen];
   function showOnly(screen){
     ALL_SCREENS.forEach(x => x.style.display = 'none');
     screen.style.display = 'flex';
   }
+
   function goHome(){
     if(state){ state.resolved = true; state.ended = true; }
     cancelAnimationFrame(rafId);
@@ -624,17 +733,16 @@
     state = null;
     isTrainingActive = false; isTestingActive = false; isMarkerRecording = false; inMotionCheck = false;
     stopIdleChecks();
-    clearTimeout(noEventsTimer);
     repBuffer = []; repInProgress = false;
     try { speechSynthesis.cancel(); } catch(e){}
     showOnly(startScreen);
     refreshPreviewList();
     updateLastSessionBtn();
+    updateTrainHubStatus();
   }
   document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
 
   let state = null;
-  let motionEnabled = false;
   let rafId = null;
 
   function setLives(n, total){
@@ -652,12 +760,27 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  function loadTemplates(){
+    try { return JSON.parse(localStorage.getItem('repdrop_templates') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveTemplates(t){
+    try { localStorage.setItem('repdrop_templates', JSON.stringify(t)); } catch(e){}
+  }
+  function loadMarkerData(){
+    try { return JSON.parse(localStorage.getItem('repdrop_marker_data') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveMarkerData(m){
+    try { localStorage.setItem('repdrop_marker_data', JSON.stringify(m)); } catch(e){}
+  }
+
   function getGamePool(){
     const templates = loadTemplates();
-    const markerSets = loadMarkerSets();
+    const markerData = loadMarkerData();
     const trained = EXERCISES.filter(e =>
       (templates[e.name] && templates[e.name].length > 0) ||
-      (markerSets[e.name] && markerSets[e.name].length > 0)
+      (markerData[e.name] && markerData[e.name].markers && markerData[e.name].markers.length > 0)
     );
     return trained.length > 0 ? trained : EXERCISES;
   }
@@ -685,7 +808,6 @@
       repsPerFall: repsPerFall(),
       fallDuration: 7000,
       startTime: null,
-      laneHeight: lane.clientHeight,
       resolved: false,
       lastRepTime: 0,
     };
@@ -703,6 +825,7 @@
     state.target = state.repsPerFall;
     state.reps = 0;
     state.resolved = false;
+    
     const templates = loadTemplates();
     const trained = templates[ex.name];
     if(trained && trained.length > 0){
@@ -715,18 +838,22 @@
     }
     const trainedCount = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0).length;
     state.classifierGate = trainedCount >= 2;
-    const markerSets = loadMarkerSets();
-    state.markers = markerSets[ex.name] || null;
+    
+    const markerData = loadMarkerData();
+    const exMarkerObj = markerData[ex.name];
+    state.markers = (exMarkerObj && exMarkerObj.markers) ? exMarkerObj.markers : null;
     state.markerIndex = 0;
-    state.markerLastTime = null;
-    if(state.markers && state.markers.length) state.repDebounce = 200;
+    
+    if(state.markers && state.markers.length) state.repDebounce = 220;
     state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
+    
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + state.target;
     repCountEl.textContent = '0';
     repOfEl.textContent = 'of ' + state.target;
     speak(ex.name);
     pushEvent('round', { name: ex.name });
+    
     falling.classList.remove('success','fail');
     falling.style.transition = 'none';
     falling.style.top = '-80px';
@@ -750,40 +877,20 @@
     rafId = requestAnimationFrame(tick);
   }
 
-  function flashMismatch(){
-    pushEvent('mismatch');
-    falling.classList.add('mismatch');
-    setTimeout(() => falling.classList.remove('mismatch'), 350);
-  }
-
-  function attemptGameRep(now){
-    if(!state || state.resolved) return;
-    if(now - state.lastRepTime < (state.repDebounce || 260)) return;
-    if(state.classifierGate){
-      const win = motionBuffer.filter(s => s.t <= now && now - s.t <= state.classifyWindowMs);
-      const feat = extractFeaturesFromBuffer(win);
-      if(feat){
-        const result = classify(feat);
-        if(result && !result.onlyOne && result.label !== state.currentName){
-          state.lastRepTime = now;
-          flashMismatch();
-          return;
-        }
-      }
-    }
-    registerRep();
-  }
-
   function registerRep(){
     if(!state || state.resolved) return;
     const now = performance.now();
-    if(now - state.lastRepTime < (state.repDebounce || 260)) return; // debounce
+    if(now - state.lastRepTime < (state.repDebounce || 260)) return;
     state.lastRepTime = now;
     state.reps++;
     repCountEl.textContent = state.reps;
     repsNeededEl.textContent = state.reps + ' / ' + state.target;
+    
+    // Play Hammer-on-Metal Clang sound on rep!
+    playMetalClang(true);
     speak(String(state.reps), true);
     pushEvent('rep', { n: state.reps, name: state.currentName });
+    
     if(state.reps >= state.target){
       resolveRound(true);
     }
@@ -795,7 +902,7 @@
     cancelAnimationFrame(rafId);
     pushEvent('end', { success });
     if(success){
-      speak('Set complete');
+      speak('Set complete!');
       falling.classList.add('success');
       state.score++;
       state.streak++;
@@ -827,75 +934,114 @@
     }
     updateLastSessionBtn();
     showOnly(endScreen);
-    endSummary.textContent = `You cleared ${state.score} exercise${state.score===1?'':'s'} before the floor caught up.`;
+    endSummary.textContent = `You cleared ${state.score} set${state.score===1?'':'s'} before the kettlebell hit the floor.`;
   }
 
   tapBtn.addEventListener('click', registerRep);
   tapBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); registerRep(); }, {passive:false});
 
-  // --- Motion sensing ---
-  let smoothed = 0;
-  let THRESHOLD = 1.6; // m/s^2 delta to count as a rep pulse
-  const REFRACTORY = 300;
-  let lastMotionRep = 0;
-  let totalMotionEvents = 0;
+  let motionBuffer = [];
   let testReps = 0;
   let inMotionCheck = false;
-  let noEventsTimer = null;
 
-  // --- Train / test state ---
-  let motionBuffer = [];
-  const BUFFER_MS = 2000;
-  let isTrainingActive = false;
-  let trainingExercise = null;
-  let trainingSessionFeatures = [];
-  let isTestingActive = false;
+  function processSensorReading(x, y, z) {
+    const t = performance.now();
+    const mag = Math.sqrt(x*x + y*y + z*z);
+    
+    // Calculate Pitch (up/down inclination) & Roll (side-to-side tilt)
+    // Pitch: Rotation around X-axis (-90 to +90)
+    // Roll: Rotation around Y-axis (-180 to +180)
+    const pitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
+    const roll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
+    
+    // Direction vector indicator (moving up vs moving down)
+    const dirY = y > 1.8 ? '↑ Moving Up' : (y < -1.8 ? '↓ Moving Down' : '• Neutral');
+    
+    const sample = { t, x, y, z, mag, pitch, roll, dirY };
+    motionBuffer.push(sample);
+    if(motionBuffer.length > 250) motionBuffer.shift();
 
-  function loadTemplates(){
-    try { return JSON.parse(localStorage.getItem('repdrop_templates') || '{}'); }
-    catch(e) { return {}; }
-  }
-  function saveTemplates(t){
-    try { localStorage.setItem('repdrop_templates', JSON.stringify(t)); } catch(e){}
-  }
-  function loadMarkerSets(){
-    try { return JSON.parse(localStorage.getItem('repdrop_markers') || '{}'); }
-    catch(e) { return {}; }
-  }
-  function saveMarkerSets(m){
-    try { localStorage.setItem('repdrop_markers', JSON.stringify(m)); } catch(e){}
-  }
+    if(session && session.active){
+      session.samples.push(sample);
+    }
 
-  function extractFeaturesFromBuffer(win){
-    if(win.length < 3) return null;
-    let peakMag = 0, minZ=Infinity,maxZ=-Infinity, minX=Infinity,maxX=-Infinity, minY=Infinity,maxY=-Infinity;
-    win.forEach(s => {
-      peakMag = Math.max(peakMag, s.mag);
-      minZ = Math.min(minZ, s.z); maxZ = Math.max(maxZ, s.z);
-      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
-      minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y);
-    });
-    const duration = win[win.length-1].t - win[0].t;
-    const zRange = maxZ - minZ;
-    const xyRange = Math.sqrt(Math.pow(maxX-minX,2) + Math.pow(maxY-minY,2));
-    const ranges = { x: maxX-minX, y: maxY-minY, z: zRange };
-    const domAxis = Object.keys(ranges).reduce((a,b) => ranges[a] >= ranges[b] ? a : b);
-    let dirChanges = 0, prevSign = null;
-    for(let i=1;i<win.length;i++){
-      const d = win[i][domAxis] - win[i-1][domAxis];
-      const sign = d > 0 ? 1 : (d < 0 ? -1 : 0);
-      if(sign !== 0){
-        if(prevSign !== null && sign !== prevSign) dirChanges++;
-        prevSign = sign;
+    // Update Motion Check / Debug UI if active
+    if(inMotionCheck){
+      dbgX.textContent = x.toFixed(1);
+      dbgY.textContent = y.toFixed(1);
+      dbgZ.textContent = z.toFixed(1);
+      dbgPitch.textContent = pitch.toFixed(0) + '°';
+      dbgRoll.textContent = roll.toFixed(0) + '°';
+      dbgMag.textContent = mag.toFixed(1);
+      
+      const dirColor = y > 1.8 ? 'var(--good)' : (y < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
+      dbgDirBadge.innerHTML = `<span style="color:${dirColor}">${dirY}</span>`;
+
+      const threshold = parseFloat(thresholdSlider.value);
+      const delta = Math.abs(mag - 9.8);
+      dbgDelta.textContent = delta.toFixed(1);
+      deltaFill.style.width = Math.min(100, (delta / 4) * 100) + '%';
+      document.getElementById('delta-threshold-line').style.left = (threshold / 4 * 100) + '%';
+
+      if(delta > threshold && t - (state?.lastRepTime || 0) > 400){
+        if(!state) state = {};
+        state.lastRepTime = t;
+        testReps++;
+        repTestCountEl.textContent = testReps;
+        playMetalClang(false);
       }
     }
-    return [peakMag, duration, zRange, xyRange, dirChanges];
+
+    // Recording buffer for marker training or custom exercise recording
+    if(isMarkerRecording){
+      markerRecordBuffer.push(sample);
+    }
+    if(isTrainingActive || isTestingActive){
+      processSegmentedRep(sample);
+    }
+
+    // Check custom markers during active game
+    if(state && !state.resolved && state.markers && state.markers.length > 0){
+      checkMarkersForRep(sample);
+    }
   }
 
-  // Whole-motion segmentation: accumulate samples while moving, finalize as
-  // one rep once motion stops for IDLE_GAP_MS (or the user taps "mark now").
-  const MOVE_THRESHOLD = 0.5;
-  const IDLE_GAP_MS = 2000;
+  function checkMarkersForRep(sample){
+    if(!state.markers || state.markers.length === 0) return;
+    const targetMarker = state.markers[state.markerIndex || 0];
+    if(!targetMarker) return;
+
+    let val = sample[targetMarker.axis] || sample.mag;
+    let hit = false;
+
+    if(targetMarker.dir === 'above' && val >= targetMarker.val){
+      hit = true;
+    } else if(targetMarker.dir === 'below' && val <= targetMarker.val){
+      hit = true;
+    }
+
+    if(hit){
+      state.markerIndex = (state.markerIndex || 0) + 1;
+      if(state.markerIndex >= state.markers.length){
+        // All markers in sequence hit -> count rep!
+        state.markerIndex = 0;
+        registerRep();
+      }
+    }
+  }
+
+  function processSegmentedRep(sample){
+    const dev = Math.abs(sample.mag - 9.8);
+    if(dev > 0.6){
+      repBuffer.push(sample);
+      repInProgress = true;
+      lastMovingTime = sample.t;
+      if(isTrainingActive) trainMovingStatus.textContent = '⚡ Movement active...';
+      if(isTestingActive) testMovingStatus.textContent = '⚡ Movement active...';
+    }
+  }
+
+  const IDLE_GAP_MS = 1800;
   let repBuffer = [];
   let repInProgress = false;
   let lastMovingTime = 0;
@@ -910,13 +1056,17 @@
     repBuffer = [];
     repInProgress = false;
     if(!feat) return;
+
     if(isTrainingActive){
       trainingSessionFeatures.push(feat);
       trainRepCount.textContent = trainingSessionFeatures.length;
-      trainMovingStatus.textContent = 'Idle — start the movement';
+      trainMovingStatus.textContent = 'Idle — Ready for next rep';
+      playMetalClang(true);
     } else if(isTestingActive){
-      renderTestResult(classify(feat));
-      testMovingStatus.textContent = 'Idle — start the movement';
+      const res = classify(feat);
+      renderTestResult(res);
+      testMovingStatus.textContent = 'Idle — Ready for next rep';
+      playMetalClang(res && res.confidence > 0.5);
     }
   }
 
@@ -926,620 +1076,488 @@
       if(repInProgress && performance.now() - lastMovingTime > IDLE_GAP_MS){
         finalizeCurrentRep();
       }
-    }, 300);
+    }, 250);
   }
   function stopIdleChecks(){ clearInterval(idleCheckTimer); }
 
-  // --- Marker (checkpoint) recording & editing ---
-  let markerExercise = null;
-  let isMarkerRecording = false;
-  let markerRecordBuffer = [];
-  let markerRecordStart = 0;
-  let currentMarkers = [];
-  let chartScale = null; // {tToX, valToY, tMax, valMin, valMax}
-  const AXIS_COLORS = { x: 'var(--accent)', y: 'var(--good)', z: 'var(--hazard)', mag: 'var(--ink)' };
-
-  function goToMarkerScreen(exercise){
-    markerExercise = exercise;
-    currentMarkers = [];
-    markerRecordBuffer = [];
-    markerTitle.innerHTML = 'SET<br><span style="color:var(--accent)">' + exercise + '</span>';
-    markerZoomLevel = 1;
-    markerZoomEl.value = 1;
-    markerZoomVal.textContent = '1×';
-    markerSim.textContent = '';
-    markerChartCard.style.display = 'none';
-    markerRecordBtn.style.display = 'block';
-    markerRecordBtn.textContent = 'Start recording';
-    markerListEl.innerHTML = '';
-    trainHub.style.display = 'none';
-    markerScreen.style.display = 'flex';
-  }
-
-  markerRecordBtn.addEventListener('click', () => {
-    ensureMotionArmed();
-    if(!isMarkerRecording){
-      isMarkerRecording = true;
-      markerRecordBuffer = [];
-      markerRecordStart = performance.now();
-      markerRecordBtn.textContent = 'Stop recording';
-    } else {
-      isMarkerRecording = false;
-      markerRecordBtn.style.display = 'none';
-      currentMarkers = [];
-      renderMarkerChart();
-      renderMarkerList();
-      markerChartCard.style.display = 'block';
-    }
-  });
-
-  markerRerecordBtn.addEventListener('click', () => {
-    markerChartCard.style.display = 'none';
-    markerRecordBtn.style.display = 'block';
-    markerRecordBtn.textContent = 'Start recording';
-    currentMarkers = [];
-    markerListEl.innerHTML = '';
-  });
-
-  let markerZoomLevel = 1;
-
-  // Generic zoomable chart used by both the marker editor and the session graph.
-  // overlay items: {t, kind: 'marker'|'rep'|'mk'|'round'|'mismatch', label}
-  function drawChart(wrap, samples, zoom, overlay, onClick){
-    const oldScrollW = wrap.scrollWidth || 1;
-    const centerFrac = (wrap.scrollLeft + wrap.clientWidth / 2) / oldScrollW;
-    if(!samples || samples.length < 3){
-      wrap.innerHTML = '<p class="fine-print">No motion data captured for this one (tap mode, or the sensor was off).</p>';
-      return null;
-    }
-    const BASE_W = 340, PLOT_H = 220, TOT_H = 238, PAD = 8;
-    const W = BASE_W * zoom;
-    let tMax = samples[samples.length-1].t;
-    overlay.forEach(o => { if(o.t > tMax) tMax = o.t; });
-    if(tMax <= 0) tMax = 1;
-    let valMin = Infinity, valMax = -Infinity;
-    samples.forEach(sm => [sm.x, sm.y, sm.z, sm.mag].forEach(v => { if(v < valMin) valMin = v; if(v > valMax) valMax = v; }));
-    if(valMax - valMin < 1) valMax = valMin + 1;
-    const tToX = t => PAD + (Math.min(t, tMax) / tMax) * (W - PAD*2);
-    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
-    const stride = Math.max(1, Math.ceil(samples.length / (W * 1.5)));
-    function poly(ax){
-      const pts = [];
-      for(let k=0;k<samples.length;k+=stride){
-        const sm = samples[k];
-        pts.push(tToX(sm.t).toFixed(1) + ',' + valToY(ax === 'mag' ? sm.mag : sm[ax]).toFixed(1));
-      }
-      return pts.join(' ');
-    }
-    let svg = `<svg viewBox="0 0 ${W} ${TOT_H}" style="width:${zoom*100}%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">`;
-    // time grid
-    const pxPerSec = (W - PAD*2) / (tMax / 1000);
-    const steps = [0.1,0.2,0.5,1,2,5,10,15,30,60,120];
-    const step = steps.find(x => x * pxPerSec >= 48) || 120;
-    for(let tt = 0; tt <= tMax/1000 + 1e-6; tt += step){
-      const x = tToX(tt*1000);
-      svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--track)" stroke-width="0.5"/>`;
-      svg += `<text x="${x+2}" y="${TOT_H-3}" font-size="9" fill="var(--ink-dim)">${(Math.round(tt*10)/10)}s</text>`;
-    }
-    svg += `<polyline points="${poly('x')}" fill="none" stroke="var(--accent)" stroke-width="1.4"/>`;
-    svg += `<polyline points="${poly('y')}" fill="none" stroke="var(--good)" stroke-width="1.4"/>`;
-    svg += `<polyline points="${poly('z')}" fill="none" stroke="var(--hazard)" stroke-width="1.4"/>`;
-    svg += `<polyline points="${poly('mag')}" fill="none" stroke="var(--ink)" stroke-width="1.7"/>`;
-    overlay.forEach(o => {
-      const x = tToX(o.t);
-      if(o.kind === 'marker'){
-        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
-        svg += `<text x="${x+3}" y="12" font-size="10" font-weight="700" fill="var(--ink)">${o.label}</text>`;
-      } else if(o.kind === 'rep'){
-        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2"/>`;
-        svg += `<text x="${x+3}" y="26" font-size="10" font-weight="700" fill="var(--good)">#${o.label}</text>`;
-      } else if(o.kind === 'mk'){
-        svg += `<polygon points="${x-3.5},0 ${x+3.5},0 ${x},8" fill="var(--hazard)"/>`;
-      } else if(o.kind === 'round'){
-        svg += `<line x1="${x}" x2="${x}" y1="0" y2="${PLOT_H}" stroke="var(--ink-dim)" stroke-width="1" stroke-dasharray="5 4"/>`;
-        svg += `<text x="${x+3}" y="${PLOT_H-5}" font-size="9" fill="var(--ink-dim)">${o.label}</text>`;
-      } else if(o.kind === 'mismatch'){
-        svg += `<text x="${x-4}" y="${PLOT_H-18}" font-size="11" fill="var(--accent)">✕</text>`;
-      }
+  function extractFeaturesFromBuffer(win){
+    if(win.length < 3) return null;
+    let peakMag = 0, minZ=Infinity,maxZ=-Infinity, minX=Infinity,maxX=-Infinity, minY=Infinity,maxY=-Infinity;
+    let minPitch=Infinity, maxPitch=-Infinity, minRoll=Infinity, maxRoll=-Infinity;
+    win.forEach(s => {
+      peakMag = Math.max(peakMag, s.mag);
+      minZ = Math.min(minZ, s.z); maxZ = Math.max(maxZ, s.z);
+      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
+      minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y);
+      minPitch = Math.min(minPitch, s.pitch); maxPitch = Math.max(maxPitch, s.pitch);
+      minRoll = Math.min(minRoll, s.roll); maxRoll = Math.max(maxRoll, s.roll);
     });
-    svg += '</svg>';
-    wrap.innerHTML = svg;
-    wrap.scrollLeft = centerFrac * wrap.scrollWidth - wrap.clientWidth / 2;
-    const scale = { W, H: TOT_H, PAD, tMax, valToY, samples };
-    if(onClick){
-      wrap.querySelector('svg').addEventListener('click', evt => {
-        const rect = evt.currentTarget.getBoundingClientRect();
-        const px = (evt.clientX - rect.left) * (W / rect.width);
-        const py = (evt.clientY - rect.top) * (TOT_H / rect.height);
-        const t = ((px - PAD) / (W - PAD*2)) * tMax;
-        onClick(Math.max(0, t), py, scale);
-      });
-    }
-    return scale;
+    const duration = win[win.length-1].t - win[0].t;
+    const pitchRange = maxPitch - minPitch;
+    const rollRange = maxRoll - minRoll;
+    const zRange = maxZ - minZ;
+    const yRange = maxY - minY;
+    return [peakMag, duration, zRange, yRange, pitchRange, rollRange];
   }
 
-  function simulateMarkers(samples, markers){
-    const st = { markerIndex: 0, markerLastTime: null };
-    const hits = [], reps = [];
-    samples.forEach(sm => {
-      const r = stepMarkers(st, markers, sm.t, sm, sm.mag);
-      if(r){ hits.push({ t: sm.t, idx: r.idx }); if(r.rep) reps.push(sm.t); }
-    });
-    return { hits, reps };
-  }
-
-  function recomputeGaps(){
-    currentMarkers.sort((a,b) => a.tAbs - b.tAbs);
-    currentMarkers.forEach((m,i) => { m.gapMs = i ? m.tAbs - currentMarkers[i-1].tAbs : 0; });
-  }
-
-  function renderMarkerChart(){
-    const overlay = currentMarkers.map((m,i) => ({ t: m.tAbs, kind: 'marker', label: String(i+1) }));
-    let simText = '';
-    if(currentMarkers.length >= 2){
-      const sim = simulateMarkers(markerRecordBuffer, currentMarkers);
-      sim.hits.forEach(h => overlay.push({ t: h.t, kind: 'mk', label: String(h.idx+1) }));
-      sim.reps.forEach((t,i) => overlay.push({ t, kind: 'rep', label: String(i+1) }));
-      simText = 'On this recording, your markers would count ' + sim.reps.length + ' rep' + (sim.reps.length === 1 ? '' : 's') + '.';
-    }
-    markerSim.textContent = simText;
-    chartScale = drawChart(markerChartWrap, markerRecordBuffer, markerZoomLevel, overlay, onChartClick);
-  }
-
-  function onChartClick(t, py, sc){
-    const samples = sc.samples;
-    let nearest = samples[0], nd = Infinity, idx = 0;
-    samples.forEach((sm,k) => { const d = Math.abs(sm.t - t); if(d < nd){ nd = d; nearest = sm; idx = k; } });
-    const axes = ['x','y','z','mag'];
-    const val = (sm, ax) => ax === 'mag' ? sm.mag : sm[ax];
-    let bestAxis = 'mag', bestDist = Infinity;
-    axes.forEach(ax => {
-      const d = Math.abs(sc.valToY(val(nearest, ax)) - py);
-      if(d < bestDist){ bestDist = d; bestAxis = ax; }
-    });
-    const curVal = val(nearest, bestAxis);
-    const prevVal = val(samples[Math.max(0, idx - 4)], bestAxis);
-    currentMarkers.push({ axis: bestAxis, dir: curVal >= prevVal ? 'above' : 'below', value: curVal, tAbs: nearest.t, gapMs: 0 });
-    recomputeGaps();
-    renderMarkerChart();
-    renderMarkerList();
-  }
-
-  markerZoomEl.addEventListener('input', () => {
-    markerZoomLevel = parseInt(markerZoomEl.value);
-    markerZoomVal.textContent = markerZoomLevel + '×';
-    renderMarkerChart();
-  });
-
-  function renderSessionChart(){
-    if(!lastSession) return;
-    const ev = lastSession.events;
-    const overlay = [];
-    ev.forEach(e => {
-      if(e.type === 'round') overlay.push({ t: e.t, kind: 'round', label: e.name });
-      else if(e.type === 'rep') overlay.push({ t: e.t, kind: 'rep', label: String(e.n) });
-      else if(e.type === 'marker') overlay.push({ t: e.t, kind: 'mk', label: String(e.idx+1) });
-      else if(e.type === 'mismatch') overlay.push({ t: e.t, kind: 'mismatch', label: '' });
-    });
-    const reps = ev.filter(e => e.type === 'rep').length;
-    const sets = ev.filter(e => e.type === 'end' && e.success).length;
-    const last = lastSession.samples.length ? lastSession.samples[lastSession.samples.length-1].t : (ev.length ? ev[ev.length-1].t : 0);
-    sessionSummary.textContent = reps + ' reps counted · ' + sets + ' set' + (sets === 1 ? '' : 's') + ' completed · ' + Math.round(last/1000) + 's recorded';
-    drawChart(sessionWrap, lastSession.samples, sessionZoomVal, overlay, null);
-  }
-
-  function renderMarkerList(){
-    markerListEl.innerHTML = currentMarkers.map((m,i) =>
-      `<div class="marker-row"><span>M${i+1}: ${m.axis.toUpperCase()} ${m.dir === 'above' ? '↑' : '↓'} ${m.value.toFixed(1)}</span><button data-idx="${i}" class="marker-del">✕</button></div>`
-    ).join('');
-    markerListEl.querySelectorAll('.marker-del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentMarkers.splice(parseInt(btn.getAttribute('data-idx')), 1);
-        recomputeGaps();
-        renderMarkerChart();
-        renderMarkerList();
-      });
-    });
-  }
-
-  markerClearBtn.addEventListener('click', () => {
-    currentMarkers = [];
-    renderMarkerChart();
-    renderMarkerList();
-  });
-
-  markerSaveBtn.addEventListener('click', () => {
-    if(currentMarkers.length >= 2){
-      const sets = loadMarkerSets();
-      sets[markerExercise] = currentMarkers.map(m => ({ axis: m.axis, dir: m.dir, value: m.value, gapMs: m.gapMs }));
-      saveMarkerSets(sets);
-    }
-    isMarkerRecording = false;
-    markerScreen.style.display = 'none';
-    goToTrainHub();
-  });
-
-  markerBackBtn.addEventListener('click', () => {
-    isMarkerRecording = false;
-    markerScreen.style.display = 'none';
-    goToTrainHub();
-  });
-
-  function classify(features){
+  function classify(feat){
     const templates = loadTemplates();
-    const names = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0);
-    if(names.length === 0) return null;
-    let all = [];
-    names.forEach(n => { all = all.concat(templates[n]); });
-    const means = [], stds = [];
-    for(let i=0;i<features.length;i++){
-      const vals = all.map(r => r[i]);
-      const m = vals.reduce((a,b)=>a+b,0) / vals.length;
-      const variance = vals.reduce((a,b)=>a+(b-m)*(b-m),0) / vals.length;
-      means.push(m); stds.push(Math.sqrt(variance) || 1);
-    }
-    const norm = vec => vec.map((v,i) => (v - means[i]) / stds[i]);
-    const nf = norm(features);
-    let best = null, bestDist = Infinity;
-    const distances = {};
-    names.forEach(n => {
-      const reps = templates[n];
-      const centroid = features.map((_,i) => reps.reduce((a,r)=>a+r[i],0) / reps.length);
-      const dist = Math.sqrt(norm(centroid).reduce((a,v,i)=>a+Math.pow(v-nf[i],2),0));
-      distances[n] = dist;
-      if(dist < bestDist){ bestDist = dist; best = n; }
-    });
-    const distVals = Object.values(distances);
-    const sumInv = distVals.reduce((a,d)=>a+1/(d+0.0001),0);
-    const confidence = names.length > 1 ? Math.round((1/(bestDist+0.0001)) / sumInv * 100) : 100;
-    return { label: best, confidence, onlyOne: names.length < 2 };
-  }
-
-  function refreshTrainCounts(){
-    const templates = loadTemplates();
-    const markerSets = loadMarkerSets();
-    TRAIN_EXERCISES.forEach(n => {
-      const el = document.getElementById('train-count-' + TRAIN_SLUG[n]);
-      const reps = templates[n];
-      el.textContent = (reps && reps.length) ? reps.length + ' reps' : 'not trained';
-      const mc = document.getElementById('marker-count-' + TRAIN_SLUG[n]);
-      const markers = markerSets[n];
-      mc.textContent = markers ? markers.length : 0;
-    });
-  }
-
-  thresholdSlider.addEventListener('input', () => {
-    THRESHOLD = parseFloat(thresholdSlider.value);
-  });
-
-  function handleMotion(e){
-    const a = e.accelerationIncludingGravity || e.acceleration;
-    if(!a || a.x === null || a.x === undefined) return;
-    totalMotionEvents++;
-    if(totalMotionEvents === 1){
-      eventStatus.innerHTML = '<b>Live</b> — sensor data is arriving';
-      noEventsWarning.style.display = 'none';
-    }
-    const now = performance.now();
-    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
-    motionBuffer.push({ t: now, x: a.x, y: a.y, z: a.z, mag });
-    while(motionBuffer.length && now - motionBuffer[0].t > BUFFER_MS) motionBuffer.shift();
-    smoothed = smoothed * 0.8 + mag * 0.2;
-    const delta = Math.abs(mag - smoothed);
-
-    if(isMarkerRecording){
-      markerRecordBuffer.push({ t: now - markerRecordStart, x: a.x, y: a.y, z: a.z, mag });
-    }
-    if(session && session.active){
-      session.samples.push({ t: now - session.t0, x: a.x, y: a.y, z: a.z, mag });
-    }
-
-    if(inMotionCheck){
-      dbgX.textContent = a.x.toFixed(1);
-      dbgY.textContent = a.y.toFixed(1);
-      dbgZ.textContent = a.z.toFixed(1);
-      dbgDelta.textContent = delta.toFixed(2);
-      const pct = Math.min((delta / (THRESHOLD * 1.5)) * 100, 100);
-      deltaFill.style.width = pct + '%';
-      deltaFill.style.background = delta > THRESHOLD ? 'var(--accent)' : 'var(--good)';
-      deltaLine.style.left = Math.min((THRESHOLD / (THRESHOLD * 1.5)) * 100, 100) + '%';
-    }
-
-    if(isTrainingActive || isTestingActive){
-      if(delta > MOVE_THRESHOLD){
-        if(!repInProgress){
-          repInProgress = true;
-          repBuffer = [];
-          if(isTrainingActive) trainMovingStatus.textContent = 'Moving…';
-          if(isTestingActive) testMovingStatus.textContent = 'Moving…';
+    let bestMatch = null, minScore = Infinity;
+    Object.keys(templates).forEach(ex => {
+      const reps = templates[ex];
+      if(!reps || reps.length === 0) return;
+      reps.forEach(ref => {
+        let diff = 0;
+        for(let i=0; i<feat.length; i++){
+          diff += Math.pow(feat[i] - (ref[i] || 0), 2);
         }
-        lastMovingTime = now;
-      }
-      if(repInProgress) repBuffer.push({ t: now, x: a.x, y: a.y, z: a.z, mag });
-    }
-
-    if(state && !state.resolved && !isTrainingActive && !isTestingActive && state.markers && state.markers.length){
-      runMarkerStateMachine(now, a, mag);
-    }
-
-    if(delta > THRESHOLD && now - lastMotionRep > REFRACTORY){
-      lastMotionRep = now;
-      if(inMotionCheck){
-        testReps++;
-        repTestCountEl.textContent = testReps;
-      }
-      if(!isTrainingActive && !isTestingActive && !(state && state.markers && state.markers.length)){
-        attemptGameRep(now);
-      }
-    }
-  }
-
-  function stepMarkers(st, markers, t, a, mag){
-    const m = markers[st.markerIndex];
-    const val = m.axis === 'mag' ? mag : a[m.axis];
-    const hit = m.dir === 'above' ? val >= m.value : val <= m.value;
-    if(!hit) return null;
-    if(st.markerIndex > 0 && st.markerLastTime !== null){
-      const gap = t - st.markerLastTime;
-      if(gap < 80) return null;
-      if(gap > Math.max(400, m.gapMs * 2)){
-        st.markerIndex = 0; st.markerLastTime = null;
-        return null;
-      }
-    }
-    const idx = st.markerIndex;
-    st.markerLastTime = t;
-    st.markerIndex++;
-    let rep = false;
-    if(st.markerIndex >= markers.length){
-      st.markerIndex = 0; st.markerLastTime = null; rep = true;
-    }
-    return { idx, rep };
-  }
-
-  function runMarkerStateMachine(now, a, mag){
-    const r = stepMarkers(state, state.markers, now, a, mag);
-    if(!r) return;
-    beep(r.idx);
-    pushEvent('marker', { idx: r.idx });
-    if(r.rep) registerRep();
-  }
-
-  function armMotion(){
-    window.addEventListener('devicemotion', handleMotion);
-    motionEnabled = true;
-    motionStatus.innerHTML = '<b>enabled</b>';
-    motionBadge.innerHTML = '<b>Motion is live</b> · move the weight, or tap as backup';
-  }
-
-  function runDiagnostics(){
-    const diagCard = document.getElementById('diag-card');
-    const lines = [];
-    lines.push('DeviceMotionEvent in window: ' + (('DeviceMotionEvent' in window) ? 'yes' : 'NO'));
-    lines.push('Secure context (https): ' + (window.isSecureContext ? 'yes' : 'NO'));
-    lines.push('requestPermission needed: ' + (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? 'yes (iOS-style)' : 'no'));
-    try {
-      if (document.featurePolicy && document.featurePolicy.allowsFeature) {
-        lines.push('Accelerometer allowed by page policy: ' + (document.featurePolicy.allowsFeature('accelerometer') ? 'yes' : 'NO — blocked by host'));
-        lines.push('Gyroscope allowed by page policy: ' + (document.featurePolicy.allowsFeature('gyroscope') ? 'yes' : 'NO — blocked by host'));
-      } else {
-        lines.push('Page policy check: unsupported in this browser');
-      }
-    } catch(e) {
-      lines.push('Page policy check failed: ' + e.message);
-    }
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'accelerometer' }).then(res => {
-        diagCard.innerHTML += '<br>Accelerometer permission state: <b>' + res.state + '</b>';
-      }).catch(() => {
-        diagCard.innerHTML += '<br>Accelerometer permission state: not queryable';
+        const dist = Math.sqrt(diff);
+        if(dist < minScore){
+          minScore = dist;
+          bestMatch = ex;
+        }
       });
+    });
+    return { label: bestMatch || 'Unknown', confidence: Math.max(0.1, 1 - minScore/80) };
+  }
+
+  function renderTestResult(res){
+    if(!res) return;
+    testResultLabel.textContent = res.label;
+    testResultConf.textContent = `Confidence: ${(res.confidence * 100).toFixed(0)}%`;
+    const row = document.createElement('div');
+    row.style.className = 'exercise-row';
+    row.style.background = 'var(--panel)';
+    row.style.padding = '8px 12px';
+    row.style.borderRadius = '8px';
+    row.style.fontSize = '0.85rem';
+    row.style.display = 'flex';
+    row.style.justifyContent5 = 'space-between';
+    row.innerHTML = `<b>${res.label}</b><span>${(res.confidence * 100).toFixed(0)}%</span>`;
+    testLog.prepend(row);
+  }
+
+  function ensureMotionArmed(){
+    if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function'){
+      DeviceMotionEvent.requestPermission().then(resp => {
+        if(resp === 'granted'){
+          bindMotionEvents();
+        }
+      }).catch(()=>{});
+    } else {
+      bindMotionEvents();
     }
-    diagCard.innerHTML = lines.join('<br>');
   }
 
-  function showMotionCheck(){
-    startScreen.style.display = 'none';
-    motionCheck.style.display = 'flex';
-    inMotionCheck = true;
-    totalMotionEvents = 0;
-    testReps = 0;
-    repTestCountEl.textContent = '0';
-    eventStatus.textContent = 'waiting for the first sensor reading…';
-    noEventsWarning.style.display = 'none';
-    runDiagnostics();
-    clearTimeout(noEventsTimer);
-    noEventsTimer = setTimeout(() => {
-      if(totalMotionEvents === 0){
-        eventStatus.innerHTML = '<b style="color:var(--accent)">No signal</b>';
-        noEventsWarning.style.display = 'block';
-      }
-    }, 2500);
+  function bindMotionEvents(){
+    window.removeEventListener('devicemotion', onDeviceMotion);
+    window.addEventListener('devicemotion', onDeviceMotion, true);
+    motionStatus.textContent = 'sensor active';
+    motionStatus.style.color = 'var(--good)';
   }
 
-  enableBtn.addEventListener('click', async () => {
+  function onDeviceMotion(ev){
+    let acc = ev.accelerationIncludingGravity || ev.acceleration;
+    if(!acc || acc.x === null) return;
+    processSensorReading(acc.x || 0, acc.y || 0, acc.z || 0);
+  }
+
+  enableBtn.addEventListener('click', () => {
     initAudio();
-    try {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        const res = await DeviceMotionEvent.requestPermission();
-        if (res === 'granted') armMotion();
-        else motionStatus.textContent = 'denied — tap mode only';
-      } else if (window.DeviceMotionEvent) {
-        armMotion();
-      } else {
-        motionStatus.textContent = 'unsupported — tap mode only';
-      }
-    } catch (err) {
-      motionStatus.textContent = 'unavailable — tap mode only';
-    }
-    showMotionCheck();
+    ensureMotionArmed();
+    inMotionCheck = true;
+    showOnly(motionCheck);
+    eventStatus.textContent = 'Listening to motion sensors...';
   });
 
   motionOkBtn.addEventListener('click', () => {
-    initAudio();
     inMotionCheck = false;
-    clearTimeout(noEventsTimer);
-    motionCheck.style.display = 'none';
     startGame();
   });
-
   motionSkipBtn.addEventListener('click', () => {
-    initAudio();
     inMotionCheck = false;
-    clearTimeout(noEventsTimer);
-    motionCheck.style.display = 'none';
-    motionBadge.textContent = 'Tap mode — tap the button for each rep';
     startGame();
   });
 
-  retryBtn.addEventListener('click', startGame);
-  homeBtn.addEventListener('click', goHome);
-  endSessionBtn.addEventListener('click', endGame);
-  let sessionReturn = 'start';
-  let sessionZoomVal = 1;
-  function openSession(from){
-    sessionReturn = from;
-    showOnly(sessionScreen);
-    renderSessionChart();
-  }
-  sessionBtn.addEventListener('click', () => openSession('end'));
-  lastSessionBtn.addEventListener('click', () => openSession('start'));
-  sessionBackBtn.addEventListener('click', () => {
-    showOnly(sessionReturn === 'end' ? endScreen : startScreen);
-    refreshPreviewList();
+  trainNavBtn.addEventListener('click', () => {
+    showOnly(trainHub);
+    updateTrainHubStatus();
   });
-  sessionZoomEl.addEventListener('input', () => {
-    sessionZoomVal = parseInt(sessionZoomEl.value);
-    sessionZoomLbl.textContent = sessionZoomVal + '×';
-    renderSessionChart();
-  });
+  trainBackBtn.addEventListener('click', goHome);
 
-  window.addEventListener('resize', () => { if(lane) state && (state.laneHeight = lane.clientHeight); });
-
-  // --- Train / test navigation ---
-  function goToTrainHub(){
-    [startScreen, motionCheck, hud, endScreen, trainRecord, testLive].forEach(s => s.style.display = 'none');
-    trainHub.style.display = 'flex';
-    refreshTrainCounts();
+  function updateTrainHubStatus(){
+    const templates = loadTemplates();
+    const markerData = loadMarkerData();
+    TRAIN_EXERCISES.forEach(ex => {
+      const slug = ex.includes('Swing') ? 'swing' : 'press';
+      const countEl = document.getElementById(`train-count-${slug}`);
+      const markerCountEl = document.getElementById(`marker-count-${slug}`);
+      const t = templates[ex];
+      if(countEl) countEl.textContent = (t && t.length) ? `${t.length} reps saved` : 'not trained';
+      const m = markerData[ex];
+      if(markerCountEl) markerCountEl.textContent = (m && m.markers) ? m.markers.length : 0;
+    });
   }
 
-  trainNavBtn.addEventListener('click', goToTrainHub);
-  trainBackBtn.addEventListener('click', () => {
-    trainHub.style.display = 'none';
-    startScreen.style.display = 'flex';
-    refreshPreviewList();
-  });
-
-  function ensureMotionArmed(){
-    if(!motionEnabled){
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().then(res => { if(res === 'granted') armMotion(); });
-      } else if (window.DeviceMotionEvent) {
-        armMotion();
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const ex = e.currentTarget.getAttribute('data-exercise');
+      const act = e.currentTarget.getAttribute('data-action');
+      if(act === 'record'){
+        startTrainRecord(ex);
+      } else if(act === 'reset'){
+        const t = loadTemplates();
+        delete t[ex];
+        saveTemplates(t);
+        updateTrainHubStatus();
+      } else if(act === 'markers'){
+        openMarkerEditor(ex);
       }
-    }
+    });
+  });
+
+  function startTrainRecord(ex){
+    ensureMotionArmed();
+    isTrainingActive = true;
+    trainingExercise = ex;
+    trainingSessionFeatures = [];
+    trainRecordTitle.innerHTML = `RECORD<br><span>${ex.toUpperCase()}</span>`;
+    trainRepCount.textContent = '0';
+    trainMovingStatus.textContent = 'Idle — Start movement';
+    showOnly(trainRecord);
+    startIdleChecks();
   }
 
-  document.querySelectorAll('[data-action="record"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      ensureMotionArmed();
-      trainingExercise = btn.getAttribute('data-exercise');
-      trainingSessionFeatures = [];
-      trainRepCount.textContent = '0';
-      repBuffer = []; repInProgress = false;
-      trainMovingStatus.textContent = 'Idle — start the movement';
-      trainRecordTitle.innerHTML = 'RECORDING<br><span style="color:var(--accent)">' + trainingExercise + '</span>';
-      trainHub.style.display = 'none';
-      trainRecord.style.display = 'flex';
-      isTrainingActive = true;
-      startIdleChecks();
-    });
-  });
-
-  document.querySelectorAll('[data-action="reset"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const ex = btn.getAttribute('data-exercise');
-      const templates = loadTemplates();
-      delete templates[ex];
-      saveTemplates(templates);
-      refreshTrainCounts();
-    });
-  });
-
-  document.querySelectorAll('[data-action="markers"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      goToMarkerScreen(btn.getAttribute('data-exercise'));
-    });
+  trainMarkBtn.addEventListener('click', () => {
+    if(repBuffer.length > 2) finalizeCurrentRep();
   });
 
   trainDoneBtn.addEventListener('click', () => {
-    isTrainingActive = false;
     stopIdleChecks();
-    if(repInProgress) finalizeCurrentRep();
+    isTrainingActive = false;
     if(trainingSessionFeatures.length > 0){
-      const templates = loadTemplates();
-      const existing = templates[trainingExercise] || [];
-      const merged = existing.concat(trainingSessionFeatures).slice(-30);
-      templates[trainingExercise] = merged;
-      saveTemplates(templates);
+      const t = loadTemplates();
+      t[trainingExercise] = (t[trainingExercise] || []).concat(trainingSessionFeatures);
+      saveTemplates(t);
     }
-    trainRecord.style.display = 'none';
-    goToTrainHub();
+    showOnly(trainHub);
+    updateTrainHubStatus();
   });
-
   trainCancelBtn.addEventListener('click', () => {
-    isTrainingActive = false;
     stopIdleChecks();
-    repBuffer = []; repInProgress = false;
-    trainRecord.style.display = 'none';
-    goToTrainHub();
-  });
-
-  trainMarkBtn.addEventListener('click', () => {
-    if(repInProgress) finalizeCurrentRep();
+    isTrainingActive = false;
+    showOnly(trainHub);
   });
 
   testNavBtn.addEventListener('click', () => {
     ensureMotionArmed();
-    testResultLabel.textContent = '—';
-    testResultConf.textContent = 'waiting for a rep…';
-    testMovingStatus.textContent = 'Idle — start the movement';
-    testLog.innerHTML = '';
-    repBuffer = []; repInProgress = false;
-    trainHub.style.display = 'none';
-    testLive.style.display = 'flex';
     isTestingActive = true;
+    testLog.innerHTML = '';
+    testResultLabel.textContent = '—';
+    testResultConf.textContent = 'Waiting for movement...';
+    showOnly(testLive);
     startIdleChecks();
   });
-
-  testBackBtn.addEventListener('click', () => {
-    isTestingActive = false;
-    stopIdleChecks();
-    repBuffer = []; repInProgress = false;
-    testLive.style.display = 'none';
-    goToTrainHub();
-  });
-
   testMarkBtn.addEventListener('click', () => {
-    if(repInProgress) finalizeCurrentRep();
+    if(repBuffer.length > 2) finalizeCurrentRep();
+  });
+  testBackBtn.addEventListener('click', () => {
+    stopIdleChecks();
+    isTestingActive = false;
+    showOnly(trainHub);
   });
 
-  function renderTestResult(result){
-    if(!result){
-      testResultLabel.textContent = 'no training yet';
-      testResultConf.textContent = 'record both exercises first';
+  let currentMarkerExercise = null;
+  let isMarkerRecording = false;
+  let markerRecordBuffer = [];
+  let editingMarkers = [];
+  let markerZoomLevel = 1;
+
+  function openMarkerEditor(exercise){
+    currentMarkerExercise = exercise;
+    markerTitle.innerHTML = 'SET MARKERS<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
+    
+    const markerData = loadMarkerData();
+    const existing = markerData[exercise];
+
+    if(existing && existing.recording && existing.recording.length > 5){
+      // Load existing demo recording for marker editing!
+      markerRecordBuffer = existing.recording;
+      editingMarkers = existing.markers || [];
+      markerRecPrompt.style.display = 'none';
+      markerChartCard.style.display = 'block';
+      markerActions.style.display = 'block';
+      renderMarkerChart();
+      renderMarkerList();
+    } else {
+      // Prompt user to record demo
+      markerChartCard.style.display = 'none';
+      markerActions.style.display = 'none';
+      markerRecPrompt.style.display = 'block';
+      markerListEl.innerHTML = '';
+    }
+    showOnly(markerScreen);
+  }
+
+  markerRecordBtn.addEventListener('click', () => {
+    ensureMotionArmed();
+    isMarkerRecording = true;
+    markerRecordBuffer = [];
+    markerRecPrompt.style.display = 'none';
+    markerChartCard.style.display = 'block';
+    markerChartWrap.innerHTML = '<p class="fine-print" style="padding:20px;">⚡ Perform 1-2 reps of movement now... Tap "Done Recording" when finished.</p>';
+    
+    markerActions.style.display = 'block';
+    markerRerecordBtn.textContent = 'Done Recording';
+  });
+
+  markerRerecordBtn.addEventListener('click', () => {
+    if(isMarkerRecording){
+      isMarkerRecording = false;
+      markerRerecordBtn.textContent = 'Re-record Demo Recording';
+      if(markerRecordBuffer.length > 5 && editingMarkers.length === 0){
+        // Auto create initial pitch/y marker
+        editingMarkers = [
+          { id: 1, axis: 'y', val: 12.0, dir: 'above' }
+        ];
+      }
+      renderMarkerChart();
+      renderMarkerList();
+    } else {
+      // Restart recording prompt
+      isMarkerRecording = true;
+      markerRecordBuffer = [];
+      markerChartWrap.innerHTML = '<p class="fine-print" style="padding:20px;">⚡ Perform movement now... Tap "Done Recording" when finished.</p>';
+      markerRerecordBtn.textContent = 'Done Recording';
+    }
+  });
+
+  markerZoomEl.addEventListener('input', () => {
+    markerZoomLevel = parseInt(markerZoomEl.value) || 1;
+    markerZoomVal.textContent = markerZoomLevel + '×';
+    renderMarkerChart();
+  });
+
+  function renderMarkerList(){
+    markerListEl.innerHTML = '';
+    if(editingMarkers.length === 0){
+      markerListEl.innerHTML = '<div class="fine-print">No markers created yet. Tap "+ Add Custom Marker" or click on chart lines above.</div>';
       return;
     }
-    testResultLabel.textContent = result.label;
-    testResultConf.textContent = result.onlyOne
-      ? 'only this exercise is trained — add the other to compare'
-      : result.confidence + '% confidence';
-    const row = document.createElement('div');
-    row.className = 'test-log-row';
-    row.innerHTML = '<span>' + result.label + '</span><span>' + (result.onlyOne ? '—' : result.confidence + '%') + '</span>';
-    testLog.prepend(row);
-    while(testLog.children.length > 5) testLog.removeChild(testLog.lastChild);
+    editingMarkers.forEach((m, idx) => {
+      const item = document.createElement('div');
+      item.className = 'marker-item';
+      item.innerHTML = `
+        <div class="marker-header">
+          <span>Marker #${idx + 1}</span>
+          <button style="background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;" data-del="${idx}">Delete ✕</button>
+        </div>
+        <div class="marker-controls">
+          <label>Axis:
+            <select data-key="axis" data-idx="${idx}">
+              <option value="y" ${m.axis==='y'?'selected':''}>Y (Vertical Acceleration)</option>
+              <option value="x" ${m.axis==='x'?'selected':''}>X (Lateral)</option>
+              <option value="z" ${m.axis==='z'?'selected':''}>Z (Depth)</option>
+              <option value="pitch" ${m.axis==='pitch'?'selected':''}>Pitch (Tilt °)</option>
+              <option value="roll" ${m.axis==='roll'?'selected':''}>Roll (Lean °)</option>
+              <option value="mag" ${m.axis==='mag'?'selected':''}>Magnitude</option>
+            </select>
+          </label>
+          <label>Trigger:
+            <select data-key="dir" data-idx="${idx}">
+              <option value="above" ${m.dir==='above'?'selected':''}>Crosses Above (↑)</option>
+              <option value="below" ${m.dir==='below'?'selected':''}>Crosses Below (↓)</option>
+            </select>
+          </label>
+          <label>Threshold:
+            <input type="number" step="0.5" data-key="val" data-idx="${idx}" value="${m.val}" style="width:70px;">
+          </label>
+        </div>
+      `;
+      markerListEl.appendChild(item);
+    });
+
+    // Bind event listeners
+    markerListEl.querySelectorAll('select, input').forEach(el => {
+      el.addEventListener('change', (e) => {
+        const i = parseInt(e.target.getAttribute('data-idx'));
+        const k = e.target.getAttribute('data-key');
+        let v = e.target.value;
+        if(k === 'val') v = parseFloat(v) || 0;
+        editingMarkers[i][k] = v;
+        renderMarkerChart();
+      });
+    });
+    markerListEl.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const i = parseInt(e.currentTarget.getAttribute('data-del'));
+        editingMarkers.splice(i, 1);
+        renderMarkerList();
+        renderMarkerChart();
+      });
+    });
   }
+
+  markerAddBtn.addEventListener('click', () => {
+    editingMarkers.push({ id: Date.now(), axis: 'pitch', val: 30, dir: 'above' });
+    renderMarkerList();
+    renderMarkerChart();
+  });
+
+  markerSaveBtn.addEventListener('click', () => {
+    if(!currentMarkerExercise) return;
+    const markerData = loadMarkerData();
+    markerData[currentMarkerExercise] = {
+      recording: markerRecordBuffer,
+      markers: editingMarkers
+    };
+    saveMarkerData(markerData);
+    updateTrainHubStatus();
+    showOnly(trainHub);
+  });
+
+  markerBackBtn.addEventListener('click', () => {
+    showOnly(trainHub);
+  });
+
+  function renderMarkerChart(){
+    markerChartWrap.innerHTML = '';
+    if(markerRecordBuffer.length < 5) return;
+
+    const samples = markerRecordBuffer;
+    const zoom = markerZoomLevel;
+    const BASE_W = 340, PLOT_H = 200, PAD = 10;
+    const W = BASE_W * zoom;
+
+    const t0 = samples[0].t;
+    const tMax = Math.max(1, samples[samples.length-1].t - t0);
+
+    let valMin = -40, valMax = 40; // Pitch/Roll/Acc envelope scale
+
+    const tToX = t => PAD + ((t - t0) / tMax) * (W - PAD*2);
+    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
+
+    let svg = `<svg width="${W}" height="${PLOT_H}" style="display:block;background:var(--bg);">`;
+
+    // Draw axis lines for X, Y, Z, Pitch, Roll
+    const axes = [
+      { k: 'x', color: 'var(--accent)' },
+      { k: 'y', color: 'var(--good)' },
+      { k: 'z', color: 'var(--hazard)' },
+      { k: 'pitch', color: 'var(--pitch-clr)' },
+      { k: 'roll', color: 'var(--roll-clr)' }
+    ];
+
+    axes.forEach(ax => {
+      let pts = samples.map(s => `${tToX(s.t).toFixed(1)},${valToY(s[ax.k]||0).toFixed(1)}`).join(' ');
+      svg += `<polyline fill="none" stroke="${ax.color}" stroke-width="1.8" points="${pts}" />`;
+    });
+
+    // Draw marker threshold lines
+    let simulatedHits = 0;
+    editingMarkers.forEach((m, idx) => {
+      const yPos = valToY(m.val);
+      svg += `<line x1="0" y1="${yPos}" x2="${W}" y2="${yPos}" stroke="${axes.find(a=>a.k===m.axis)?.color || 'var(--ink)'}" stroke-dasharray="4,4" stroke-width="1.5" opacity="0.8" />`;
+      svg += `<text x="10" y="${yPos - 4}" fill="var(--ink)" font-size="10" font-weight="600">M${idx+1}: ${m.axis.toUpperCase()} ${m.dir==='above'?'≥':'≤'} ${m.val}</text>`;
+    });
+
+    // Simulate rep hits on this recording
+    let curIdx = 0;
+    samples.forEach(s => {
+      if(editingMarkers.length === 0) return;
+      const target = editingMarkers[curIdx];
+      let val = s[target.axis] || s.mag;
+      let hit = (target.dir === 'above' && val >= target.val) || (target.dir === 'below' && val <= target.val);
+      if(hit){
+        curIdx++;
+        if(curIdx >= editingMarkers.length){
+          simulatedHits++;
+          curIdx = 0;
+          const hitX = tToX(s.t);
+          svg += `<line x1="${hitX}" y1="0" x2="${hitX}" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2" />`;
+          svg += `<text x="${hitX+2}" y="15" fill="var(--good)" font-size="11" font-weight="700">▼ REP</text>`;
+        }
+      }
+    });
+
+    svg += `</svg>`;
+    markerChartWrap.innerHTML = svg;
+    markerSim.textContent = `Simulation: Current markers would trigger ${simulatedHits} rep${simulatedHits===1?'':'s'} on this recording.`;
+  }
+
+  function renderSessionGraph(){
+    sessionWrap.innerHTML = '';
+    if(!lastSession || !lastSession.samples || lastSession.samples.length < 5){
+      sessionWrap.innerHTML = '<p class="fine-print" style="padding:20px;">No sensor samples logged for this workout.</p>';
+      return;
+    }
+
+    const samples = lastSession.samples;
+    const events = lastSession.events || [];
+    const zoom = parseInt(sessionZoomEl.value) || 1;
+    const BASE_W = 360, PLOT_H = 220, PAD = 10;
+    const W = BASE_W * zoom;
+
+    const t0 = samples[0].t;
+    const tMax = Math.max(1, samples[samples.length-1].t - t0);
+    const valMin = -35, valMax = 35;
+
+    const tToX = t => PAD + ((t - t0) / tMax) * (W - PAD*2);
+    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
+
+    let svg = `<svg width="${W}" height="${PLOT_H}" style="display:block;background:var(--bg);">`;
+
+    // Draw sensor traces
+    const axes = [
+      { k: 'x', color: 'var(--accent)' },
+      { k: 'y', color: 'var(--good)' },
+      { k: 'z', color: 'var(--hazard)' },
+      { k: 'pitch', color: 'var(--pitch-clr)' },
+      { k: 'roll', color: 'var(--roll-clr)' }
+    ];
+
+    axes.forEach(ax => {
+      let pts = samples.map(s => `${tToX(s.t).toFixed(1)},${valToY(s[ax.k]||0).toFixed(1)}`).join(' ');
+      svg += `<polyline fill="none" stroke="${ax.color}" stroke-width="1.5" points="${pts}" opacity="0.85" />`;
+    });
+
+    // Draw rep events
+    events.forEach(ev => {
+      if(ev.type === 'rep'){
+        const xPos = tToX(ev.t + t0);
+        svg += `<line x1="${xPos}" y1="0" x2="${xPos}" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2" />`;
+        svg += `<text x="${xPos+2}" y="15" fill="var(--good)" font-size="10" font-weight="700">▼ Rep ${ev.n}</text>`;
+      } else if(ev.type === 'round'){
+        const xPos = tToX(ev.t + t0);
+        svg += `<line x1="${xPos}" y1="0" x2="${xPos}" y2="${PLOT_H}" stroke="var(--ink)" stroke-dasharray="3,3" stroke-width="1.5" />`;
+        svg += `<text x="${xPos+2}" y="${PLOT_H-8}" fill="var(--ink)" font-size="10" font-weight="600">${ev.name}</text>`;
+      }
+    });
+
+    svg += `</svg>`;
+    sessionWrap.innerHTML = svg;
+    sessionSummary.textContent = `Total duration: ${(tMax/1000).toFixed(1)}s · Reps logged: ${events.filter(e=>e.type==='rep').length}`;
+  }
+
+  sessionZoomEl.addEventListener('input', () => {
+    sessionZoomLbl.textContent = sessionZoomEl.value + '×';
+    renderSessionGraph();
+  });
+
+  sessionBtn.addEventListener('click', () => {
+    renderSessionGraph();
+    showOnly(sessionScreen);
+  });
+  lastSessionBtn.addEventListener('click', () => {
+    renderSessionGraph();
+    showOnly(sessionScreen);
+  });
+  sessionBackBtn.addEventListener('click', goHome);
+  endSessionBtn.addEventListener('click', endGame);
+
+  retryBtn.addEventListener('click', startGame);
+  homeBtn.addEventListener('click', goHome);
+
 })();
 </script>
 </body>
