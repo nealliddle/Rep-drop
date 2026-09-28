@@ -26,6 +26,7 @@
     --hazard: #E8B84B;
     --pitch-clr: #3B82F6;
     --roll-clr: #8B5CF6;
+    --mag-clr: #10B981;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -43,23 +44,11 @@
       --hazard: #E8B84B;
       --pitch-clr: #60A5FA;
       --roll-clr: #A78BFA;
+      --mag-clr: #34D399;
     }
   }
-  :root[data-theme="dark"] {
-    --bg: #1C1B19;
-    --panel: #26241F;
-    --ink: #EDEAE1;
-    --ink-dim: #9C978A;
-    --accent: #D9583F;
-    --accent-ink: #1C1B19;
-    --good: #7EB68F;
-    --track: #34312B;
-    --hazard: #E8B84B;
-    --pitch-clr: #60A5FA;
-    --roll-clr: #A78BFA;
-  }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; touch-action: manipulation; }
   body {
     margin: 0;
     height: 100%;
@@ -78,45 +67,82 @@
     max-height: 920px;
     display: flex;
     flex-direction: column;
-    padding: 16px;
-    gap: 12px;
+    padding: 14px;
+    gap: 10px;
+    position: relative;
   }
   h1.wordmark {
     font-family: 'Oswald', sans-serif;
     font-weight: 700;
-    font-size: clamp(2.2rem, 9vw, 3rem);
+    font-size: clamp(2rem, 8vw, 2.8rem);
     letter-spacing: 0.5px;
     margin: 0;
     line-height: 0.95;
   }
   .wordmark span { color: var(--accent); }
-  p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.92rem; max-width: 36ch; }
+  p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.88rem; max-width: 38ch; }
 
-  /* ---- Screens ---- */
+  /* Screens Layout */
   .screen {
+    display: none;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 14px;
+    gap: 12px;
     padding-bottom: 12px;
   }
+  #start-screen { display: flex; }
+  
   .home-chip {
     appearance: none; border: 1px solid var(--track); background: transparent; color: var(--ink-dim);
     border-radius: 999px; font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 6px 12px;
     cursor: pointer; align-self: flex-start; flex-shrink: 0;
   }
   .chip-row { display: flex; gap: 8px; justify-content: space-between; flex-shrink: 0; }
-  .chart-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px; background: var(--bg); }
-  .zoom-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.75rem; color: var(--ink-dim); }
-  .zoom-row input[type=range] { flex: 1; }
-  .legend { display: flex; gap: 8px; font-size: 0.7rem; color: var(--ink-dim); flex-wrap: wrap; margin-bottom: 4px; }
+  
+  /* Canvas Interactive Graph Styling */
+  .graph-container {
+    position: relative;
+    width: 100%;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 1px solid var(--track);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas.motion-canvas {
+    display: block;
+    width: 100%;
+    height: 220px;
+    cursor: crosshair;
+  }
+  .zoom-controls {
+    display: flex; flex-direction: column; gap: 6px; margin: 6px 0; font-size: 0.75rem; color: var(--ink-dim);
+  }
+  .zoom-slider-row { display: flex; align-items: center; gap: 8px; }
+  .zoom-slider-row input[type=range] { flex: 1; }
+
+  .series-toggles {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; justify-content: flex-start;
+  }
+  .toggle-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+    border: 1px solid var(--track); background: var(--panel); color: var(--ink-dim);
+    cursor: pointer; transition: all 120ms ease;
+  }
+  .toggle-chip.active {
+    background: var(--bg); color: var(--ink); border-color: currentColor; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .toggle-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
   .card {
     background: var(--panel);
     border-radius: 14px;
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
   .exercise-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
   .exercise-row { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--ink-dim); border-bottom: 1px solid var(--track); padding-bottom: 6px; align-items: center;}
@@ -131,17 +157,16 @@
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   }
   button.primary:active { transform: translateY(1px); }
-  button.primary:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
   button.ghost {
     appearance: none; border: 1px solid var(--track); border-radius: 12px;
     background: transparent; color: var(--ink);
-    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.9rem;
+    font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.88rem;
     padding: 11px; cursor: pointer; width: 100%;
   }
   button.ghost:active { background: rgba(0,0,0,0.05); }
-  .fine-print { font-size: 0.76rem; color: var(--ink-dim); text-align: center; }
+  .fine-print { font-size: 0.75rem; color: var(--ink-dim); text-align: center; }
 
-  /* ---- Game HUD ---- */
+  /* Game HUD */
   #hud { display: none; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
   .hud-top { display: flex; justify-content: space-between; align-items: center; }
   .stat { font-family: 'Oswald', sans-serif; font-size: 1.3rem; }
@@ -160,47 +185,31 @@
     border: 1px solid var(--track);
   }
   #target-zone {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 70px;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
     background: linear-gradient(180deg, transparent, var(--track) 40%);
     border-top: 2px dashed var(--ink-dim);
     display: flex; align-items: center; justify-content: center;
   }
   #target-zone span { font-size: 0.75rem; color: var(--ink-dim); font-weight: 600; letter-spacing: 0.5px; }
   #falling {
-    position: absolute;
-    left: 50%;
-    top: -80px;
-    transform: translateX(-50%);
-    text-align: center;
-    width: auto;
-    max-width: 70%;
-    background: var(--bg);
-    border: 1px solid var(--track);
-    border-radius: 14px;
-    padding: 8px 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    position: absolute; left: 50%; top: -80px; transform: translateX(-50%);
+    text-align: center; width: auto; max-width: 75%;
+    background: var(--bg); border: 1px solid var(--track); border-radius: 14px;
+    padding: 8px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   #falling .word {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 700;
-    font-size: clamp(1rem, 4vw, 1.25rem);
-    line-height: 1.05;
-    color: var(--ink-dim);
+    font-family: 'Oswald', sans-serif; font-weight: 700;
+    font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.05; color: var(--ink-dim);
   }
   #falling .reps-needed {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(1.4rem, 6vw, 1.8rem);
-    color: var(--ink);
-    margin-top: 2px;
+    font-family: 'Oswald', sans-serif; font-size: clamp(1.4rem, 6vw, 1.8rem);
+    color: var(--ink); margin-top: 2px;
   }
   #falling.success .word, #falling.success .reps-needed { color: var(--good); }
   #falling.fail .word, #falling.fail .reps-needed { color: var(--accent); }
 
   #rep-ring {
-    position: absolute;
-    bottom: 12px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 2px;
   }
   #rep-count { font-family: 'Oswald', sans-serif; font-size: 2.2rem; line-height: 1; }
@@ -208,55 +217,60 @@
 
   #tap-btn {
     appearance: none; border: none; border-radius: 999px;
-    width: 80px; height: 80px;
-    background: var(--accent); color: var(--accent-ink);
+    width: 76px; height: 76px; background: var(--accent); color: var(--accent-ink);
     font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.85rem;
-    align-self: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    align-self: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
   }
   #tap-btn:active { transform: scale(0.94); }
 
-  /* ---- Motion Check & Debug ---- */
-  #motion-check { display: none; flex: 1; flex-direction: column; gap: 12px; }
+  /* Visual Checkpoint Step Indicators */
+  .checkpoint-steps { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .step-dot {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--track);
+    color: var(--bg); font-size: 0.68rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-dot.active { background: var(--hazard); color: #000; }
+  .step-dot.done { background: var(--good); color: #fff; }
+
+  /* Debug & Sensors */
   .debug-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
   .debug-cell { background: var(--panel); border-radius: 10px; padding: 8px 4px; }
   .debug-cell .val { font-family: 'Oswald', sans-serif; font-size: 1.2rem; }
   .debug-cell .lbl { font-size: 0.62rem; color: var(--ink-dim); }
-  #delta-meter { position: relative; height: 28px; background: var(--panel); border-radius: 8px; overflow: hidden; }
+  #delta-meter { position: relative; height: 26px; background: var(--panel); border-radius: 8px; overflow: hidden; }
   #delta-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--good); transition: width 60ms linear; }
   #delta-threshold-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
-  #rep-test-count { font-family: 'Oswald', sans-serif; font-size: 2rem; }
   .slider-row { display: flex; align-items: center; gap: 10px; }
   .slider-row input[type=range] { flex: 1; }
-  .dir-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem;
-    background: var(--bg); border: 1px solid var(--track);
-  }
 
-  /* ---- Marker Editor List ---- */
+  /* Multi-Condition Marker Editor List */
   .marker-item {
     background: var(--panel); border-radius: 10px; padding: 10px 12px;
-    display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--track);
+    display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--track);
   }
   .marker-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.85rem; }
-  .marker-controls { display: flex; gap: 8px; align-items: center; font-size: 0.78rem; flex-wrap: wrap; }
-  .marker-controls select, .marker-controls input {
-    background: var(--bg); color: var(--ink); border: 1px solid var(--track);
-    border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 0.78rem;
+  .condition-row {
+    display: flex; gap: 6px; align-items: center; font-size: 0.78rem; flex-wrap: wrap;
+    background: var(--bg); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--track);
+  }
+  .condition-row select, .condition-row input {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--track);
+    border-radius: 4px; padding: 3px 5px; font-family: inherit; font-size: 0.75rem;
   }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- START SCREEN -->
+  <!-- 1. START SCREEN -->
   <div id="start-screen" class="screen">
     <div>
       <h1 class="wordmark">REP<br><span>DROP</span></h1>
       <p class="tagline">An exercise name falls. Complete your reps before it hits the floor!</p>
     </div>
     <div class="card">
-      <div class="exercise-row"><b>Sensing Status</b><span id="motion-status">not checked</span></div>
+      <div class="exercise-row"><b>Sensing Status</b><span id="motion-status" style="color:var(--ink-dim);">not checked</span></div>
       <div class="exercise-list" id="preview-list"></div>
     </div>
     <div class="card">
@@ -278,13 +292,13 @@
     <div>
       <button class="primary" id="enable-btn">Enable Motion &amp; Start Workout</button>
       <p class="fine-print" style="margin-top:6px;">Hold phone in exercise hand. Tap mode available if motion sensor is unavailable.</p>
-      <button class="ghost" id="train-nav-btn" style="margin-top:8px;">Train &amp; Set Exercise Markers</button>
+      <button class="ghost" id="train-nav-btn" style="margin-top:8px;">Train &amp; Map Exercise Curves</button>
       <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; Hammer Clang: On</button>
       <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View Last Workout Graph</button>
     </div>
   </div>
 
-  <!-- MOTION CHECK / DEBUG SCREEN -->
+  <!-- 2. MOTION CHECK / DEBUG SCREEN -->
   <div id="motion-check" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
@@ -294,7 +308,7 @@
     <div class="card">
       <div class="exercise-row">
         <b>Live Inclination &amp; Vector</b>
-        <span id="dbg-dir-badge" class="dir-badge"><span>—</span></span>
+        <span id="dbg-dir-badge" style="font-size:0.75rem;font-weight:600;">—</span>
       </div>
       <div class="debug-grid" style="margin-top:8px;">
         <div class="debug-cell"><div class="val" id="dbg-x">0.0</div><div class="lbl">X (m/s²)</div></div>
@@ -315,8 +329,8 @@
       </div>
     </div>
     <div class="card" style="text-align:center;">
-      <div id="rep-test-count">0</div>
-      <div class="lbl" style="color:var(--ink-dim);font-size:0.75rem;">Test Reps Detected (Perform motion)</div>
+      <div id="rep-test-count" style="font-family:'Oswald',sans-serif;font-size:2rem;">0</div>
+      <div style="color:var(--ink-dim);font-size:0.75rem;">Test Reps Detected (Perform motion)</div>
     </div>
     <div>
       <button class="primary" id="motion-ok-btn">Sensors Ready — Start Workout</button>
@@ -324,117 +338,146 @@
     </div>
   </div>
 
-  <!-- TRAIN & TEST HUB -->
+  <!-- 3. TRAIN HUB -->
   <div id="train-hub" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">TRAIN<br><span>EXERCISES</span></h1>
-      <p class="tagline">Record movements and adjust directional &amp; pitch markers for each exercise.</p>
+      <p class="tagline">Record single rep movement curves &amp; set compound keyframe markers.</p>
     </div>
     <div class="card">
       <div class="exercise-row"><b>Kettlebell Swings</b><span id="train-count-swing">not trained</span></div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="ghost" data-exercise="Kettlebell Swings" data-action="record">Record Demo</button>
-        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset Data</button>
+        <button class="ghost" data-exercise="Kettlebell Swings" data-action="reset">Reset</button>
       </div>
-      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Set/Edit Markers (<span id="marker-count-swing">0</span>)</button>
+      <button class="ghost" data-exercise="Kettlebell Swings" data-action="markers" style="margin-top:8px;">Trim &amp; Compound Markers (<span id="marker-count-swing">0</span>)</button>
     </div>
     <div class="card">
       <div class="exercise-row"><b>Kettlebell Press</b><span id="train-count-press">not trained</span></div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="ghost" data-exercise="Kettlebell Press" data-action="record">Record Demo</button>
-        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset Data</button>
+        <button class="ghost" data-exercise="Kettlebell Press" data-action="reset">Reset</button>
       </div>
-      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Set/Edit Markers (<span id="marker-count-press">0</span>)</button>
+      <button class="ghost" data-exercise="Kettlebell Press" data-action="markers" style="margin-top:8px;">Trim &amp; Compound Markers (<span id="marker-count-press">0</span>)</button>
     </div>
     <div>
-      <button class="primary" id="test-nav-btn">Test Detection Live</button>
+      <button class="primary" id="test-nav-btn">Test Live Detection</button>
       <button class="ghost" id="train-back-btn" style="margin-top:8px;">Back</button>
     </div>
   </div>
 
-  <!-- TRAIN RECORDING SCREEN -->
+  <!-- 4. RECORDING SCREEN -->
   <div id="train-record" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark" id="train-record-title">RECORDING</h1>
-      <p class="tagline">Perform reps naturally — directional &amp; tilt data will be logged.</p>
+      <p class="tagline">Perform 1 or 2 reps naturally — curve data will be captured.</p>
     </div>
     <div class="card" style="text-align:center;">
       <div id="train-rep-count" style="font-family:'Oswald',sans-serif;font-size:2.6rem;">0</div>
-      <div style="color:var(--ink-dim);font-size:0.78rem;">Reps Captured</div>
+      <div style="color:var(--ink-dim);font-size:0.78rem;">Motion Samples Logged</div>
       <div id="train-moving-status" style="margin-top:8px;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
     </div>
-    <button class="ghost" id="train-mark-btn">Mark Rep Manually</button>
     <div>
-      <button class="primary" id="train-done-btn">Done — Save Recording</button>
+      <button class="primary" id="train-done-btn">Done — Edit Curves &amp; Trim Rep</button>
       <button class="ghost" id="train-cancel-btn" style="margin-top:8px;">Cancel</button>
     </div>
   </div>
 
-  <!-- LIVE TEST SCREEN -->
+  <!-- 5. TEST LIVE SCREEN -->
   <div id="test-live" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
       <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
-      <p class="tagline">Move naturally — classifier checks exercise type against recorded profiles.</p>
+      <p class="tagline">Move naturally — system evaluates multi-axis compound conditions.</p>
     </div>
-    <div class="card" style="text-align:center;padding:20px 0;">
-      <div id="test-result-label" style="font-family:'Oswald',sans-serif;font-size:2.1rem;">—</div>
+    <div class="card" style="text-align:center;padding:16px 0;">
+      <div id="test-result-label" style="font-family:'Oswald',sans-serif;font-size:2rem;">—</div>
       <div id="test-result-conf" style="font-size:0.85rem;color:var(--ink-dim);">Waiting for movement...</div>
+      <div class="checkpoint-steps" id="test-checkpoints"></div>
     </div>
     <div id="test-moving-status" style="text-align:center;font-size:0.8rem;color:var(--ink-dim);">Idle — Start movement</div>
-    <button class="ghost" id="test-mark-btn">Classify Manual Rep</button>
     <div id="test-log" style="display:flex;flex-direction:column;gap:6px;"></div>
     <button class="ghost" id="test-back-btn">Back to Hub</button>
   </div>
 
-  <!-- MARKER EDITOR SCREEN (Supports editing saved recording markers!) -->
+  <!-- 6. MARKER / CURVE EDITOR SCREEN (WITH MULTI-CONDITION MARKERS) -->
   <div id="marker-screen" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
-      <h1 class="wordmark" id="marker-title">SET<br><span>MARKERS</span></h1>
-      <p class="tagline" id="marker-instructions">Tap on graph lines or use editor below to adjust threshold &amp; direction markers on saved motion recordings.</p>
+      <h1 class="wordmark" id="marker-title">COMPOUND<br><span>KEYFRAMES</span></h1>
+      <p class="tagline">Define compound pose keyframes requiring multiple sensor conditions (AND logic) at once.</p>
     </div>
     
     <div id="marker-rec-prompt" class="card" style="display:none;text-align:center;">
-      <p style="margin:0 0 10px;font-size:0.9rem;">No existing motion demo found for this exercise. Record one first.</p>
+      <p style="margin:0 0 10px;font-size:0.9rem;">No exercise recording found. Record motion first.</p>
       <button class="primary" id="marker-record-btn">Record Demo Motion</button>
     </div>
 
+    <!-- Canvas Graph Card -->
     <div class="card" id="marker-chart-card" style="display:none;">
-      <div class="legend">
-        <span style="color:var(--accent)">⬤ X</span>
-        <span style="color:var(--good)">⬤ Y (Vert)</span>
-        <span style="color:var(--hazard)">⬤ Z</span>
-        <span style="color:var(--pitch-clr)">⬤ Pitch</span>
-        <span style="color:var(--roll-clr)">⬤ Roll</span>
-        <span style="color:var(--ink)">⬤ Mag</span>
+      
+      <div class="series-toggles" id="marker-series-toggles">
+        <div class="toggle-chip active" data-series="x"><span class="toggle-dot" style="background:var(--accent);"></span>X</div>
+        <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y</div>
+        <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
+        <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
+        <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
+        <div class="toggle-chip active" data-series="mag"><span class="toggle-dot" style="background:var(--mag-clr);"></span>Mag</div>
       </div>
-      <div class="legend" style="margin-top:2px;">
-        <span>Dashed line = Marker threshold</span>
-        <span style="color:var(--good)">▼ Green = Marker Hit</span>
+
+      <div class="zoom-controls">
+        <div class="zoom-slider-row">
+          <span>Width Zoom</span>
+          <input type="range" id="marker-zoom-x" min="1" max="10" step="0.2" value="1">
+          <span id="marker-zoom-x-val">1×</span>
+        </div>
+        <div class="zoom-slider-row">
+          <span>Height Zoom</span>
+          <input type="range" id="marker-zoom-y" min="0.5" max="4" step="0.1" value="1">
+          <span id="marker-zoom-y-val">1×</span>
+        </div>
+        <div class="zoom-slider-row" style="margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="smooth-curves-cb" checked>
+            <b>Smooth Motion &amp; Live Filter Active</b>
+          </label>
+        </div>
       </div>
-      <div class="zoom-row">
-        <span>Zoom</span>
-        <input type="range" id="marker-zoom" min="1" max="25" step="1" value="1">
-        <span id="marker-zoom-val">1×</span>
+
+      <div class="graph-container" id="marker-graph-container">
+        <canvas id="marker-canvas" class="motion-canvas"></canvas>
       </div>
-      <div id="marker-chart-wrap" class="chart-wrap"></div>
-      <div id="marker-sim" class="fine-print" style="margin-top:8px;font-weight:600;color:var(--good);"></div>
+
+      <div id="marker-sim" class="fine-print" style="margin-top:6px;font-weight:600;color:var(--good);"></div>
+    </div>
+
+    <!-- Trim Controls Card -->
+    <div class="card" id="trim-card" style="display:none;">
+      <div class="exercise-row"><b>Trim Window (Single Rep)</b></div>
+      <div class="zoom-slider-row" style="margin-top:8px;">
+        <span style="font-size:0.75rem;">Start</span>
+        <input type="range" id="trim-start-slider" min="0" max="100" value="0">
+        <span style="font-size:0.75rem;">End</span>
+        <input type="range" id="trim-end-slider" min="0" max="100" value="100">
+      </div>
+      <button class="ghost" id="auto-gen-markers-btn" style="margin-top:10px;background:var(--bg);font-weight:600;">
+        ✨ Auto-Generate Compound Keyframes (Multi-Axis)
+      </button>
     </div>
 
     <div id="marker-list" style="display:flex;flex-direction:column;gap:8px;"></div>
 
     <div id="marker-actions" style="display:none;">
-      <button class="ghost" id="marker-add-btn">+ Add Custom Marker</button>
-      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record Demo Recording</button>
-      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Markers</button>
+      <button class="ghost" id="marker-add-btn">+ Add Compound Keyframe Step</button>
+      <button class="ghost" id="marker-rerecord-btn" style="margin-top:8px;">Re-record Demo</button>
+      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Keyframes &amp; Settings</button>
       <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back without Saving</button>
     </div>
   </div>
 
-  <!-- GAME HUD SCREEN -->
+  <!-- 7. GAME HUD SCREEN -->
   <div id="hud">
     <div class="chip-row">
       <button class="home-chip" data-home>⌂ Home</button>
@@ -456,13 +499,11 @@
         <div id="rep-of">of 0</div>
       </div>
     </div>
+    <div class="checkpoint-steps" id="hud-checkpoints"></div>
     <button id="tap-btn">TAP<br>REP</button>
-    <div id="motion-badge" style="font-size:0.72rem;color:var(--ink-dim);text-align:center;">
-      Move phone to auto-count · Tap button works anytime
-    </div>
   </div>
 
-  <!-- SESSION GRAPH SCREEN -->
+  <!-- 8. SESSION GRAPH SCREEN -->
   <div id="session-screen" class="screen">
     <button class="home-chip" data-home>⌂ Home</button>
     <div>
@@ -470,29 +511,22 @@
       <p class="tagline" id="session-summary"></p>
     </div>
     <div class="card">
-      <div class="legend">
-        <span style="color:var(--accent)">⬤ X</span>
-        <span style="color:var(--good)">⬤ Y</span>
-        <span style="color:var(--hazard)">⬤ Z</span>
-        <span style="color:var(--pitch-clr)">⬤ Pitch</span>
-        <span style="color:var(--roll-clr)">⬤ Roll</span>
+      <div class="series-toggles" id="session-series-toggles">
+        <div class="toggle-chip active" data-series="x"><span class="toggle-dot" style="background:var(--accent);"></span>X</div>
+        <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y</div>
+        <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
+        <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
+        <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
       </div>
-      <div class="legend">
-        <span>▼ = Rep Triggered</span>
-        <span style="color:var(--accent)">✕ = Wrong Movement</span>
+      <div class="graph-container">
+        <canvas id="session-canvas" class="motion-canvas"></canvas>
       </div>
-      <div class="zoom-row">
-        <span>Zoom</span>
-        <input type="range" id="session-zoom" min="1" max="40" step="1" value="1">
-        <span id="session-zoom-val">1×</span>
-      </div>
-      <div id="session-chart-wrap" class="chart-wrap"></div>
     </div>
     <button class="ghost" id="session-back-btn">Back</button>
   </div>
 
-  <!-- END SCREEN -->
-  <div id="end-screen" class="screen" style="display:none;">
+  <!-- 9. END SCREEN -->
+  <div id="end-screen" class="screen">
     <div>
       <h1 class="wordmark">GAME<br><span>OVER</span></h1>
       <p class="tagline" id="end-summary"></p>
@@ -508,18 +542,14 @@
 
 <script>
 (function(){
-  // --- Audio Synthesis: Hammer on Metal Clang ---
+  // --- Audio Synthesis Engine ---
   let audioOn = true;
   let audioCtx = null;
 
   function initAudio(){
     try {
-      if(!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if(audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
     } catch(e){}
   }
 
@@ -529,8 +559,6 @@
     if(!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-
-      // 1. Initial Hammer Hit Transient (Noise Burst through highpass filter)
       const bufferSize = Math.floor(audioCtx.sampleRate * 0.04);
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -539,45 +567,30 @@
       }
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
-
       const noiseFilter = audioCtx.createBiquadFilter();
       noiseFilter.type = 'highpass';
       noiseFilter.frequency.setValueAtTime(1400, t);
-
       const noiseGain = audioCtx.createGain();
       noiseGain.gain.setValueAtTime(0.5, t);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(audioCtx.destination);
+      noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
       noise.start(t);
 
-      // 2. Metallic Anvil Modal Resonances (Inharmonic frequency ratios for metal hit)
       const baseFreq = isHighPitch ? 620 : 440;
-      const modalRatios = [1.0, 1.58, 2.24, 2.91, 3.82, 4.65];
-      const decays = [0.45, 0.35, 0.25, 0.2, 0.15, 0.1];
+      const modalRatios = [1.0, 1.58, 2.24, 2.91, 3.82];
+      const decays = [0.4, 0.3, 0.22, 0.18, 0.12];
 
       modalRatios.forEach((ratio, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-
-        // Alternate sine & square-ish triangle to give metallic overtone bite
         osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
         const freq = baseFreq * ratio;
         osc.frequency.setValueAtTime(freq, t);
-        // Subtle downward pitch-bend on impact (hammer deformation effect)
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.06);
-
         const d = decays[idx] || 0.2;
-        gain.gain.setValueAtTime(0.22 / (idx + 1), t);
+        gain.gain.setValueAtTime(0.2 / (idx + 1), t);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + d);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start(t);
-        osc.stop(t + d + 0.01);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + d + 0.01);
       });
     } catch(e){}
   }
@@ -604,7 +617,7 @@
   ];
   const TRAIN_EXERCISES = ["Kettlebell Swings", "Kettlebell Press"];
 
-  // UI DOM Elements
+  // DOM Elements
   const startScreen = document.getElementById('start-screen');
   const motionCheck = document.getElementById('motion-check');
   const hud = document.getElementById('hud');
@@ -661,30 +674,33 @@
   const testResultConf = document.getElementById('test-result-conf');
   const testLog = document.getElementById('test-log');
   const trainMovingStatus = document.getElementById('train-moving-status');
-  const trainMarkBtn = document.getElementById('train-mark-btn');
-  const testMovingStatus = document.getElementById('test-moving-status');
-  const testMarkBtn = document.getElementById('test-mark-btn');
   
   const markerScreen = document.getElementById('marker-screen');
   const markerTitle = document.getElementById('marker-title');
   const markerRecPrompt = document.getElementById('marker-rec-prompt');
   const markerRecordBtn = document.getElementById('marker-record-btn');
   const markerChartCard = document.getElementById('marker-chart-card');
-  const markerChartWrap = document.getElementById('marker-chart-wrap');
+  const markerCanvas = document.getElementById('marker-canvas');
   const markerListEl = document.getElementById('marker-list');
   const markerActions = document.getElementById('marker-actions');
   const markerAddBtn = document.getElementById('marker-add-btn');
   const markerRerecordBtn = document.getElementById('marker-rerecord-btn');
   const markerSaveBtn = document.getElementById('marker-save-btn');
   const markerBackBtn = document.getElementById('marker-back-btn');
-  const markerZoomEl = document.getElementById('marker-zoom');
-  const markerZoomVal = document.getElementById('marker-zoom-val');
+  const markerZoomX = document.getElementById('marker-zoom-x');
+  const markerZoomXVal = document.getElementById('marker-zoom-x-val');
+  const markerZoomY = document.getElementById('marker-zoom-y');
+  const markerZoomYVal = document.getElementById('marker-zoom-y-val');
+  const smoothCb = document.getElementById('smooth-curves-cb');
   const markerSim = document.getElementById('marker-sim');
   
+  const trimCard = document.getElementById('trim-card');
+  const trimStartSlider = document.getElementById('trim-start-slider');
+  const trimEndSlider = document.getElementById('trim-end-slider');
+  const autoGenBtn = document.getElementById('auto-gen-markers-btn');
+
   const sessionScreen = document.getElementById('session-screen');
-  const sessionWrap = document.getElementById('session-chart-wrap');
-  const sessionZoomEl = document.getElementById('session-zoom');
-  const sessionZoomLbl = document.getElementById('session-zoom-val');
+  const sessionCanvas = document.getElementById('session-canvas');
   const sessionSummary = document.getElementById('session-summary');
   const sessionBtn = document.getElementById('session-btn');
   const sessionBackBtn = document.getElementById('session-back-btn');
@@ -692,15 +708,10 @@
   const audioToggle = document.getElementById('audio-toggle');
   const endSessionBtn = document.getElementById('end-session-btn');
 
-  // Sliders listeners
-  fallSpeedSlider.addEventListener('input', () => {
-    fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's';
-  });
+  // Sliders
+  fallSpeedSlider.addEventListener('input', () => { fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's'; });
   function repsPerFall(){ return parseInt(repsSlider.value) || 10; }
-  repsSlider.addEventListener('input', () => {
-    repsValue.textContent = repsPerFall();
-    refreshPreviewList();
-  });
+  repsSlider.addEventListener('input', () => { repsValue.textContent = repsPerFall(); refreshPreviewList(); });
   audioToggle.addEventListener('click', () => {
     audioOn = !audioOn;
     audioToggle.innerHTML = 'Voice &amp; Hammer Clang: ' + (audioOn ? 'On' : 'Off');
@@ -732,8 +743,6 @@
     }
     state = null;
     isTrainingActive = false; isTestingActive = false; isMarkerRecording = false; inMotionCheck = false;
-    stopIdleChecks();
-    repBuffer = []; repInProgress = false;
     try { speechSynthesis.cancel(); } catch(e){}
     showOnly(startScreen);
     refreshPreviewList();
@@ -760,13 +769,6 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function loadTemplates(){
-    try { return JSON.parse(localStorage.getItem('repdrop_templates') || '{}'); }
-    catch(e) { return {}; }
-  }
-  function saveTemplates(t){
-    try { localStorage.setItem('repdrop_templates', JSON.stringify(t)); } catch(e){}
-  }
   function loadMarkerData(){
     try { return JSON.parse(localStorage.getItem('repdrop_marker_data') || '{}'); }
     catch(e) { return {}; }
@@ -776,12 +778,8 @@
   }
 
   function getGamePool(){
-    const templates = loadTemplates();
     const markerData = loadMarkerData();
-    const trained = EXERCISES.filter(e =>
-      (templates[e.name] && templates[e.name].length > 0) ||
-      (markerData[e.name] && markerData[e.name].markers && markerData[e.name].markers.length > 0)
-    );
+    const trained = EXERCISES.filter(e => markerData[e.name] && markerData[e.name].markers && markerData[e.name].markers.length > 0);
     return trained.length > 0 ? trained : EXERCISES;
   }
 
@@ -794,28 +792,29 @@
   refreshPreviewList();
 
   function startGame(){
-    startScreen.style.display = 'none';
-    endScreen.style.display = 'none';
-    hud.style.display = 'flex';
+    showOnly(hud);
     state = {
-      score: 0,
-      streak: 0,
-      lives: 3,
-      maxLives: 3,
-      reps: 0,
-      target: 0,
+      score: 0, streak: 0, lives: 3, maxLives: 3, reps: 0, target: 0,
       baseFallDuration: parseFloat(fallSpeedSlider.value) * 1000,
-      repsPerFall: repsPerFall(),
-      fallDuration: 7000,
-      startTime: null,
-      resolved: false,
-      lastRepTime: 0,
+      repsPerFall: repsPerFall(), fallDuration: 7000, startTime: null,
+      resolved: false, lastRepTime: 0,
     };
     session = { t0: performance.now(), samples: [], events: [], active: true };
     setLives(3,3);
     scoreEl.textContent = '0';
     streakEl.textContent = '0';
     nextRound();
+  }
+
+  function renderHudCheckpoints(markers, curIdx){
+    const container = document.getElementById('hud-checkpoints');
+    if(!markers || markers.length === 0){ container.innerHTML = ''; return; }
+    container.innerHTML = markers.map((m, i) => {
+      let cls = 'step-dot';
+      if(i < curIdx) cls += ' done';
+      else if(i === curIdx) cls += ' active';
+      return `<div class="${cls}">${i+1}</div>`;
+    }).join('');
   }
 
   function nextRound(){
@@ -826,31 +825,18 @@
     state.reps = 0;
     state.resolved = false;
     
-    const templates = loadTemplates();
-    const trained = templates[ex.name];
-    if(trained && trained.length > 0){
-      const avgDuration = trained.reduce((a,r) => a + r[1], 0) / trained.length;
-      state.repDebounce = Math.max(450, avgDuration * 0.65);
-      state.classifyWindowMs = Math.min(1800, Math.max(500, avgDuration));
-    } else {
-      state.repDebounce = 260;
-      state.classifyWindowMs = 700;
-    }
-    const trainedCount = TRAIN_EXERCISES.filter(n => templates[n] && templates[n].length > 0).length;
-    state.classifierGate = trainedCount >= 2;
-    
     const markerData = loadMarkerData();
     const exMarkerObj = markerData[ex.name];
     state.markers = (exMarkerObj && exMarkerObj.markers) ? exMarkerObj.markers : null;
     state.markerIndex = 0;
-    
-    if(state.markers && state.markers.length) state.repDebounce = 220;
+    state.repDebounce = 250;
     state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
     
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + state.target;
     repCountEl.textContent = '0';
     repOfEl.textContent = 'of ' + state.target;
+    renderHudCheckpoints(state.markers, 0);
     speak(ex.name);
     pushEvent('round', { name: ex.name });
     
@@ -870,23 +856,19 @@
     const pct = Math.min(elapsed / state.fallDuration, 1);
     const travel = (laneH - 40) * pct;
     falling.style.top = (-80 + travel + 80) + 'px';
-    if(pct >= 1){
-      resolveRound(false);
-      return;
-    }
+    if(pct >= 1){ resolveRound(false); return; }
     rafId = requestAnimationFrame(tick);
   }
 
   function registerRep(){
     if(!state || state.resolved) return;
     const now = performance.now();
-    if(now - state.lastRepTime < (state.repDebounce || 260)) return;
+    if(now - state.lastRepTime < (state.repDebounce || 250)) return;
     state.lastRepTime = now;
     state.reps++;
     repCountEl.textContent = state.reps;
     repsNeededEl.textContent = state.reps + ' / ' + state.target;
     
-    // Play Hammer-on-Metal Clang sound on rep!
     playMetalClang(true);
     speak(String(state.reps), true);
     pushEvent('rep', { n: state.reps, name: state.currentName });
@@ -904,37 +886,26 @@
     if(success){
       speak('Set complete!');
       falling.classList.add('success');
-      state.score++;
-      state.streak++;
-      scoreEl.textContent = state.score;
-      streakEl.textContent = state.streak;
+      state.score++; state.streak++;
+      scoreEl.textContent = state.score; streakEl.textContent = state.streak;
       setTimeout(nextRound, 900);
     } else {
       falling.classList.add('fail');
-      state.streak = 0;
-      streakEl.textContent = '0';
-      state.lives--;
-      setLives(state.lives, state.maxLives);
-      if(state.lives <= 0){
-        setTimeout(endGame, 500);
-      } else {
-        setTimeout(nextRound, 650);
-      }
+      state.streak = 0; streakEl.textContent = '0';
+      state.lives--; setLives(state.lives, state.maxLives);
+      if(state.lives <= 0) setTimeout(endGame, 500);
+      else setTimeout(nextRound, 650);
     }
   }
 
   function endGame(){
     if(!state || state.ended) return;
-    state.ended = true;
-    state.resolved = true;
+    state.ended = true; state.resolved = true;
     cancelAnimationFrame(rafId);
-    if(session && session.active){
-      session.active = false;
-      lastSession = session;
-    }
+    if(session && session.active){ session.active = false; lastSession = session; }
     updateLastSessionBtn();
     showOnly(endScreen);
-    endSummary.textContent = `You cleared ${state.score} set${state.score===1?'':'s'} before the kettlebell hit the floor.`;
+    endSummary.textContent = `You cleared ${state.score} set${state.score===1?'':'s'} before hitting the floor.`;
   }
 
   tapBtn.addEventListener('click', registerRep);
@@ -943,42 +914,57 @@
   let motionBuffer = [];
   let testReps = 0;
   let inMotionCheck = false;
+  let isTrainingActive = false;
+  let isTestingActive = false;
+  let isMarkerRecording = false;
+
+  // Real-Time Exponential Moving Average (EMA) Filter
+  let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, mag: 0 };
+  const ALPHA = 0.35; // Filter factor
 
   function processSensorReading(x, y, z) {
     const t = performance.now();
-    const mag = Math.sqrt(x*x + y*y + z*z);
+    const rawMag = Math.sqrt(x*x + y*y + z*z);
+    const rawPitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
+    const rawRoll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
+
+    // Live continuous smoothing update
+    smoothedState.x = smoothedState.x + ALPHA * (x - smoothedState.x);
+    smoothedState.y = smoothedState.y + ALPHA * (y - smoothedState.y);
+    smoothedState.z = smoothedState.z + ALPHA * (z - smoothedState.z);
+    smoothedState.pitch = smoothedState.pitch + ALPHA * (rawPitch - smoothedState.pitch);
+    smoothedState.roll = smoothedState.roll + ALPHA * (rawRoll - smoothedState.roll);
+    smoothedState.mag = smoothedState.mag + ALPHA * (rawMag - smoothedState.mag);
+
+    const dirY = smoothedState.y > 1.8 ? '↑ Moving Up' : (smoothedState.y < -1.8 ? '↓ Moving Down' : '• Neutral');
     
-    // Calculate Pitch (up/down inclination) & Roll (side-to-side tilt)
-    // Pitch: Rotation around X-axis (-90 to +90)
-    // Roll: Rotation around Y-axis (-180 to +180)
-    const pitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
-    const roll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
-    
-    // Direction vector indicator (moving up vs moving down)
-    const dirY = y > 1.8 ? '↑ Moving Up' : (y < -1.8 ? '↓ Moving Down' : '• Neutral');
-    
-    const sample = { t, x, y, z, mag, pitch, roll, dirY };
+    // Evaluate sample based on global smooth toggle
+    const useSmooth = smoothCb.checked;
+    const evalX = useSmooth ? smoothedState.x : x;
+    const evalY = useSmooth ? smoothedState.y : y;
+    const evalZ = useSmooth ? smoothedState.z : z;
+    const evalPitch = useSmooth ? smoothedState.pitch : rawPitch;
+    const evalRoll = useSmooth ? smoothedState.roll : rawRoll;
+    const evalMag = useSmooth ? smoothedState.mag : rawMag;
+
+    const sample = {
+      t, x: evalX, y: evalY, z: evalZ, mag: evalMag, pitch: evalPitch, roll: evalRoll, dirY,
+      rawX: x, rawY: y, rawZ: z, rawPitch, rawRoll, rawMag
+    };
+
     motionBuffer.push(sample);
     if(motionBuffer.length > 250) motionBuffer.shift();
 
-    if(session && session.active){
-      session.samples.push(sample);
-    }
+    if(session && session.active) session.samples.push(sample);
 
-    // Update Motion Check / Debug UI if active
     if(inMotionCheck){
-      dbgX.textContent = x.toFixed(1);
-      dbgY.textContent = y.toFixed(1);
-      dbgZ.textContent = z.toFixed(1);
-      dbgPitch.textContent = pitch.toFixed(0) + '°';
-      dbgRoll.textContent = roll.toFixed(0) + '°';
-      dbgMag.textContent = mag.toFixed(1);
-      
-      const dirColor = y > 1.8 ? 'var(--good)' : (y < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
+      dbgX.textContent = evalX.toFixed(1); dbgY.textContent = evalY.toFixed(1); dbgZ.textContent = evalZ.toFixed(1);
+      dbgPitch.textContent = evalPitch.toFixed(0) + '°'; dbgRoll.textContent = evalRoll.toFixed(0) + '°'; dbgMag.textContent = evalMag.toFixed(1);
+      const dirColor = evalY > 1.8 ? 'var(--good)' : (evalY < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
       dbgDirBadge.innerHTML = `<span style="color:${dirColor}">${dirY}</span>`;
 
       const threshold = parseFloat(thresholdSlider.value);
-      const delta = Math.abs(mag - 9.8);
+      const delta = Math.abs(evalMag - 9.8);
       dbgDelta.textContent = delta.toFixed(1);
       deltaFill.style.width = Math.min(100, (delta / 4) * 100) + '%';
       document.getElementById('delta-threshold-line').style.left = (threshold / 4 * 100) + '%';
@@ -992,161 +978,73 @@
       }
     }
 
-    // Recording buffer for marker training or custom exercise recording
-    if(isMarkerRecording){
-      markerRecordBuffer.push(sample);
-    }
-    if(isTrainingActive || isTestingActive){
-      processSegmentedRep(sample);
-    }
+    if(isMarkerRecording || isTrainingActive) markerRecordBuffer.push(sample);
 
-    // Check custom markers during active game
+    // Active Game Compound Checkpoint Matcher
     if(state && !state.resolved && state.markers && state.markers.length > 0){
-      checkMarkersForRep(sample);
+      checkCompoundMarkersForRep(sample);
+    }
+    
+    if(isTestingActive){
+      checkLiveTestingCompoundMarkers(sample);
     }
   }
 
-  function checkMarkersForRep(sample){
+  // Evaluates Compound Multi-Condition Keyframe (AND Logic)
+  function matchesKeyframe(sample, keyframe){
+    if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
+    return keyframe.conditions.every(c => {
+      let val = sample[c.axis] !== undefined ? sample[c.axis] : sample.mag;
+      if(c.dir === 'above') return val >= c.val;
+      if(c.dir === 'below') return val <= c.val;
+      return false;
+    });
+  }
+
+  function checkCompoundMarkersForRep(sample){
     if(!state.markers || state.markers.length === 0) return;
-    const targetMarker = state.markers[state.markerIndex || 0];
-    if(!targetMarker) return;
-
-    let val = sample[targetMarker.axis] || sample.mag;
-    let hit = false;
-
-    if(targetMarker.dir === 'above' && val >= targetMarker.val){
-      hit = true;
-    } else if(targetMarker.dir === 'below' && val <= targetMarker.val){
-      hit = true;
-    }
-
-    if(hit){
+    const targetKeyframe = state.markers[state.markerIndex || 0];
+    
+    if(matchesKeyframe(sample, targetKeyframe)){
       state.markerIndex = (state.markerIndex || 0) + 1;
+      renderHudCheckpoints(state.markers, state.markerIndex);
       if(state.markerIndex >= state.markers.length){
-        // All markers in sequence hit -> count rep!
         state.markerIndex = 0;
         registerRep();
+        renderHudCheckpoints(state.markers, 0);
       }
     }
   }
 
-  function processSegmentedRep(sample){
-    const dev = Math.abs(sample.mag - 9.8);
-    if(dev > 0.6){
-      repBuffer.push(sample);
-      repInProgress = true;
-      lastMovingTime = sample.t;
-      if(isTrainingActive) trainMovingStatus.textContent = '⚡ Movement active...';
-      if(isTestingActive) testMovingStatus.textContent = '⚡ Movement active...';
-    }
-  }
+  let testMarkerIndex = 0;
+  function checkLiveTestingCompoundMarkers(sample){
+    const markerData = loadMarkerData();
+    const activeEx = currentMarkerExercise || TRAIN_EXERCISES[0];
+    const mData = markerData[activeEx];
+    if(!mData || !mData.markers || mData.markers.length === 0) return;
 
-  const IDLE_GAP_MS = 1800;
-  let repBuffer = [];
-  let repInProgress = false;
-  let lastMovingTime = 0;
-  let idleCheckTimer = null;
+    const targetKeyframe = mData.markers[testMarkerIndex];
 
-  function finalizeCurrentRep(){
-    if(!repInProgress || repBuffer.length < 3){
-      repBuffer = []; repInProgress = false;
-      return;
-    }
-    const feat = extractFeaturesFromBuffer(repBuffer);
-    repBuffer = [];
-    repInProgress = false;
-    if(!feat) return;
-
-    if(isTrainingActive){
-      trainingSessionFeatures.push(feat);
-      trainRepCount.textContent = trainingSessionFeatures.length;
-      trainMovingStatus.textContent = 'Idle — Ready for next rep';
-      playMetalClang(true);
-    } else if(isTestingActive){
-      const res = classify(feat);
-      renderTestResult(res);
-      testMovingStatus.textContent = 'Idle — Ready for next rep';
-      playMetalClang(res && res.confidence > 0.5);
-    }
-  }
-
-  function startIdleChecks(){
-    clearInterval(idleCheckTimer);
-    idleCheckTimer = setInterval(() => {
-      if(repInProgress && performance.now() - lastMovingTime > IDLE_GAP_MS){
-        finalizeCurrentRep();
+    if(matchesKeyframe(sample, targetKeyframe)){
+      testMarkerIndex++;
+      renderHudCheckpoints(mData.markers, testMarkerIndex);
+      playMetalClang(false);
+      if(testMarkerIndex >= mData.markers.length){
+        testMarkerIndex = 0;
+        playMetalClang(true);
+        testResultLabel.textContent = '✔ Rep Complete!';
+        testResultConf.textContent = `${activeEx} multi-axis compound match!`;
+        renderHudCheckpoints(mData.markers, 0);
       }
-    }, 250);
-  }
-  function stopIdleChecks(){ clearInterval(idleCheckTimer); }
-
-  function extractFeaturesFromBuffer(win){
-    if(win.length < 3) return null;
-    let peakMag = 0, minZ=Infinity,maxZ=-Infinity, minX=Infinity,maxX=-Infinity, minY=Infinity,maxY=-Infinity;
-    let minPitch=Infinity, maxPitch=-Infinity, minRoll=Infinity, maxRoll=-Infinity;
-    win.forEach(s => {
-      peakMag = Math.max(peakMag, s.mag);
-      minZ = Math.min(minZ, s.z); maxZ = Math.max(maxZ, s.z);
-      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
-      minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y);
-      minPitch = Math.min(minPitch, s.pitch); maxPitch = Math.max(maxPitch, s.pitch);
-      minRoll = Math.min(minRoll, s.roll); maxRoll = Math.max(maxRoll, s.roll);
-    });
-    const duration = win[win.length-1].t - win[0].t;
-    const pitchRange = maxPitch - minPitch;
-    const rollRange = maxRoll - minRoll;
-    const zRange = maxZ - minZ;
-    const yRange = maxY - minY;
-    return [peakMag, duration, zRange, yRange, pitchRange, rollRange];
-  }
-
-  function classify(feat){
-    const templates = loadTemplates();
-    let bestMatch = null, minScore = Infinity;
-    Object.keys(templates).forEach(ex => {
-      const reps = templates[ex];
-      if(!reps || reps.length === 0) return;
-      reps.forEach(ref => {
-        let diff = 0;
-        for(let i=0; i<feat.length; i++){
-          diff += Math.pow(feat[i] - (ref[i] || 0), 2);
-        }
-        const dist = Math.sqrt(diff);
-        if(dist < minScore){
-          minScore = dist;
-          bestMatch = ex;
-        }
-      });
-    });
-    return { label: bestMatch || 'Unknown', confidence: Math.max(0.1, 1 - minScore/80) };
-  }
-
-  function renderTestResult(res){
-    if(!res) return;
-    testResultLabel.textContent = res.label;
-    testResultConf.textContent = `Confidence: ${(res.confidence * 100).toFixed(0)}%`;
-    const row = document.createElement('div');
-    row.style.className = 'exercise-row';
-    row.style.background = 'var(--panel)';
-    row.style.padding = '8px 12px';
-    row.style.borderRadius = '8px';
-    row.style.fontSize = '0.85rem';
-    row.style.display = 'flex';
-    row.style.justifyContent5 = 'space-between';
-    row.innerHTML = `<b>${res.label}</b><span>${(res.confidence * 100).toFixed(0)}%</span>`;
-    testLog.prepend(row);
+    }
   }
 
   function ensureMotionArmed(){
     if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function'){
       DeviceMotionEvent.requestPermission().then(resp => {
-        if(resp === 'granted'){
-          bindMotionEvents();
-        }
+        if(resp === 'granted') bindMotionEvents();
       }).catch(()=>{});
-    } else {
-      bindMotionEvents();
-    }
+    } else { bindMotionEvents(); }
   }
 
   function bindMotionEvents(){
@@ -1163,38 +1061,24 @@
   }
 
   enableBtn.addEventListener('click', () => {
-    initAudio();
-    ensureMotionArmed();
-    inMotionCheck = true;
-    showOnly(motionCheck);
-    eventStatus.textContent = 'Listening to motion sensors...';
+    initAudio(); ensureMotionArmed(); inMotionCheck = true;
+    showOnly(motionCheck); eventStatus.textContent = 'Listening to motion sensors...';
   });
 
-  motionOkBtn.addEventListener('click', () => {
-    inMotionCheck = false;
-    startGame();
-  });
-  motionSkipBtn.addEventListener('click', () => {
-    inMotionCheck = false;
-    startGame();
-  });
+  motionOkBtn.addEventListener('click', () => { inMotionCheck = false; startGame(); });
+  motionSkipBtn.addEventListener('click', () => { inMotionCheck = false; startGame(); });
 
-  trainNavBtn.addEventListener('click', () => {
-    showOnly(trainHub);
-    updateTrainHubStatus();
-  });
+  trainNavBtn.addEventListener('click', () => { showOnly(trainHub); updateTrainHubStatus(); });
   trainBackBtn.addEventListener('click', goHome);
 
   function updateTrainHubStatus(){
-    const templates = loadTemplates();
     const markerData = loadMarkerData();
     TRAIN_EXERCISES.forEach(ex => {
       const slug = ex.includes('Swing') ? 'swing' : 'press';
       const countEl = document.getElementById(`train-count-${slug}`);
       const markerCountEl = document.getElementById(`marker-count-${slug}`);
-      const t = templates[ex];
-      if(countEl) countEl.textContent = (t && t.length) ? `${t.length} reps saved` : 'not trained';
       const m = markerData[ex];
+      if(countEl) countEl.textContent = (m && m.recording && m.recording.length) ? 'Demo recorded' : 'not trained';
       if(markerCountEl) markerCountEl.textContent = (m && m.markers) ? m.markers.length : 0;
     });
   }
@@ -1203,95 +1087,107 @@
     btn.addEventListener('click', (e) => {
       const ex = e.currentTarget.getAttribute('data-exercise');
       const act = e.currentTarget.getAttribute('data-action');
-      if(act === 'record'){
-        startTrainRecord(ex);
-      } else if(act === 'reset'){
-        const t = loadTemplates();
-        delete t[ex];
-        saveTemplates(t);
-        updateTrainHubStatus();
-      } else if(act === 'markers'){
-        openMarkerEditor(ex);
-      }
+      if(act === 'record'){ startTrainRecord(ex); }
+      else if(act === 'reset'){
+        const m = loadMarkerData(); delete m[ex]; saveMarkerData(m); updateTrainHubStatus();
+      } else if(act === 'markers'){ openMarkerEditor(ex); }
     });
   });
 
   function startTrainRecord(ex){
     ensureMotionArmed();
     isTrainingActive = true;
-    trainingExercise = ex;
-    trainingSessionFeatures = [];
+    currentMarkerExercise = ex;
+    markerRecordBuffer = [];
     trainRecordTitle.innerHTML = `RECORD<br><span>${ex.toUpperCase()}</span>`;
     trainRepCount.textContent = '0';
     trainMovingStatus.textContent = 'Idle — Start movement';
     showOnly(trainRecord);
-    startIdleChecks();
   }
 
-  trainMarkBtn.addEventListener('click', () => {
-    if(repBuffer.length > 2) finalizeCurrentRep();
-  });
-
   trainDoneBtn.addEventListener('click', () => {
-    stopIdleChecks();
     isTrainingActive = false;
-    if(trainingSessionFeatures.length > 0){
-      const t = loadTemplates();
-      t[trainingExercise] = (t[trainingExercise] || []).concat(trainingSessionFeatures);
-      saveTemplates(t);
-    }
-    showOnly(trainHub);
-    updateTrainHubStatus();
+    openMarkerEditor(currentMarkerExercise);
   });
   trainCancelBtn.addEventListener('click', () => {
-    stopIdleChecks();
-    isTrainingActive = false;
-    showOnly(trainHub);
+    isTrainingActive = false; showOnly(trainHub);
   });
 
   testNavBtn.addEventListener('click', () => {
-    ensureMotionArmed();
-    isTestingActive = true;
-    testLog.innerHTML = '';
-    testResultLabel.textContent = '—';
-    testResultConf.textContent = 'Waiting for movement...';
+    ensureMotionArmed(); isTestingActive = true; testLog.innerHTML = '';
+    testResultLabel.textContent = '—'; testResultConf.textContent = 'Waiting for movement...';
+    const activeEx = currentMarkerExercise || TRAIN_EXERCISES[0];
+    const markerData = loadMarkerData();
+    const mData = markerData[activeEx];
+    if(mData && mData.markers) renderHudCheckpoints(mData.markers, 0);
     showOnly(testLive);
-    startIdleChecks();
   });
-  testMarkBtn.addEventListener('click', () => {
-    if(repBuffer.length > 2) finalizeCurrentRep();
-  });
-  testBackBtn.addEventListener('click', () => {
-    stopIdleChecks();
-    isTestingActive = false;
-    showOnly(trainHub);
-  });
+  testBackBtn.addEventListener('click', () => { isTestingActive = false; showOnly(trainHub); });
 
   let currentMarkerExercise = null;
-  let isMarkerRecording = false;
   let markerRecordBuffer = [];
-  let editingMarkers = [];
-  let markerZoomLevel = 1;
+  let editingMarkers = []; // Array of compound keyframe objects: { id, label, conditions: [{axis, val, dir}] }
+  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true, mag: true };
+  let zoomX = 1.0, zoomY = 1.0;
+  let trimStartPct = 0, trimEndPct = 100;
+
+  // Toggle Series Visibility
+  document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const s = chip.getAttribute('data-series');
+      activeSeries[s] = !activeSeries[s];
+      chip.classList.toggle('active', activeSeries[s]);
+      renderMarkerCanvas();
+    });
+  });
+
+  markerZoomX.addEventListener('input', () => {
+    zoomX = parseFloat(markerZoomX.value);
+    markerZoomXVal.textContent = zoomX.toFixed(1) + '×';
+    renderMarkerCanvas();
+  });
+  markerZoomY.addEventListener('input', () => {
+    zoomY = parseFloat(markerZoomY.value);
+    markerZoomYVal.textContent = zoomY.toFixed(1) + '×';
+    renderMarkerCanvas();
+  });
+  smoothCb.addEventListener('change', renderMarkerCanvas);
+
+  trimStartSlider.addEventListener('input', () => {
+    trimStartPct = parseInt(trimStartSlider.value);
+    if(trimStartPct >= trimEndPct) trimStartPct = trimEndPct - 1;
+    renderMarkerCanvas();
+  });
+  trimEndSlider.addEventListener('input', () => {
+    trimEndPct = parseInt(trimEndSlider.value);
+    if(trimEndPct <= trimStartPct) trimEndPct = trimStartPct + 1;
+    renderMarkerCanvas();
+  });
 
   function openMarkerEditor(exercise){
     currentMarkerExercise = exercise;
-    markerTitle.innerHTML = 'SET MARKERS<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
+    markerTitle.innerHTML = 'COMPOUND<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
     
     const markerData = loadMarkerData();
     const existing = markerData[exercise];
 
     if(existing && existing.recording && existing.recording.length > 5){
-      // Load existing demo recording for marker editing!
       markerRecordBuffer = existing.recording;
       editingMarkers = existing.markers || [];
+      trimStartPct = existing.trimStart || 0;
+      trimEndPct = existing.trimEnd || 100;
+      trimStartSlider.value = trimStartPct;
+      trimEndSlider.value = trimEndPct;
+
       markerRecPrompt.style.display = 'none';
       markerChartCard.style.display = 'block';
+      trimCard.style.display = 'block';
       markerActions.style.display = 'block';
-      renderMarkerChart();
+      renderMarkerCanvas();
       renderMarkerList();
     } else {
-      // Prompt user to record demo
       markerChartCard.style.display = 'none';
+      trimCard.style.display = 'none';
       markerActions.style.display = 'none';
       markerRecPrompt.style.display = 'block';
       markerListEl.innerHTML = '';
@@ -1305,8 +1201,7 @@
     markerRecordBuffer = [];
     markerRecPrompt.style.display = 'none';
     markerChartCard.style.display = 'block';
-    markerChartWrap.innerHTML = '<p class="fine-print" style="padding:20px;">⚡ Perform 1-2 reps of movement now... Tap "Done Recording" when finished.</p>';
-    
+    trimCard.style.display = 'block';
     markerActions.style.display = 'block';
     markerRerecordBtn.textContent = 'Done Recording';
   });
@@ -1314,94 +1209,245 @@
   markerRerecordBtn.addEventListener('click', () => {
     if(isMarkerRecording){
       isMarkerRecording = false;
-      markerRerecordBtn.textContent = 'Re-record Demo Recording';
+      markerRerecordBtn.textContent = 'Re-record Demo';
       if(markerRecordBuffer.length > 5 && editingMarkers.length === 0){
-        // Auto create initial pitch/y marker
-        editingMarkers = [
-          { id: 1, axis: 'y', val: 12.0, dir: 'above' }
-        ];
+        autoGenerateCompoundMarkers();
       }
-      renderMarkerChart();
+      renderMarkerCanvas();
       renderMarkerList();
     } else {
-      // Restart recording prompt
       isMarkerRecording = true;
       markerRecordBuffer = [];
-      markerChartWrap.innerHTML = '<p class="fine-print" style="padding:20px;">⚡ Perform movement now... Tap "Done Recording" when finished.</p>';
       markerRerecordBtn.textContent = 'Done Recording';
     }
   });
 
-  markerZoomEl.addEventListener('input', () => {
-    markerZoomLevel = parseInt(markerZoomEl.value) || 1;
-    markerZoomVal.textContent = markerZoomLevel + '×';
-    renderMarkerChart();
-  });
+  autoGenBtn.addEventListener('click', autoGenerateCompoundMarkers);
+
+  // Auto-Generate Multi-Axis Compound Keyframes
+  function autoGenerateCompoundMarkers(){
+    if(markerRecordBuffer.length < 5) return;
+    const startIdx = Math.floor((trimStartPct / 100) * markerRecordBuffer.length);
+    const endIdx = Math.floor((trimEndPct / 100) * markerRecordBuffer.length);
+    const trimmed = markerRecordBuffer.slice(startIdx, endIdx);
+
+    if(trimmed.length < 3) return;
+
+    // Find peak & valley snapshots
+    let maxPitch = -Infinity, minPitch = Infinity, maxY = -Infinity, minY = Infinity;
+    let maxPitchSample = trimmed[0], maxYSample = trimmed[0];
+
+    trimmed.forEach(s => {
+      if(s.pitch > maxPitch){ maxPitch = s.pitch; maxPitchSample = s; }
+      if(s.pitch < minPitch){ minPitch = s.pitch; }
+      if(s.y > maxY){ maxY = s.y; maxYSample = s; }
+      if(s.y < minY){ minY = s.y; }
+    });
+
+    editingMarkers = [];
+
+    // Compound Keyframe 1: Start/Bottom Pose
+    editingMarkers.push({
+      id: 1,
+      label: "Bottom Pose",
+      conditions: [
+        { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 5) },
+        { axis: 'y', dir: 'below', val: parseFloat((minY + 2.0).toFixed(1)) }
+      ]
+    });
+
+    // Compound Keyframe 2: Peak/Top Pose (Combines Pitch AND Acceleration)
+    editingMarkers.push({
+      id: 2,
+      label: "Apex Pose",
+      conditions: [
+        { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 6) },
+        { axis: 'y', dir: 'above', val: parseFloat((maxYSample.y - 1.2).toFixed(1)) }
+      ]
+    });
+
+    renderMarkerCanvas();
+    renderMarkerList();
+  }
+
+  function renderMarkerCanvas(){
+    const canvas = markerCanvas;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = 220 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = 220;
+    const samples = markerRecordBuffer;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    if(samples.length < 3) return;
+
+    const totalPts = samples.length;
+    const renderW = W * zoomX;
+
+    const valRange = 80 / zoomY;
+    const valToY = v => (H / 2) - (v / valRange) * (H - 20);
+    const idxToX = i => (i / (totalPts - 1)) * renderW;
+
+    // Draw baseline
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw Traces
+    const seriesList = [
+      { key: 'x', clr: 'var(--accent)' },
+      { key: 'y', clr: 'var(--good)' },
+      { key: 'z', clr: 'var(--hazard)' },
+      { key: 'pitch', clr: 'var(--pitch-clr)' },
+      { key: 'roll', clr: 'var(--roll-clr)' },
+      { key: 'mag', clr: 'var(--mag-clr)' }
+    ];
+
+    seriesList.forEach(s => {
+      if(!activeSeries[s.key]) return;
+      const clrVal = getComputedStyle(document.documentElement).getPropertyValue(s.clr.replace('var(','').replace(')','')).trim();
+      ctx.strokeStyle = clrVal || '#888';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      samples.forEach((sample, i) => {
+        const xPx = idxToX(i);
+        const yPx = valToY(sample[s.key] || 0);
+        if(i === 0) ctx.moveTo(xPx, yPx);
+        else ctx.lineTo(xPx, yPx);
+      });
+      ctx.stroke();
+    });
+
+    // Draw Trim Regions
+    const startXPx = (trimStartPct / 100) * renderW;
+    const endXPx = (trimEndPct / 100) * renderW;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(0, 0, startXPx, H);
+    ctx.fillRect(endXPx, 0, W - endXPx, H);
+
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 2]);
+    ctx.beginPath(); ctx.moveTo(startXPx, 0); ctx.lineTo(startXPx, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(endXPx, 0); ctx.lineTo(endXPx, H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Simulate compound rep matching over trimmed window
+    let hitsCount = 0;
+    let mIdx = 0;
+    const startIdx = Math.floor((trimStartPct / 100) * samples.length);
+    const endIdx = Math.floor((trimEndPct / 100) * samples.length);
+
+    for(let i=startIdx; i<endIdx; i++){
+      if(editingMarkers.length === 0) break;
+      const targetKeyframe = editingMarkers[mIdx];
+      const sample = samples[i];
+
+      if(matchesKeyframe(sample, targetKeyframe)){
+        mIdx++;
+        if(mIdx >= editingMarkers.length){
+          hitsCount++; mIdx = 0;
+          const hitX = idxToX(i);
+          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--good').trim();
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(hitX, 0); ctx.lineTo(hitX, H); ctx.stroke();
+        }
+      }
+    }
+    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in trimmed window.`;
+  }
 
   function renderMarkerList(){
     markerListEl.innerHTML = '';
     if(editingMarkers.length === 0){
-      markerListEl.innerHTML = '<div class="fine-print">No markers created yet. Tap "+ Add Custom Marker" or click on chart lines above.</div>';
+      markerListEl.innerHTML = '<div class="fine-print">No compound keyframes set. Tap "+ Add Compound Keyframe Step" or Auto-Generate.</div>';
       return;
     }
-    editingMarkers.forEach((m, idx) => {
+
+    editingMarkers.forEach((keyframe, kIdx) => {
       const item = document.createElement('div');
       item.className = 'marker-item';
+
+      let condRowsHtml = keyframe.conditions.map((c, cIdx) => `
+        <div class="condition-row">
+          <span>IF</span>
+          <select data-action="cond-axis" data-kidx="${kIdx}" data-cidx="${cIdx}">
+            <option value="pitch" ${c.axis==='pitch'?'selected':''}>Pitch (Tilt °)</option>
+            <option value="y" ${c.axis==='y'?'selected':''}>Y (Vertical Accel)</option>
+            <option value="roll" ${c.axis==='roll'?'selected':''}>Roll (Lean °)</option>
+            <option value="x" ${c.axis==='x'?'selected':''}>X (Lateral Accel)</option>
+            <option value="z" ${c.axis==='z'?'selected':''}>Z (Depth Accel)</option>
+            <option value="mag" ${c.axis==='mag'?'selected':''}>Magnitude</option>
+          </select>
+          <select data-action="cond-dir" data-kidx="${kIdx}" data-cidx="${cIdx}">
+            <option value="above" ${c.dir==='above'?'selected':''}>≥</option>
+            <option value="below" ${c.dir==='below'?'selected':''}>≤</option>
+          </select>
+          <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:60px;">
+          <button style="background:none;border:none;color:var(--accent);cursor:pointer;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">✕</button>
+        </div>
+      `).join('');
+
       item.innerHTML = `
         <div class="marker-header">
-          <span>Marker #${idx + 1}</span>
-          <button style="background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;" data-del="${idx}">Delete ✕</button>
+          <span>Step #${kIdx + 1}: ${keyframe.label || 'Pose Keyframe'}</span>
+          <button style="background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;" data-action="del-keyframe" data-kidx="${kIdx}">Delete Step ✕</button>
         </div>
-        <div class="marker-controls">
-          <label>Axis:
-            <select data-key="axis" data-idx="${idx}">
-              <option value="y" ${m.axis==='y'?'selected':''}>Y (Vertical Acceleration)</option>
-              <option value="x" ${m.axis==='x'?'selected':''}>X (Lateral)</option>
-              <option value="z" ${m.axis==='z'?'selected':''}>Z (Depth)</option>
-              <option value="pitch" ${m.axis==='pitch'?'selected':''}>Pitch (Tilt °)</option>
-              <option value="roll" ${m.axis==='roll'?'selected':''}>Roll (Lean °)</option>
-              <option value="mag" ${m.axis==='mag'?'selected':''}>Magnitude</option>
-            </select>
-          </label>
-          <label>Trigger:
-            <select data-key="dir" data-idx="${idx}">
-              <option value="above" ${m.dir==='above'?'selected':''}>Crosses Above (↑)</option>
-              <option value="below" ${m.dir==='below'?'selected':''}>Crosses Below (↓)</option>
-            </select>
-          </label>
-          <label>Threshold:
-            <input type="number" step="0.5" data-key="val" data-idx="${idx}" value="${m.val}" style="width:70px;">
-          </label>
-        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">${condRowsHtml}</div>
+        <button class="ghost" style="font-size:0.75rem;padding:6px;margin-top:2px;" data-action="add-cond" data-kidx="${kIdx}">+ Add AND Condition Axis</button>
       `;
       markerListEl.appendChild(item);
     });
 
-    // Bind event listeners
-    markerListEl.querySelectorAll('select, input').forEach(el => {
-      el.addEventListener('change', (e) => {
-        const i = parseInt(e.target.getAttribute('data-idx'));
-        const k = e.target.getAttribute('data-key');
-        let v = e.target.value;
-        if(k === 'val') v = parseFloat(v) || 0;
-        editingMarkers[i][k] = v;
-        renderMarkerChart();
-      });
-    });
-    markerListEl.querySelectorAll('[data-del]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const i = parseInt(e.currentTarget.getAttribute('data-del'));
-        editingMarkers.splice(i, 1);
-        renderMarkerList();
-        renderMarkerChart();
-      });
+    // Event Delegation for Compound Condition Editor
+    markerListEl.querySelectorAll('[data-action]').forEach(el => {
+      const act = el.getAttribute('data-action');
+      const kIdx = parseInt(el.getAttribute('data-kidx'));
+      const cIdx = parseInt(el.getAttribute('data-cidx'));
+
+      if(act === 'del-keyframe'){
+        el.addEventListener('click', () => { editingMarkers.splice(kIdx, 1); renderMarkerList(); renderMarkerCanvas(); });
+      } else if(act === 'add-cond'){
+        el.addEventListener('click', () => {
+          editingMarkers[kIdx].conditions.push({ axis: 'pitch', dir: 'above', val: 20 });
+          renderMarkerList(); renderMarkerCanvas();
+        });
+      } else if(act === 'del-cond'){
+        el.addEventListener('click', () => {
+          editingMarkers[kIdx].conditions.splice(cIdx, 1);
+          renderMarkerList(); renderMarkerCanvas();
+        });
+      } else if(act === 'cond-axis' || act === 'cond-dir' || act === 'cond-val'){
+        el.addEventListener('change', (e) => {
+          let val = e.target.value;
+          if(act === 'cond-val') val = parseFloat(val) || 0;
+          const key = act.replace('cond-', '');
+          editingMarkers[kIdx].conditions[cIdx][key] = val;
+          renderMarkerCanvas();
+        });
+      }
     });
   }
 
   markerAddBtn.addEventListener('click', () => {
-    editingMarkers.push({ id: Date.now(), axis: 'pitch', val: 30, dir: 'above' });
-    renderMarkerList();
-    renderMarkerChart();
+    editingMarkers.push({
+      id: Date.now(),
+      label: "Custom Keyframe",
+      conditions: [{ axis: 'pitch', dir: 'above', val: 25 }]
+    });
+    renderMarkerList(); renderMarkerCanvas();
   });
 
   markerSaveBtn.addEventListener('click', () => {
@@ -1409,154 +1455,74 @@
     const markerData = loadMarkerData();
     markerData[currentMarkerExercise] = {
       recording: markerRecordBuffer,
-      markers: editingMarkers
+      markers: editingMarkers,
+      trimStart: trimStartPct,
+      trimEnd: trimEndPct
     };
     saveMarkerData(markerData);
     updateTrainHubStatus();
     showOnly(trainHub);
   });
 
-  markerBackBtn.addEventListener('click', () => {
-    showOnly(trainHub);
-  });
+  markerBackBtn.addEventListener('click', () => { showOnly(trainHub); });
 
-  function renderMarkerChart(){
-    markerChartWrap.innerHTML = '';
-    if(markerRecordBuffer.length < 5) return;
+  function renderSessionCanvas(){
+    const canvas = sessionCanvas;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
 
-    const samples = markerRecordBuffer;
-    const zoom = markerZoomLevel;
-    const BASE_W = 340, PLOT_H = 200, PAD = 10;
-    const W = BASE_W * zoom;
+    canvas.width = rect.width * dpr;
+    canvas.height = 220 * dpr;
+    ctx.scale(dpr, dpr);
 
-    const t0 = samples[0].t;
-    const tMax = Math.max(1, samples[samples.length-1].t - t0);
+    const W = rect.width; const H = 220;
 
-    let valMin = -40, valMax = 40; // Pitch/Roll/Acc envelope scale
-
-    const tToX = t => PAD + ((t - t0) / tMax) * (W - PAD*2);
-    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
-
-    let svg = `<svg width="${W}" height="${PLOT_H}" style="display:block;background:var(--bg);">`;
-
-    // Draw axis lines for X, Y, Z, Pitch, Roll
-    const axes = [
-      { k: 'x', color: 'var(--accent)' },
-      { k: 'y', color: 'var(--good)' },
-      { k: 'z', color: 'var(--hazard)' },
-      { k: 'pitch', color: 'var(--pitch-clr)' },
-      { k: 'roll', color: 'var(--roll-clr)' }
-    ];
-
-    axes.forEach(ax => {
-      let pts = samples.map(s => `${tToX(s.t).toFixed(1)},${valToY(s[ax.k]||0).toFixed(1)}`).join(' ');
-      svg += `<polyline fill="none" stroke="${ax.color}" stroke-width="1.8" points="${pts}" />`;
-    });
-
-    // Draw marker threshold lines
-    let simulatedHits = 0;
-    editingMarkers.forEach((m, idx) => {
-      const yPos = valToY(m.val);
-      svg += `<line x1="0" y1="${yPos}" x2="${W}" y2="${yPos}" stroke="${axes.find(a=>a.k===m.axis)?.color || 'var(--ink)'}" stroke-dasharray="4,4" stroke-width="1.5" opacity="0.8" />`;
-      svg += `<text x="10" y="${yPos - 4}" fill="var(--ink)" font-size="10" font-weight="600">M${idx+1}: ${m.axis.toUpperCase()} ${m.dir==='above'?'≥':'≤'} ${m.val}</text>`;
-    });
-
-    // Simulate rep hits on this recording
-    let curIdx = 0;
-    samples.forEach(s => {
-      if(editingMarkers.length === 0) return;
-      const target = editingMarkers[curIdx];
-      let val = s[target.axis] || s.mag;
-      let hit = (target.dir === 'above' && val >= target.val) || (target.dir === 'below' && val <= target.val);
-      if(hit){
-        curIdx++;
-        if(curIdx >= editingMarkers.length){
-          simulatedHits++;
-          curIdx = 0;
-          const hitX = tToX(s.t);
-          svg += `<line x1="${hitX}" y1="0" x2="${hitX}" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2" />`;
-          svg += `<text x="${hitX+2}" y="15" fill="var(--good)" font-size="11" font-weight="700">▼ REP</text>`;
-        }
-      }
-    });
-
-    svg += `</svg>`;
-    markerChartWrap.innerHTML = svg;
-    markerSim.textContent = `Simulation: Current markers would trigger ${simulatedHits} rep${simulatedHits===1?'':'s'} on this recording.`;
-  }
-
-  function renderSessionGraph(){
-    sessionWrap.innerHTML = '';
-    if(!lastSession || !lastSession.samples || lastSession.samples.length < 5){
-      sessionWrap.innerHTML = '<p class="fine-print" style="padding:20px;">No sensor samples logged for this workout.</p>';
-      return;
-    }
+    if(!lastSession || !lastSession.samples || lastSession.samples.length < 5){ return; }
 
     const samples = lastSession.samples;
     const events = lastSession.events || [];
-    const zoom = parseInt(sessionZoomEl.value) || 1;
-    const BASE_W = 360, PLOT_H = 220, PAD = 10;
-    const W = BASE_W * zoom;
 
-    const t0 = samples[0].t;
-    const tMax = Math.max(1, samples[samples.length-1].t - t0);
-    const valMin = -35, valMax = 35;
+    const valToY = v => (H / 2) - (v / 40) * (H - 20);
+    const idxToX = i => (i / (samples.length - 1)) * W;
 
-    const tToX = t => PAD + ((t - t0) / tMax) * (W - PAD*2);
-    const valToY = v => PAD + (1 - (v - valMin) / (valMax - valMin)) * (PLOT_H - PAD*2);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    ctx.fillRect(0, 0, W, H);
 
-    let svg = `<svg width="${W}" height="${PLOT_H}" style="display:block;background:var(--bg);">`;
-
-    // Draw sensor traces
     const axes = [
-      { k: 'x', color: 'var(--accent)' },
-      { k: 'y', color: 'var(--good)' },
-      { k: 'z', color: 'var(--hazard)' },
-      { k: 'pitch', color: 'var(--pitch-clr)' },
-      { k: 'roll', color: 'var(--roll-clr)' }
+      { key: 'x', clr: 'var(--accent)' },
+      { key: 'y', clr: 'var(--good)' },
+      { key: 'z', clr: 'var(--hazard)' },
+      { key: 'pitch', clr: 'var(--pitch-clr)' },
+      { key: 'roll', clr: 'var(--roll-clr)' }
     ];
 
-    axes.forEach(ax => {
-      let pts = samples.map(s => `${tToX(s.t).toFixed(1)},${valToY(s[ax.k]||0).toFixed(1)}`).join(' ');
-      svg += `<polyline fill="none" stroke="${ax.color}" stroke-width="1.5" points="${pts}" opacity="0.85" />`;
+    axes.forEach(a => {
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue(a.clr.replace('var(','').replace(')','')).trim() || '#888';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      samples.forEach((s, i) => {
+        const x = idxToX(i);
+        const y = valToY(s[a.key] || 0);
+        if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
     });
 
-    // Draw rep events
-    events.forEach(ev => {
-      if(ev.type === 'rep'){
-        const xPos = tToX(ev.t + t0);
-        svg += `<line x1="${xPos}" y1="0" x2="${xPos}" y2="${PLOT_H}" stroke="var(--good)" stroke-width="2" />`;
-        svg += `<text x="${xPos+2}" y="15" fill="var(--good)" font-size="10" font-weight="700">▼ Rep ${ev.n}</text>`;
-      } else if(ev.type === 'round'){
-        const xPos = tToX(ev.t + t0);
-        svg += `<line x1="${xPos}" y1="0" x2="${xPos}" y2="${PLOT_H}" stroke="var(--ink)" stroke-dasharray="3,3" stroke-width="1.5" />`;
-        svg += `<text x="${xPos+2}" y="${PLOT_H-8}" fill="var(--ink)" font-size="10" font-weight="600">${ev.name}</text>`;
-      }
-    });
-
-    svg += `</svg>`;
-    sessionWrap.innerHTML = svg;
-    sessionSummary.textContent = `Total duration: ${(tMax/1000).toFixed(1)}s · Reps logged: ${events.filter(e=>e.type==='rep').length}`;
+    sessionSummary.textContent = `Samples logged: ${samples.length} · Rep events: ${events.filter(e=>e.type==='rep').length}`;
   }
 
-  sessionZoomEl.addEventListener('input', () => {
-    sessionZoomLbl.textContent = sessionZoomEl.value + '×';
-    renderSessionGraph();
-  });
-
-  sessionBtn.addEventListener('click', () => {
-    renderSessionGraph();
-    showOnly(sessionScreen);
-  });
-  lastSessionBtn.addEventListener('click', () => {
-    renderSessionGraph();
-    showOnly(sessionScreen);
-  });
+  sessionBtn.addEventListener('click', () => { renderSessionCanvas(); showOnly(sessionScreen); });
+  lastSessionBtn.addEventListener('click', () => { renderSessionCanvas(); showOnly(sessionScreen); });
   sessionBackBtn.addEventListener('click', goHome);
   endSessionBtn.addEventListener('click', endGame);
 
   retryBtn.addEventListener('click', startGame);
   homeBtn.addEventListener('click', goHome);
+
+  // Initialize Screen State
+  goHome();
 
 })();
 </script>
