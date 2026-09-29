@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rep Drop">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%8B%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B19'/%3E%3Cpath d='M30 40 h40 v20 h-40 z' fill='%23EDEAE1'/%3E%3C/svg%3E">
 <title>Rep Drop - Gamified Motion Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,6 +71,28 @@
     gap: 10px;
     position: relative;
   }
+  
+  /* Modern Single Tone Flat Icon System */
+  .icon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+    pointer-events: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon-solid {
+    fill: currentColor;
+    stroke: none;
+  }
+  .icon-sm { width: 14px; height: 14px; }
+  .icon-lg { width: 22px; height: 22px; }
+
   h1.wordmark {
     font-family: 'Oswald', sans-serif;
     font-weight: 700;
@@ -81,6 +103,45 @@
   }
   .wordmark span { color: var(--accent); }
   p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.88rem; max-width: 38ch; }
+
+  /* Home Screen Tabs Styling */
+  .home-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--panel);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--track);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1;
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--ink-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 8px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tab-btn.active {
+    background: var(--bg);
+    color: var(--ink);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .home-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
   /* Screens Layout */
   .screen {
@@ -99,6 +160,7 @@
     appearance: none; border: 1px solid var(--track); background: transparent; color: var(--ink-dim);
     border-radius: 999px; font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 6px 12px;
     cursor: pointer; align-self: flex-start; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 5px; font-weight: 500;
   }
   .chip-row { display: flex; gap: 8px; justify-content: space-between; flex-shrink: 0; }
   
@@ -111,7 +173,7 @@
     border: 1px solid var(--track);
     overflow: hidden;
     user-select: none;
-    touch-action: none; /* Allows full gesture pinch & pan inside canvas */
+    touch-action: none;
     -webkit-user-select: none;
   }
   canvas.motion-canvas {
@@ -158,6 +220,7 @@
     font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1rem;
     padding: 14px; cursor: pointer; width: 100%;
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
   button.primary:active { transform: translateY(1px); }
   button.ghost {
@@ -165,6 +228,7 @@
     background: transparent; color: var(--ink);
     font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.88rem;
     padding: 11px; cursor: pointer; width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   }
   button.ghost:active { background: rgba(0,0,0,0.05); }
   .fine-print { font-size: 0.75rem; color: var(--ink-dim); text-align: center; }
@@ -270,40 +334,93 @@
   <div id="start-screen" class="screen">
     <div>
       <h1 class="wordmark">REP<br><span>DROP</span></h1>
-      <p class="tagline">An exercise name falls. Complete your reps before it hits the floor!</p>
+      <p class="tagline">Kettlebell Rep &amp; Motion Tracker. Complete your reps before the exercise drops!</p>
     </div>
-    <div class="card">
-      <div class="exercise-row"><b>Sensing Status</b><span id="motion-status" style="color:var(--ink-dim);">not checked</span></div>
-      <div class="exercise-list" id="preview-list"></div>
+
+    <!-- Navigation Tabs -->
+    <div class="home-tabs">
+      <button class="tab-btn active" data-home-tab="tab-workout">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/></svg>
+        Workout
+      </button>
+      <button class="tab-btn" data-home-tab="tab-setup">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18M8 4v4M16 10v4M10 16v4"/></svg>
+        Setup
+      </button>
+      <button class="tab-btn" data-home-tab="tab-settings">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
     </div>
-    <div class="card">
-      <div class="exercise-row"><b>Fall Time Per Set</b><span id="fall-speed-value">30s</span></div>
-      <div class="slider-row" style="margin-top:6px;">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">Faster</span>
-        <input type="range" id="fall-speed-slider" min="10" max="90" step="5" value="30">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">Slower</span>
+
+    <!-- TAB 1: WORKOUT -->
+    <div id="tab-workout" class="home-tab-content">
+      <div class="card">
+        <div class="exercise-row"><b>Sensing Status</b><span id="motion-status" style="color:var(--ink-dim);">not checked</span></div>
+        <div class="exercise-list" id="preview-list"></div>
+      </div>
+      <div>
+        <button class="primary" id="enable-btn">Enable Motion &amp; Start Workout</button>
+        <p class="fine-print" style="margin-top:6px;">Hold phone in kettlebell exercise hand or arm strap. Tap mode available if motion sensor is off.</p>
+        <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View Last Workout Graph</button>
       </div>
     </div>
-    <div class="card">
-      <div class="exercise-row"><b>Reps Per Fall</b><span id="reps-per-fall-value">10</span></div>
-      <div class="slider-row" style="margin-top:6px;">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">1</span>
-        <input type="range" id="reps-per-fall-slider" min="1" max="30" step="1" value="10">
-        <span style="font-size:0.75rem;color:var(--ink-dim);">30</span>
+
+    <!-- TAB 2: SETUP (EXCLUSIVELY TRAIN & MAP CURVES) -->
+    <div id="tab-setup" class="home-tab-content" style="display:none;">
+      <div class="card">
+        <div class="exercise-row"><b>Kettlebell Motion Curves</b></div>
+        <p style="font-size:0.78rem;color:var(--ink-dim);margin:6px 0 10px;">Train, record, and map multi-axis compound motion keyframe curves for each exercise movement.</p>
+        <button class="ghost" id="train-nav-btn" style="width:100%;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          Train &amp; Map Kettlebell Curves
+        </button>
       </div>
     </div>
-    <div>
-      <button class="primary" id="enable-btn">Enable Motion &amp; Start Workout</button>
-      <p class="fine-print" style="margin-top:6px;">Hold phone in exercise hand. Tap mode available if motion sensor is unavailable.</p>
-      <button class="ghost" id="train-nav-btn" style="margin-top:8px;">Train &amp; Map Exercise Curves</button>
-      <button class="ghost" id="audio-toggle" style="margin-top:8px;">Voice &amp; Audio Effects: On</button>
-      <button class="ghost" id="last-session-btn" style="margin-top:8px;display:none;">View Last Workout Graph</button>
+
+    <!-- TAB 3: SETTINGS (ALL CONFIGURATIONS & PREFERENCES) -->
+    <div id="tab-settings" class="home-tab-content" style="display:none;">
+      <div class="card">
+        <div class="exercise-row"><b>Fall Time Per Set</b><span id="fall-speed-value">30s</span></div>
+        <div class="slider-row" style="margin-top:6px;">
+          <span style="font-size:0.75rem;color:var(--ink-dim);">Faster</span>
+          <input type="range" id="fall-speed-slider" min="10" max="90" step="5" value="30">
+          <span style="font-size:0.75rem;color:var(--ink-dim);">Slower</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="exercise-row"><b>Reps Per Fall</b><span id="reps-per-fall-value">10</span></div>
+        <div class="slider-row" style="margin-top:6px;">
+          <span style="font-size:0.75rem;color:var(--ink-dim);">1</span>
+          <input type="range" id="reps-per-fall-slider" min="1" max="30" step="1" value="10">
+          <span style="font-size:0.75rem;color:var(--ink-dim);">30</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="exercise-row"><b>Sensor Check &amp; Sensitivity</b></div>
+        <p style="font-size:0.78rem;color:var(--ink-dim);margin:6px 0 10px;">Test live acceleration pulses and calibrate trigger thresholds.</p>
+        <button class="ghost" id="check-sensors-btn" style="width:100%;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Inspect Sensors &amp; Sensitivity
+        </button>
+      </div>
+      <div class="card">
+        <div class="exercise-row"><b>Audio &amp; Voice Feedback</b></div>
+        <p style="font-size:0.78rem;color:var(--ink-dim);margin:6px 0 10px;">Voice rep counting and metallic audio feedback during workouts.</p>
+        <button class="ghost" id="audio-toggle" style="width:100%;">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          Voice &amp; Audio Effects: On
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- 2. MOTION CHECK / DEBUG SCREEN -->
   <div id="motion-check" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
+    <button class="home-chip" data-home>
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
     <div>
       <h1 class="wordmark">MOTION<br><span>SENSORS</span></h1>
       <p class="tagline" id="event-status">Waiting for sensor stream...</p>
@@ -343,7 +460,10 @@
 
   <!-- 3. TRAIN HUB -->
   <div id="train-hub" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
+    <button class="home-chip" data-home>
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
     <div>
       <h1 class="wordmark">TRAIN<br><span>EXERCISES</span></h1>
       <p class="tagline">Select an exercise to record movement curves &amp; map compound keyframe markers.</p>
@@ -355,9 +475,12 @@
     </div>
   </div>
 
-  <!-- 4. TEST LIVE SCREEN (WITH SELECTOR, PAUSE/RESET & REAL-TIME GRAPH) -->
+  <!-- 4. TEST LIVE SCREEN -->
   <div id="test-live" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
+    <button class="home-chip" data-home>
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
     <div>
       <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
       <p class="tagline">Select exercise and observe live real-time motion graphs and keyframe line-crossing triggers.</p>
@@ -395,9 +518,12 @@
     <button class="ghost" id="test-back-btn">Back to Training Hub</button>
   </div>
 
-  <!-- 5. MARKER / CURVE EDITOR SCREEN (WITH PINCH/ZOOM & LINE-CROSSING AUTO KEYING) -->
+  <!-- 5. MARKER / CURVE EDITOR SCREEN -->
   <div id="marker-screen" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
+    <button class="home-chip" data-home>
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
     <div>
       <h1 class="wordmark" id="marker-title">MOTION<br><span>CURVES</span></h1>
       <p class="tagline">Record movement, pinch/drag graph to inspect curves, and map line-crossing keyframes.</p>
@@ -405,15 +531,17 @@
     
     <div class="card" style="text-align:center;">
       <div style="display:flex;gap:8px;">
-        <button class="primary" id="marker-record-btn" style="flex:1;">⏺ Record Demo Motion</button>
+        <button class="primary" id="marker-record-btn" style="flex:1;">
+          <svg class="icon icon-solid" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+          Record Demo Motion
+        </button>
         <button class="ghost" id="marker-clear-rec-btn" style="width:auto;padding:0 12px;display:none;">Clear</button>
       </div>
       <div id="marker-rec-status" style="margin-top:6px;font-size:0.78rem;color:var(--ink-dim);">Tap to record 1–2 reps naturally</div>
     </div>
 
-    <!-- Canvas Graph Card with Direct Pinch/Zoom and Drag/Pan Controls -->
+    <!-- Canvas Graph Card -->
     <div class="card" id="marker-chart-card" style="display:none;">
-      
       <div class="series-toggles" id="marker-series-toggles">
         <div class="toggle-chip active" data-series="x"><span class="toggle-dot" style="background:var(--accent);"></span>X</div>
         <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y</div>
@@ -427,7 +555,10 @@
       </div>
 
       <div class="gesture-hint">
-        <span>👈 Drag to Pan | Pinch to Zoom 👉</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
+          Drag to Pan | Pinch to Zoom
+        </span>
         <button id="marker-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
 
@@ -441,7 +572,8 @@
         Automatically detects points where motion curves cross each other (e.g. Pitch crossing Roll or Y acceleration) to set reliable compound anchor keyframes.
       </p>
       <button class="ghost" id="auto-gen-crossings-btn" style="background:var(--bg);font-weight:600;width:100%;">
-        ✨ Auto-Key Line Crossings &amp; Intersections
+        <svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+        Auto-Key Line Crossings &amp; Intersections
       </button>
     </div>
 
@@ -457,7 +589,10 @@
   <!-- 6. GAME HUD SCREEN -->
   <div id="hud">
     <div class="chip-row">
-      <button class="home-chip" data-home>⌂ Home</button>
+      <button class="home-chip" data-home>
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </button>
       <button class="home-chip" id="end-session-btn">End Workout</button>
     </div>
     <div class="hud-top">
@@ -482,7 +617,10 @@
 
   <!-- 7. SESSION GRAPH SCREEN -->
   <div id="session-screen" class="screen">
-    <button class="home-chip" data-home>⌂ Home</button>
+    <button class="home-chip" data-home>
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
     <div>
       <h1 class="wordmark">WORKOUT<br><span>GRAPH</span></h1>
       <p class="tagline" id="session-summary"></p>
@@ -602,13 +740,14 @@
 
   const EXERCISES = [
     { name: "Kettlebell Swings", reps: 10 },
-    { name: "Kettlebell Press", reps: 8 },
-    { name: "Goblet Squats", reps: 8 },
-    { name: "Push-ups", reps: 10 },
-    { name: "Mountain Climbers", reps: 16 },
-    { name: "Jumping Jacks", reps: 15 },
-    { name: "Lunges", reps: 12 },
-    { name: "Burpees", reps: 6 },
+    { name: "Kettlebell Clean & Press", reps: 8 },
+    { name: "Kettlebell Goblet Squat", reps: 8 },
+    { name: "Kettlebell Snatch", reps: 6 },
+    { name: "Kettlebell Windmill", reps: 6 },
+    { name: "Kettlebell Turkish Get-Up", reps: 4 },
+    { name: "Kettlebell Halos", reps: 10 },
+    { name: "Kettlebell Single-Arm Row", reps: 10 },
+    { name: "Kettlebell Reverse Lunge", reps: 10 },
   ];
 
   // DOM Elements
@@ -693,6 +832,26 @@
   const lastSessionBtn = document.getElementById('last-session-btn');
   const audioToggle = document.getElementById('audio-toggle');
   const endSessionBtn = document.getElementById('end-session-btn');
+  const checkSensorsBtn = document.getElementById('check-sensors-btn');
+
+  // Home Screen Tab Switching Logic
+  document.querySelectorAll('[data-home-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-home-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const targetId = btn.getAttribute('data-home-tab');
+      document.querySelectorAll('.home-tab-content').forEach(c => c.style.display = 'none');
+      const targetEl = document.getElementById(targetId);
+      if(targetEl) targetEl.style.display = 'flex';
+    });
+  });
+
+  if(checkSensorsBtn){
+    checkSensorsBtn.addEventListener('click', () => {
+      initAudio(); ensureMotionArmed(); inMotionCheck = true;
+      showOnly(motionCheck); eventStatus.textContent = 'Listening to motion sensors...';
+    });
+  }
 
   // Sliders
   fallSpeedSlider.addEventListener('input', () => { fallSpeedValue.textContent = parseInt(fallSpeedSlider.value) + 's'; });
@@ -700,7 +859,10 @@
   repsSlider.addEventListener('input', () => { repsValue.textContent = repsPerFall(); refreshPreviewList(); });
   audioToggle.addEventListener('click', () => {
     audioOn = !audioOn;
-    audioToggle.innerHTML = 'Voice &amp; Audio Effects: ' + (audioOn ? 'On' : 'Off');
+    audioToggle.innerHTML = `
+      <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      Voice &amp; Audio Effects: ${audioOn ? 'On' : 'Off'}
+    `;
     if(audioOn) initAudio(); else { try { speechSynthesis.cancel(); } catch(e){} }
   });
 
@@ -905,7 +1067,7 @@
 
   // Real-Time Exponential Moving Average (EMA) Filter
   let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, mag: 0 };
-  const ALPHA = 0.35; // Filter factor
+  const ALPHA = 0.35;
 
   function processSensorReading(x, y, z) {
     const t = performance.now();
@@ -913,7 +1075,6 @@
     const rawPitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
     const rawRoll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
 
-    // Continuous exponential smoothing update
     smoothedState.x = smoothedState.x + ALPHA * (x - smoothedState.x);
     smoothedState.y = smoothedState.y + ALPHA * (y - smoothedState.y);
     smoothedState.z = smoothedState.z + ALPHA * (z - smoothedState.z);
@@ -960,19 +1121,16 @@
       markerRecStatus.textContent = `Recording... ${markerRecordBuffer.length} samples logged`;
     }
 
-    // Active Game Compound Checkpoint Matcher
     if(state && !state.resolved && state.markers && state.markers.length > 0){
       checkCompoundMarkersForRep(sample);
     }
     
-    // Live Testing Engine Stream & Crossing Audio Trigger
     if(isTestingActive && !isTestingPaused){
       checkLiveTestingCompoundMarkers(sample);
       renderLiveTestCanvas();
     }
   }
 
-  // Evaluates Compound Multi-Condition Keyframe (AND Logic)
   function matchesKeyframe(sample, keyframe){
     if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
     return keyframe.conditions.every(c => {
@@ -990,7 +1148,7 @@
     if(matchesKeyframe(sample, targetKeyframe)){
       state.markerIndex = (state.markerIndex || 0) + 1;
       renderHudCheckpoints(state.markers, state.markerIndex);
-      playCrossingTone(); // Audio sound trigger on keyframe/line crossing match!
+      playCrossingTone();
       if(state.markerIndex >= state.markers.length){
         state.markerIndex = 0;
         registerRep();
@@ -1020,12 +1178,12 @@
 
       testMarkerIndex++;
       renderHudCheckpoints(mData.markers, testMarkerIndex);
-      playCrossingTone(); // Sound effect trigger whenever keyframe/line crosses target condition
+      playCrossingTone();
 
       if(testMarkerIndex >= mData.markers.length){
         testMarkerIndex = 0;
         playMetalClang(true);
-        testResultLabel.textContent = '✔ Rep Complete!';
+        testResultLabel.textContent = 'Rep Complete!';
         testResultConf.textContent = `${activeEx} multi-axis compound match!`;
         renderHudCheckpoints(mData.markers, 0);
       } else {
@@ -1083,7 +1241,7 @@
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button class="primary" style="font-size:0.88rem;padding:10px;" onclick="window.openMarkerEditor('${ex.name}')">
-              ${hasRec ? '⚙ Edit Keyframes & Curves' : '⏺ Record Demo & Map Keyframes'}
+              ${hasRec ? 'Edit Keyframes & Curves' : 'Record Demo & Map Keyframes'}
             </button>
             ${hasRec ? `<button class="ghost" style="width:auto;padding:0 12px;" onclick="window.clearExerciseData('${ex.name}')">Clear</button>` : ''}
           </div>
@@ -1103,7 +1261,6 @@
     testMarkerIndex = 0;
     testCrossingTriggerHistory = [];
     
-    // Populate Exercise Selector
     testExerciseSelect.innerHTML = EXERCISES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
     updateTestExerciseSelection();
     
@@ -1143,7 +1300,6 @@
 
   testBackBtn.addEventListener('click', () => { isTestingActive = false; showOnly(trainHub); });
 
-  // Live Test Real-Time Oscilloscope Canvas Renderer
   let liveSeriesActive = { pitch: true, roll: true, y: true, mag: true };
   document.querySelectorAll('#test-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1176,7 +1332,6 @@
     const valToY = v => (H / 2) - (v / 40) * (H - 20);
     const idxToX = i => (i / (samples.length - 1)) * W;
 
-    // Center Baseline
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
     ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
@@ -1205,11 +1360,10 @@
       ctx.stroke();
     });
 
-    // Draw Live Keyframe Crossing Sound Triggers as vertical markers
     const now = performance.now();
     testCrossingTriggerHistory.forEach(trig => {
       const age = now - trig.t;
-      if(age < 4000){ // Show vertical line for 4 seconds
+      if(age < 4000){
         const sampleIdx = samples.findIndex(s => s.t >= trig.t);
         if(sampleIdx >= 0){
           const trigX = idxToX(sampleIdx);
@@ -1226,10 +1380,9 @@
 
   let currentMarkerExercise = null;
   let markerRecordBuffer = [];
-  let editingMarkers = []; // Array of compound keyframe objects
+  let editingMarkers = [];
   let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true };
 
-  // Pinch & Pan View Transformation State
   let viewScaleX = 1.0;
   let viewPanX = 0.0;
   let viewScaleY = 1.0;
@@ -1239,7 +1392,6 @@
   let initialPinchDistance = 0;
   let initialPinchScale = 1.0;
 
-  // Touch Gesture Listeners on Canvas
   const canvasEl = markerCanvas;
 
   canvasEl.addEventListener('touchstart', (e) => {
@@ -1277,7 +1429,6 @@
 
   canvasEl.addEventListener('touchend', () => { isDragging = false; });
 
-  // Mouse Drag / Pan Listeners
   canvasEl.addEventListener('mousedown', (e) => {
     isDragging = true;
     dragStartX = e.clientX;
@@ -1291,7 +1442,6 @@
   });
   window.addEventListener('mouseup', () => { isDragging = false; });
 
-  // Wheel Zoom Listener
   canvasEl.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
@@ -1304,7 +1454,6 @@
     renderMarkerCanvas();
   });
 
-  // Toggle Series Visibility
   document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.getAttribute('data-series');
@@ -1348,9 +1497,11 @@
 
   markerRecordBtn.addEventListener('click', () => {
     if(isMarkerRecording){
-      // Finish recording
       isMarkerRecording = false;
-      markerRecordBtn.textContent = '⏺ Record Demo Motion';
+      markerRecordBtn.innerHTML = `
+        <svg class="icon icon-solid" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+        Record Demo Motion
+      `;
       markerRecordBtn.style.background = 'var(--accent)';
       
       if(markerRecordBuffer.length > 5){
@@ -1367,11 +1518,13 @@
         }
       }
     } else {
-      // Start recording demo
       ensureMotionArmed();
       isMarkerRecording = true;
       markerRecordBuffer = [];
-      markerRecordBtn.textContent = '⏹ Stop & Processing Recording';
+      markerRecordBtn.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        Stop &amp; Process Recording
+      `;
       markerRecordBtn.style.background = 'var(--good)';
       markerRecStatus.textContent = 'Recording motion... move now!';
     }
@@ -1394,21 +1547,18 @@
     if(markerRecordBuffer.length < 5) return;
     const samples = markerRecordBuffer;
     
-    // Find curve line intersections / crossings (Pitch crossing Roll or Y Accel)
     let crossings = [];
 
     for(let i = 1; i < samples.length - 1; i++){
       const prev = samples[i-1];
       const curr = samples[i];
 
-      // Intersection 1: Pitch crosses Roll
       const diffPrevPR = prev.pitch - prev.roll;
       const diffCurrPR = curr.pitch - curr.roll;
       if((diffPrevPR <= 0 && diffCurrPR > 0) || (diffPrevPR >= 0 && diffCurrPR < 0)){
         crossings.push({ idx: i, sample: curr, type: 'Pitch ✕ Roll', axisA: 'pitch', axisB: 'roll' });
       }
 
-      // Intersection 2: Pitch crosses Y Acceleration
       const diffPrevPY = prev.pitch - prev.y;
       const diffCurrPY = curr.pitch - curr.y;
       if((diffPrevPY <= 0 && diffCurrPY > 0) || (diffPrevPY >= 0 && diffCurrPY < 0)){
@@ -1416,7 +1566,6 @@
       }
     }
 
-    // Filter crossings to ensure minimum temporal separation
     let distinctCrossings = [];
     crossings.forEach(c => {
       if(distinctCrossings.length === 0 || (c.idx - distinctCrossings[distinctCrossings.length-1].idx) > 12){
@@ -1424,7 +1573,6 @@
       }
     });
 
-    // If no direct crossings found, fallback to peak/valley inflections
     if(distinctCrossings.length < 2){
       let maxPitch = -Infinity, minPitch = Infinity;
       let maxS = samples[0], minS = samples[0];
@@ -1449,7 +1597,6 @@
         }
       ];
     } else {
-      // Build Compound AND Keyframes from Crossing Intersections
       editingMarkers = distinctCrossings.slice(0, 3).map((c, idx) => {
         const valA = Math.round(c.sample[c.axisA]);
         const valB = parseFloat((c.sample[c.axisB]).toFixed(1));
@@ -1496,13 +1643,11 @@
     const valToY = v => (H / 2) - (v / 40) * (H - 20);
     const idxToX = i => ((i / (totalPts - 1)) * renderW) + viewPanX;
 
-    // Draw baseline
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
     ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Draw Traces
     const seriesList = [
       { key: 'x', clr: 'var(--accent)' },
       { key: 'y', clr: 'var(--good)' },
@@ -1527,7 +1672,6 @@
       ctx.stroke();
     });
 
-    // Simulate compound rep matching over motion recording
     let hitsCount = 0;
     let mIdx = 0;
 
@@ -1577,14 +1721,19 @@
             <option value="below" ${c.dir==='below'?'selected':''}>≤</option>
           </select>
           <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:60px;">
-          <button style="background:none;border:none;color:var(--accent);cursor:pointer;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">✕</button>
+          <button style="background:none;border:none;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       `).join('');
 
       item.innerHTML = `
         <div class="marker-header">
           <span>Step #${kIdx + 1}: ${keyframe.label || 'Pose Keyframe'}</span>
-          <button style="background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;" data-action="del-keyframe" data-kidx="${kIdx}">Delete Step ✕</button>
+          <button style="background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" data-action="del-keyframe" data-kidx="${kIdx}">
+            Delete Step
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">${condRowsHtml}</div>
         <button class="ghost" style="font-size:0.75rem;padding:6px;margin-top:2px;" data-action="add-cond" data-kidx="${kIdx}">+ Add AND Condition Axis</button>
@@ -1592,7 +1741,6 @@
       markerListEl.appendChild(item);
     });
 
-    // Event Delegation for Compound Condition Editor
     markerListEl.querySelectorAll('[data-action]').forEach(el => {
       const act = el.getAttribute('data-action');
       const kIdx = parseInt(el.getAttribute('data-kidx'));
@@ -1700,7 +1848,6 @@
   retryBtn.addEventListener('click', startGame);
   homeBtn.addEventListener('click', goHome);
 
-  // Initialize Screen State
   goHome();
 
 })();
