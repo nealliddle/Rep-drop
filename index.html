@@ -27,6 +27,7 @@
     --pitch-clr: #3B82F6;
     --roll-clr: #8B5CF6;
     --mag-clr: #10B981;
+    --yaw-clr: #F472B6;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,6 +46,7 @@
       --pitch-clr: #60A5FA;
       --roll-clr: #A78BFA;
       --mag-clr: #34D399;
+      --yaw-clr: #F9A8D4;
     }
   }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
@@ -430,6 +432,7 @@
         <div class="debug-cell"><div class="val" id="dbg-z">0.0</div><div class="lbl">Z (m/s²)</div></div>
         <div class="debug-cell"><div class="val" id="dbg-pitch">0°</div><div class="lbl" style="color:var(--pitch-clr);">Pitch (Tilt)</div></div>
         <div class="debug-cell"><div class="val" id="dbg-roll">0°</div><div class="lbl" style="color:var(--roll-clr);">Roll (Lean)</div></div>
+        <div class="debug-cell"><div class="val" id="dbg-yaw">0°/s</div><div class="lbl" style="color:var(--yaw-clr);">Yaw (Twist Rate)</div></div>
         <div class="debug-cell"><div class="val" id="dbg-mag">0.0</div><div class="lbl">Magnitude</div></div>
       </div>
     </div>
@@ -497,6 +500,7 @@
       <div class="series-toggles" id="test-series-toggles" style="margin-top:8px;">
         <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
         <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
+        <div class="toggle-chip active" data-series="yaw"><span class="toggle-dot" style="background:var(--yaw-clr);"></span>Yaw</div>
         <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y Accel</div>
         <div class="toggle-chip active" data-series="mag"><span class="toggle-dot" style="background:var(--mag-clr);"></span>Mag</div>
       </div>
@@ -506,7 +510,7 @@
       <div class="gesture-hint">
         <span style="display:inline-flex;align-items:center;gap:4px;">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
-          2D Drag | 2-Finger Midpoint Zoom
+          Pinch H/V to Squash/Stretch | Drag to Pan
         </span>
         <button id="test-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
@@ -549,6 +553,7 @@
         <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
         <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
         <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
+        <div class="toggle-chip active" data-series="yaw"><span class="toggle-dot" style="background:var(--yaw-clr);"></span>Yaw</div>
       </div>
 
       <div class="graph-container" id="marker-graph-container">
@@ -558,7 +563,7 @@
       <div class="gesture-hint">
         <span style="display:inline-flex;align-items:center;gap:4px;">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
-          2D Drag | 2-Finger Midpoint Zoom
+          Pinch H/V to Squash/Stretch | Drag to Pan
         </span>
         <button id="marker-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
@@ -590,13 +595,13 @@
 
     <!-- Automated Line Crossing Keyframe Generator -->
     <div class="card" id="auto-key-card" style="display:none;">
-      <div class="exercise-row"><b>Automated Curve Intersections</b></div>
+      <div class="exercise-row"><b>Auto-Calibrated Motion Keyframes</b></div>
       <p style="font-size:0.75rem;color:var(--ink-dim);margin:4px 0 8px;">
-        Automatically detects points where motion curves cross each other (e.g. Pitch crossing Roll or Y acceleration) to set compound keyframes.
+        Automatically finds the dominant motion axis, detects direction-reversal points (top/bottom of the movement), and auto-tunes sensitivity from your recording — robust across rep depth &amp; speed.
       </p>
       <button class="ghost" id="auto-gen-crossings-btn" style="background:var(--bg);font-weight:600;width:100%;">
         <svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-        Auto-Key Line Crossings &amp; Intersections
+        Auto-Key Reversal Points
       </button>
     </div>
 
@@ -655,6 +660,7 @@
         <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
         <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
         <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
+        <div class="toggle-chip active" data-series="yaw"><span class="toggle-dot" style="background:var(--yaw-clr);"></span>Yaw</div>
       </div>
       <div class="graph-container">
         <canvas id="session-canvas" class="motion-canvas"></canvas>
@@ -662,7 +668,7 @@
       <div class="gesture-hint">
         <span style="display:inline-flex;align-items:center;gap:4px;">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
-          2D Drag | 2-Finger Midpoint Zoom
+          Pinch H/V to Squash/Stretch | Drag to Pan
         </span>
         <button id="session-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
@@ -780,6 +786,18 @@
     { name: "Kettlebell Reverse Lunge", reps: 10 },
   ];
 
+  // Axis metadata (used across UI + condition builders)
+  const AXES = {
+    x:      { label: 'X (Lateral Accel)',   color: '--accent'    },
+    y:      { label: 'Y (Vertical Accel)',  color: '--good'      },
+    z:      { label: 'Z (Depth Accel)',     color: '--hazard'    },
+    pitch:  { label: 'Pitch (Tilt °)',      color: '--pitch-clr' },
+    roll:   { label: 'Roll (Lean °)',       color: '--roll-clr'  },
+    yaw:    { label: 'Yaw Rate (Twist °/s)',color: '--yaw-clr'   },
+    mag:    { label: 'Magnitude',           color: '--mag-clr'   }
+  };
+  const DERIV_AXES = ['x','y','z','pitch','roll','yaw','mag'];
+
   // DOM Elements
   const startScreen = document.getElementById('start-screen');
   const motionCheck = document.getElementById('motion-check');
@@ -799,6 +817,7 @@
   const dbgZ = document.getElementById('dbg-z');
   const dbgPitch = document.getElementById('dbg-pitch');
   const dbgRoll = document.getElementById('dbg-roll');
+  const dbgYaw = document.getElementById('dbg-yaw');
   const dbgMag = document.getElementById('dbg-mag');
   const dbgDirBadge = document.getElementById('dbg-dir-badge');
   const dbgDelta = document.getElementById('dbg-delta');
@@ -937,14 +956,14 @@
 
   // ==========================================
   // UNIVERSAL GRAPH INTERACTIVITY ENGINE
-  // (Dual-Axis 2D Midpoint Focal Zoom & Pan)
+  // (Independent-Axis Squash/Stretch Zoom & Pan + Fit-to-View Reset)
   // ==========================================
-  function attachGraphInteractivity(canvas, renderCallback) {
+  function attachGraphInteractivity(canvas, renderCallback, getFitBounds) {
     const state = { scaleX: 1.0, scaleY: 1.0, panX: 0.0, panY: 0.0 };
     let isDragging = false;
     let dragStartX = 0, dragStartY = 0;
     let initialPanX = 0, initialPanY = 0;
-    let initialPinchDist = 0;
+    let initialPinchDX = 0, initialPinchDY = 0;
     let initialPinchScaleX = 1.0, initialPinchScaleY = 1.0;
     let pinchFocal = { x: 0, y: 0 };
 
@@ -971,7 +990,24 @@
 
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-    // Touch Dragging & Dual-Touch Midpoint Zoom
+    // Mouse Wheel Focal Zoom (Shift = horizontal only, Ctrl = vertical only, otherwise both)
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const pt = getCanvasPoint(e.clientX, e.clientY);
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      const affectX = !e.ctrlKey;
+      const affectY = !e.shiftKey;
+      const newScaleX = affectX ? Math.max(0.2, Math.min(15.0, state.scaleX * zoomFactor)) : state.scaleX;
+      const newScaleY = affectY ? Math.max(0.2, Math.min(15.0, state.scaleY * zoomFactor)) : state.scaleY;
+
+      state.panX = pt.x - (pt.x - state.panX) * (newScaleX / state.scaleX);
+      state.panY = pt.y - (pt.y - state.panY) * (newScaleY / state.scaleY);
+      state.scaleX = newScaleX;
+      state.scaleY = newScaleY;
+      renderCallback();
+    }, { passive: false });
+
+    // Touch Dragging & Dual-Touch Independent-Axis Squash/Stretch Zoom
     canvas.addEventListener('touchstart', (e) => {
       if(e.touches.length === 1) {
         isDragging = true;
@@ -982,10 +1018,11 @@
       } else if(e.touches.length === 2) {
         isDragging = false;
         const t1 = e.touches[0], t2 = e.touches[1];
-        initialPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        initialPinchDX = Math.abs(t1.clientX - t2.clientX);
+        initialPinchDY = Math.abs(t1.clientY - t2.clientY);
         initialPinchScaleX = state.scaleX;
         initialPinchScaleY = state.scaleY;
-        
+
         // Compute Midpoint Focal Point
         const midX = (t1.clientX + t2.clientX) / 2;
         const midY = (t1.clientY + t2.clientY) / 2;
@@ -1000,52 +1037,87 @@
         renderCallback();
       } else if(e.touches.length === 2) {
         const t1 = e.touches[0], t2 = e.touches[1];
-        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-        if(initialPinchDist > 0) {
-          const ratio = dist / initialPinchDist;
-          const newScaleX = Math.max(0.2, Math.min(15.0, initialPinchScaleX * ratio));
-          const newScaleY = Math.max(0.2, Math.min(15.0, initialPinchScaleY * ratio));
+        const dx = Math.abs(t1.clientX - t2.clientX);
+        const dy = Math.abs(t1.clientY - t2.clientY);
 
-          // Apply Dual-Axis Focal Point Offset Transformation
-          state.panX = pinchFocal.x - (pinchFocal.x - state.panX) * (newScaleX / state.scaleX);
-          state.panY = pinchFocal.y - (pinchFocal.y - state.panY) * (newScaleY / state.scaleY);
-          state.scaleX = newScaleX;
-          state.scaleY = newScaleY;
-          renderCallback();
-        }
+        // Independent ratios per axis — guard against near-zero baseline separation
+        // so that a near-straight-line pinch on one axis doesn't cause wild scale jumps.
+        const ratioX = initialPinchDX > 20 ? dx / initialPinchDX : 1;
+        const ratioY = initialPinchDY > 20 ? dy / initialPinchDY : 1;
+
+        const newScaleX = Math.max(0.2, Math.min(15.0, initialPinchScaleX * ratioX));
+        const newScaleY = Math.max(0.2, Math.min(15.0, initialPinchScaleY * ratioY));
+
+        // Apply Dual-Axis Focal Point Offset Transformation (independently per axis)
+        state.panX = pinchFocal.x - (pinchFocal.x - state.panX) * (newScaleX / state.scaleX);
+        state.panY = pinchFocal.y - (pinchFocal.y - state.panY) * (newScaleY / state.scaleY);
+        state.scaleX = newScaleX;
+        state.scaleY = newScaleY;
+        renderCallback();
       }
     }, { passive: true });
 
     canvas.addEventListener('touchend', () => { isDragging = false; });
 
-    // Mouse Wheel Focal Zoom
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const pt = getCanvasPoint(e.clientX, e.clientY);
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-      const newScaleX = Math.max(0.2, Math.min(15.0, state.scaleX * zoomFactor));
-      const newScaleY = Math.max(0.2, Math.min(15.0, state.scaleY * zoomFactor));
-
-      state.panX = pt.x - (pt.x - state.panX) * (newScaleX / state.scaleX);
-      state.panY = pt.y - (pt.y - state.panY) * (newScaleY / state.scaleY);
-      state.scaleX = newScaleX;
-      state.scaleY = newScaleY;
-      renderCallback();
-    }, { passive: false });
-
+    // Fit-to-view + center reset. Uses getFitBounds() -> {minV, maxV, count} if provided.
     function reset() {
-      state.scaleX = 1.0; state.scaleY = 1.0;
-      state.panX = 0.0; state.panY = 0.0;
+      const rect = canvas.getBoundingClientRect();
+      const H = 200;
+      const bounds = getFitBounds ? getFitBounds() : null;
+
+      if(bounds && bounds.count > 1 && isFinite(bounds.minV) && isFinite(bounds.maxV)){
+        const valRange = Math.max(0.001, bounds.maxV - bounds.minV);
+        const centerV = (bounds.maxV + bounds.minV) / 2;
+        const targetPxRange = H * 0.82; // leave a little headroom top/bottom
+
+        // valToY(v) = H/2 - (v/40)*(H-20)*scaleY + panY  => solve scaleY for desired px range
+        const unitPxRangeAtScale1 = (valRange / 40) * (H - 20);
+        state.scaleY = unitPxRangeAtScale1 > 0 ? (targetPxRange / unitPxRangeAtScale1) : 1;
+        state.scaleY = Math.max(0.2, Math.min(15.0, state.scaleY));
+        // recenter centerV onto H/2
+        state.panY = -((centerV / 40) * (H - 20) * state.scaleY);
+
+        state.scaleX = 1.0;
+        state.panX = 0.0;
+      } else {
+        state.scaleX = 1.0; state.scaleY = 1.0;
+        state.panX = 0.0; state.panY = 0.0;
+      }
       renderCallback();
     }
 
     return { state, reset };
   }
 
-  // Bind Graph Interactive Controllers
-  const markerCanvasController = attachGraphInteractivity(markerCanvas, () => renderMarkerCanvas());
-  const testLiveCanvasController = attachGraphInteractivity(testLiveCanvas, () => renderLiveTestCanvas());
-  const sessionCanvasController = attachGraphInteractivity(sessionCanvas, () => renderSessionCanvas());
+  // ---- Fit-bounds helpers (computed from the currently visible/active series) ----
+  function computeBoundsFromSamples(samples, seriesKeys, activeMap){
+    if(!samples || samples.length < 2) return null;
+    let minV = Infinity, maxV = -Infinity;
+    const keys = seriesKeys.filter(k => !activeMap || activeMap[k]);
+    if(keys.length === 0) return null;
+    samples.forEach(s => {
+      keys.forEach(k => {
+        const v = s[k];
+        if(typeof v === 'number' && isFinite(v)){
+          if(v < minV) minV = v;
+          if(v > maxV) maxV = v;
+        }
+      });
+    });
+    if(!isFinite(minV) || !isFinite(maxV)) return null;
+    return { minV, maxV, count: samples.length };
+  }
+
+  // Bind Graph Interactive Controllers (fit-bounds wired up per-canvas data source)
+  const markerCanvasController = attachGraphInteractivity(markerCanvas, () => renderMarkerCanvas(), () =>
+    computeBoundsFromSamples(markerRecordBuffer, ['x','y','z','pitch','roll','yaw'], activeSeries)
+  );
+  const testLiveCanvasController = attachGraphInteractivity(testLiveCanvas, () => renderLiveTestCanvas(), () =>
+    computeBoundsFromSamples(motionBuffer, ['pitch','roll','yaw','y','mag'], liveSeriesActive)
+  );
+  const sessionCanvasController = attachGraphInteractivity(sessionCanvas, () => renderSessionCanvas(), () =>
+    computeBoundsFromSamples(lastSession ? lastSession.samples : null, ['x','y','z','pitch','roll','yaw'], null)
+  );
 
   document.getElementById('marker-reset-view-btn').addEventListener('click', () => markerCanvasController.reset());
   document.getElementById('test-reset-view-btn').addEventListener('click', () => testLiveCanvasController.reset());
@@ -1131,6 +1203,7 @@
     state.markerIndex = 0;
     state.repDebounce = 250;
     state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
+    resetPhaseTracking(state);
     
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + state.target;
@@ -1218,28 +1291,60 @@
   let isTestingPaused = false;
   let isMarkerRecording = false;
 
-  // Smoothing Filter
-  let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, mag: 0 };
+  // Smoothing Filter (position-like channels: accel + orientation)
+  let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, yaw: 0, mag: 0 };
   const ALPHA = 0.35;
+  // Separate (lighter) smoothing for gyro rate since we want to preserve reversal timing
+  const ALPHA_GYRO = 0.5;
 
-  function processSensorReading(x, y, z) {
+  // Rolling per-axis history buffers used for derivative / direction-reversal detection.
+  // Keyed per "context" (game state / live test / marker sim) so multiple consumers don't stomp each other.
+  function createDerivTracker(){
+    const hist = {};
+    DERIV_AXES.forEach(a => hist[a] = []);
+    return hist;
+  }
+  function pushDerivHistory(tracker, sample){
+    DERIV_AXES.forEach(a => {
+      const arr = tracker[a];
+      arr.push(sample[a] || 0);
+      if(arr.length > 8) arr.shift();
+    });
+  }
+  // Simple slope over the short rolling window — robust to per-sample jitter,
+  // responsive enough to catch direction reversals within a handful of samples.
+  function getSlope(tracker, axis){
+    const arr = tracker[axis];
+    if(!arr || arr.length < 4) return 0;
+    const n = arr.length;
+    return (arr[n-1] - arr[0]) / (n - 1);
+  }
+
+  function processSensorReading(x, y, z, rot) {
     const t = performance.now();
     const rawMag = Math.sqrt(x*x + y*y + z*z);
     const rawPitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
     const rawRoll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
+    // Yaw: accelerometer alone can't observe rotation about gravity, so we use
+    // gyroscope Z rotation rate (deg/s) as our third rotational axis instead of
+    // an (unobservable) absolute compass heading. This captures twisting motion
+    // in exercises like Windmills, Halos, and Snatches.
+    const rawYawRate = rot && typeof rot.alpha === 'number' ? rot.alpha : 0;
 
     smoothedState.x = smoothedState.x + ALPHA * (x - smoothedState.x);
     smoothedState.y = smoothedState.y + ALPHA * (y - smoothedState.y);
     smoothedState.z = smoothedState.z + ALPHA * (z - smoothedState.z);
     smoothedState.pitch = smoothedState.pitch + ALPHA * (rawPitch - smoothedState.pitch);
     smoothedState.roll = smoothedState.roll + ALPHA * (rawRoll - smoothedState.roll);
+    smoothedState.yaw = smoothedState.yaw + ALPHA_GYRO * (rawYawRate - smoothedState.yaw);
     smoothedState.mag = smoothedState.mag + ALPHA * (rawMag - smoothedState.mag);
 
     const dirY = smoothedState.y > 1.8 ? '↑ Moving Up' : (smoothedState.y < -1.8 ? '↓ Moving Down' : '• Neutral');
 
     const sample = {
       t, x: smoothedState.x, y: smoothedState.y, z: smoothedState.z,
-      mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll, dirY
+      mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll,
+      yaw: smoothedState.yaw, dirY
     };
 
     motionBuffer.push(sample);
@@ -1249,7 +1354,9 @@
 
     if(inMotionCheck){
       dbgX.textContent = sample.x.toFixed(1); dbgY.textContent = sample.y.toFixed(1); dbgZ.textContent = sample.z.toFixed(1);
-      dbgPitch.textContent = sample.pitch.toFixed(0) + '°'; dbgRoll.textContent = sample.roll.toFixed(0) + '°'; dbgMag.textContent = sample.mag.toFixed(1);
+      dbgPitch.textContent = sample.pitch.toFixed(0) + '°'; dbgRoll.textContent = sample.roll.toFixed(0) + '°';
+      if(dbgYaw) dbgYaw.textContent = sample.yaw.toFixed(0) + '°/s';
+      dbgMag.textContent = sample.mag.toFixed(1);
       const dirColor = sample.y > 1.8 ? 'var(--good)' : (sample.y < -1.8 ? 'var(--accent)' : 'var(--ink-dim)');
       dbgDirBadge.innerHTML = `<span style="color:${dirColor}">${dirY}</span>`;
 
@@ -1274,35 +1381,84 @@
     }
 
     if(state && !state.resolved && state.markers && state.markers.length > 0){
+      pushDerivHistory(state.derivTracker, sample);
       checkCompoundMarkersForRep(sample);
     }
     
     if(isTestingActive && !isTestingPaused){
+      pushDerivHistory(liveDerivTracker, sample);
       checkLiveTestingCompoundMarkers(sample);
       renderLiveTestCanvas();
     }
   }
 
+  function resetPhaseTracking(ctx){
+    ctx.derivTracker = createDerivTracker();
+  }
+
   // ==========================================
-  // MARGIN / TOLERANCE SENSING MATCHING ENGINE
+  // PHASE / STRUCTURE-BASED KEYFRAME MATCHING ENGINE
   // ==========================================
-  function matchesKeyframe(sample, keyframe){
-    if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
-    return keyframe.conditions.every(c => {
-      let val = sample[c.axis] !== undefined ? sample[c.axis] : sample.mag;
-      let margin = c.margin !== undefined ? Math.abs(parseFloat(c.margin)) : 0;
-      if(c.dir === 'above') return val >= (c.val - margin);
-      if(c.dir === 'below') return val <= (c.val + margin);
-      if(c.dir === 'within') return Math.abs(val - c.val) <= margin;
+  // Conditions come in a few flavors now:
+  //  - 'threshold'   : legacy absolute value compare (kept for backward compat / custom tuning)
+  //  - 'reversal'     : direction reversal (peak or valley) detected via short-window slope sign change
+  //  - 'crossing'     : one axis crosses another (A-B changes sign), direction-aware
+  //  - 'derivative'   : slope of an axis is above/below a signed rate threshold (moving fast up/down/etc)
+  //
+  // Reversal & crossing conditions are amplitude-independent: they trigger on the *shape* of the
+  // motion rather than a fixed magnitude, which makes them robust across rep depth/speed variation.
+  function matchesCondition(sample, tracker, c){
+    const axis = c.axis || 'mag';
+    const val = sample[axis] !== undefined ? sample[axis] : sample.mag;
+    const margin = c.margin !== undefined ? Math.abs(parseFloat(c.margin)) : 0;
+
+    if(c.type === 'reversal'){
+      const slope = getSlope(tracker, axis);
+      const prevSlope = tracker['_prevSlope_' + axis] || 0;
+      tracker['_prevSlope_' + axis] = slope;
+      const noiseFloor = c.rateFloor !== undefined ? Math.abs(c.rateFloor) : 0.15;
+      if(c.kind === 'peak') return prevSlope > noiseFloor && slope <= noiseFloor * 0.3;
+      if(c.kind === 'valley') return prevSlope < -noiseFloor && slope >= -noiseFloor * 0.3;
       return false;
-    });
+    }
+
+    if(c.type === 'crossing'){
+      const axisB = c.axisB || 'roll';
+      const valB = sample[axisB] !== undefined ? sample[axisB] : 0;
+      const diff = val - valB;
+      const key = '_prevDiff_' + axis + '_' + axisB;
+      const prevDiff = tracker[key] !== undefined ? tracker[key] : diff;
+      tracker[key] = diff;
+      if(c.direction === 'AtoB') return prevDiff >= 0 && diff < 0; // A was above B, now below
+      if(c.direction === 'BtoA') return prevDiff <= 0 && diff > 0; // A was below B, now above
+      return (prevDiff >= 0 && diff < 0) || (prevDiff <= 0 && diff > 0);
+    }
+
+    if(c.type === 'derivative'){
+      const slope = getSlope(tracker, axis);
+      const rate = c.val !== undefined ? parseFloat(c.val) : 0;
+      if(c.dir === 'above') return slope >= (rate - margin);
+      if(c.dir === 'below') return slope <= (rate + margin);
+      return false;
+    }
+
+    // Legacy absolute threshold condition
+    if(c.dir === 'above') return val >= (c.val - margin);
+    if(c.dir === 'below') return val <= (c.val + margin);
+    if(c.dir === 'within') return Math.abs(val - c.val) <= margin;
+    return false;
+  }
+
+  function matchesKeyframe(sample, keyframe, tracker){
+    if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
+    return keyframe.conditions.every(c => matchesCondition(sample, tracker, c));
   }
 
   function checkCompoundMarkersForRep(sample){
     if(!state.markers || state.markers.length === 0) return;
     const targetKeyframe = state.markers[state.markerIndex || 0];
     
-    if(matchesKeyframe(sample, targetKeyframe)){
+    if(matchesKeyframe(sample, targetKeyframe, state.derivTracker)){
       state.markerIndex = (state.markerIndex || 0) + 1;
       renderHudCheckpoints(state.markers, state.markerIndex);
       playCrossingTone();
@@ -1316,6 +1472,7 @@
 
   let testMarkerIndex = 0;
   let testCrossingTriggerHistory = [];
+  let liveDerivTracker = createDerivTracker();
 
   function checkLiveTestingCompoundMarkers(sample){
     const activeEx = testExerciseSelect.value;
@@ -1329,7 +1486,7 @@
 
     const targetKeyframe = mData.markers[testMarkerIndex];
 
-    if(matchesKeyframe(sample, targetKeyframe)){
+    if(matchesKeyframe(sample, targetKeyframe, liveDerivTracker)){
       testCrossingTriggerHistory.push({ t: sample.t, step: testMarkerIndex + 1 });
       if(testCrossingTriggerHistory.length > 50) testCrossingTriggerHistory.shift();
 
@@ -1351,11 +1508,19 @@
   }
 
   function ensureMotionArmed(){
+    function motionGranted(){ bindMotionEvents(); }
+
+    function armOrientationIfNeeded(){
+      if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function'){
+        DeviceOrientationEvent.requestPermission().catch(()=>{});
+      }
+    }
+
     if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function'){
       DeviceMotionEvent.requestPermission().then(resp => {
-        if(resp === 'granted') bindMotionEvents();
+        if(resp === 'granted'){ motionGranted(); armOrientationIfNeeded(); }
       }).catch(()=>{});
-    } else { bindMotionEvents(); }
+    } else { motionGranted(); armOrientationIfNeeded(); }
   }
 
   function bindMotionEvents(){
@@ -1368,7 +1533,8 @@
   function onDeviceMotion(ev){
     let acc = ev.accelerationIncludingGravity || ev.acceleration;
     if(!acc || acc.x === null) return;
-    processSensorReading(acc.x || 0, acc.y || 0, acc.z || 0);
+    const rot = ev.rotationRate || null; // {alpha, beta, gamma} deg/s -- alpha = rotation about Z (yaw rate)
+    processSensorReading(acc.x || 0, acc.y || 0, acc.z || 0, rot);
   }
 
   enableBtn.addEventListener('click', () => {
@@ -1417,6 +1583,7 @@
     isTestingPaused = false;
     testMarkerIndex = 0;
     testCrossingTriggerHistory = [];
+    liveDerivTracker = createDerivTracker();
     
     testExerciseSelect.innerHTML = EXERCISES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
     updateTestExerciseSelection();
@@ -1426,6 +1593,7 @@
 
   function updateTestExerciseSelection(){
     testMarkerIndex = 0;
+    liveDerivTracker = createDerivTracker();
     const activeEx = testExerciseSelect.value;
     const markerData = loadMarkerData();
     const mData = markerData[activeEx];
@@ -1452,12 +1620,13 @@
   testResetBtn.addEventListener('click', () => {
     testMarkerIndex = 0;
     testCrossingTriggerHistory = [];
+    liveDerivTracker = createDerivTracker();
     updateTestExerciseSelection();
   });
 
   testBackBtn.addEventListener('click', () => { isTestingActive = false; showOnly(trainHub); });
 
-  let liveSeriesActive = { pitch: true, roll: true, y: true, mag: true };
+  let liveSeriesActive = { pitch: true, roll: true, yaw: true, y: true, mag: true };
   document.querySelectorAll('#test-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.getAttribute('data-series');
@@ -1497,6 +1666,7 @@
     const seriesList = [
       { key: 'pitch', clr: 'var(--pitch-clr)' },
       { key: 'roll', clr: 'var(--roll-clr)' },
+      { key: 'yaw', clr: 'var(--yaw-clr)' },
       { key: 'y', clr: 'var(--good)' },
       { key: 'mag', clr: 'var(--mag-clr)' }
     ];
@@ -1538,7 +1708,7 @@
   let currentMarkerExercise = null;
   let markerRecordBuffer = [];
   let editingMarkers = [];
-  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true };
+  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true, yaw: true };
 
   document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1590,8 +1760,6 @@
     const markerData = loadMarkerData();
     const existing = markerData[exercise];
 
-    markerCanvasController.reset();
-
     if(existing && existing.recording && existing.recording.length > 5){
       markerRecordBuffer = existing.recording;
       editingMarkers = existing.markers || [];
@@ -1606,7 +1774,7 @@
       trimStartSlider.value = 0; trimStartVal.textContent = '0%';
       trimEndSlider.value = 100; trimEndVal.textContent = '100%';
 
-      renderMarkerCanvas();
+      markerCanvasController.reset();
       renderMarkerList();
     } else {
       markerChartCard.style.display = 'none';
@@ -1617,6 +1785,7 @@
       markerRecStatus.textContent = 'Tap to record 1–2 reps naturally';
       markerListEl.innerHTML = '';
       editingMarkers = [];
+      markerCanvasController.reset();
     }
     showOnly(markerScreen);
   };
@@ -1643,7 +1812,7 @@
         if(editingMarkers.length === 0){
           autoGenerateLineCrossingKeyframes();
         } else {
-          renderMarkerCanvas();
+          markerCanvasController.reset();
           renderMarkerList();
         }
       }
@@ -1674,77 +1843,151 @@
 
   autoGenCrossingsBtn.addEventListener('click', autoGenerateLineCrossingKeyframes);
 
+  // ==========================================
+  // AUTO-CALIBRATION: derive robust, shape-based keyframes from the demo recording
+  // ==========================================
+  // Strategy:
+  // 1. Compute per-axis amplitude (max-min) across the whole recording to find the
+  //    "dominant" axis — the one with the largest range is almost certainly the
+  //    primary driver of the movement (e.g. Y-accel for swings, Pitch for windmills).
+  // 2. Walk the dominant axis with a short-window slope calculation and find
+  //    alternating peak/valley reversal points — these naturally correspond to the
+  //    top/bottom of each rep, regardless of the exact amplitude reached.
+  // 3. Auto-derive a noise floor for the reversal detector as a fraction of the
+  //    observed max slope magnitude, so sensitivity scales to how vigorously this
+  //    particular exercise moves (a slow grind vs. an explosive swing).
+  // 4. Emit two keyframes (valley -> peak) forming one full rep cycle. If a
+  //    secondary axis shows strong, well-timed correlation (e.g. Roll during a
+  //    Windmill), fold it in as an additional AND condition for extra robustness.
   function autoGenerateLineCrossingKeyframes(){
-    if(markerRecordBuffer.length < 5) return;
+    if(markerRecordBuffer.length < 8) return;
     const samples = markerRecordBuffer;
-    let crossings = [];
 
-    for(let i = 1; i < samples.length - 1; i++){
-      const prev = samples[i-1];
-      const curr = samples[i];
+    // 1. Find dominant axis by amplitude
+    const candidateAxes = ['pitch','roll','yaw','y','x','z'];
+    let dominant = 'y', bestRange = -Infinity;
+    const ranges = {};
+    candidateAxes.forEach(axis => {
+      let mn = Infinity, mx = -Infinity;
+      samples.forEach(s => {
+        const v = s[axis] || 0;
+        if(v < mn) mn = v;
+        if(v > mx) mx = v;
+      });
+      const range = mx - mn;
+      ranges[axis] = { min: mn, max: mx, range };
+      if(range > bestRange){ bestRange = range; dominant = axis; }
+    });
 
-      const diffPrevPR = prev.pitch - prev.roll;
-      const diffCurrPR = curr.pitch - curr.roll;
-      if((diffPrevPR <= 0 && diffCurrPR > 0) || (diffPrevPR >= 0 && diffCurrPR < 0)){
-        crossings.push({ idx: i, sample: curr, type: 'Pitch ✕ Roll', axisA: 'pitch', axisB: 'roll' });
+    // 2. Build slope series over dominant axis using the same short rolling window
+    //    logic as the live detector, so calibration matches runtime behavior.
+    const WINDOW = 4;
+    const slopes = [];
+    for(let i = 0; i < samples.length; i++){
+      const lo = Math.max(0, i - WINDOW + 1);
+      const windowSlice = samples.slice(lo, i + 1).map(s => s[dominant] || 0);
+      if(windowSlice.length < 2){ slopes.push(0); continue; }
+      slopes.push((windowSlice[windowSlice.length-1] - windowSlice[0]) / (windowSlice.length - 1));
+    }
+    const maxAbsSlope = slopes.reduce((m,v) => Math.max(m, Math.abs(v)), 0.0001);
+    const rateFloor = maxAbsSlope * 0.18; // auto-tuned noise floor, ~18% of peak rate
+
+    // 3. Walk slope series, find alternating sign reversals (valley then peak)
+    const reversals = [];
+    let lastSign = 0;
+    for(let i = 1; i < slopes.length; i++){
+      const s = slopes[i];
+      if(Math.abs(s) < rateFloor) continue;
+      const sign = s > 0 ? 1 : -1;
+      if(lastSign !== 0 && sign !== lastSign){
+        const kind = sign === -1 ? 'peak' : 'valley'; // slope just turned negative -> we passed a peak
+        reversals.push({ idx: i, kind, sample: samples[i] });
       }
-
-      const diffPrevPY = prev.pitch - prev.y;
-      const diffCurrPY = curr.pitch - curr.y;
-      if((diffPrevPY <= 0 && diffCurrPY > 0) || (diffPrevPY >= 0 && diffCurrPY < 0)){
-        crossings.push({ idx: i, sample: curr, type: 'Pitch ✕ Vertical Y', axisA: 'pitch', axisB: 'y' });
-      }
+      lastSign = sign;
     }
 
-    let distinctCrossings = [];
-    crossings.forEach(c => {
-      if(distinctCrossings.length === 0 || (c.idx - distinctCrossings[distinctCrossings.length-1].idx) > 12){
-        distinctCrossings.push(c);
+    // De-duplicate reversals that are too close together (jitter)
+    let distinctReversals = [];
+    reversals.forEach(r => {
+      const last = distinctReversals[distinctReversals.length - 1];
+      if(!last || (r.idx - last.idx) > 6){
+        distinctReversals.push(r);
       }
     });
 
-    if(distinctCrossings.length < 2){
-      let maxPitch = -Infinity, minPitch = Infinity;
-      let maxS = samples[0], minS = samples[0];
+    // 4. Try to find a good valley->peak pair (a full rep half-cycle) to use as the template.
+    let valley = distinctReversals.find(r => r.kind === 'valley');
+    let peak = distinctReversals.find(r => r.kind === 'peak' && (!valley || r.idx > valley.idx));
+    if(!valley || !peak){
+      // Fallback: derive endpoints directly from min/max of dominant axis
+      let minS = samples[0], maxS = samples[0];
       samples.forEach(s => {
-        if(s.pitch > maxPitch){ maxPitch = s.pitch; maxS = s; }
-        if(s.pitch < minPitch){ minPitch = s.pitch; minS = s; }
+        if((s[dominant]||0) < (minS[dominant]||0)) minS = s;
+        if((s[dominant]||0) > (maxS[dominant]||0)) maxS = s;
       });
-      editingMarkers = [
-        {
-          id: 1, label: "Bottom Pose Intersection",
-          conditions: [
-            { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 4), margin: 3 },
-            { axis: 'y', dir: 'below', val: parseFloat((minS.y + 1.5).toFixed(1)), margin: 1 }
-          ]
-        },
-        {
-          id: 2, label: "Apex Pose Crossing",
-          conditions: [
-            { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 4), margin: 3 },
-            { axis: 'y', dir: 'above', val: parseFloat((maxS.y - 1.5).toFixed(1)), margin: 1 }
-          ]
-        }
-      ];
-    } else {
-      editingMarkers = distinctCrossings.slice(0, 3).map((c, idx) => {
-        const valA = Math.round(c.sample[c.axisA]);
-        const valB = parseFloat((c.sample[c.axisB]).toFixed(1));
-        const dirA = c.sample[c.axisA] >= 0 ? 'above' : 'below';
-
-        return {
-          id: Date.now() + idx,
-          label: `Crossing #${idx+1}: ${c.type}`,
-          conditions: [
-            { axis: c.axisA, dir: dirA, val: valA, margin: 3 },
-            { axis: c.axisB, dir: 'above', val: valB, margin: 1.5 }
-          ]
-        };
-      });
+      valley = { kind: 'valley', sample: minS };
+      peak = { kind: 'peak', sample: maxS };
     }
 
-    renderMarkerCanvas();
+    // Optionally fold in a secondary axis as an extra AND condition for extra
+    // robustness, if it has a meaningfully large range too (helps disambiguate
+    // similar-looking exercises, e.g. Roll for Windmill vs plain Pitch swing).
+    const secondaryCandidates = candidateAxes.filter(a => a !== dominant)
+      .sort((a,b) => ranges[b].range - ranges[a].range);
+    const secondary = secondaryCandidates[0];
+    const secondaryStrong = secondary && ranges[secondary].range > bestRange * 0.35;
+
+    const dominantMeta = AXES[dominant] || { label: dominant };
+
+    editingMarkers = [
+      {
+        id: Date.now(),
+        label: `Bottom / Start Reversal (${dominantMeta.label})`,
+        conditions: [
+          { type: 'reversal', axis: dominant, kind: 'valley', rateFloor: parseFloat(rateFloor.toFixed(3)) }
+        ]
+      },
+      {
+        id: Date.now() + 1,
+        label: `Top / End Reversal (${dominantMeta.label})`,
+        conditions: [
+          { type: 'reversal', axis: dominant, kind: 'peak', rateFloor: parseFloat(rateFloor.toFixed(3)) }
+        ]
+      }
+    ];
+
+    if(secondaryStrong){
+      editingMarkers[1].conditions.push({
+        type: 'threshold', axis: secondary, dir: 'above',
+        val: parseFloat(((ranges[secondary].min + ranges[secondary].max) / 2).toFixed(1)),
+        margin: parseFloat((ranges[secondary].range * 0.25).toFixed(1))
+      });
+      editingMarkers[1].label += ` + ${AXES[secondary] ? AXES[secondary].label : secondary}`;
+    }
+
+    markerCanvasController.reset();
     renderMarkerList();
+  }
+
+  function simulateKeyframesOverBuffer(samples, markers){
+    // Run the same phase-tracker logic used live, over the static recorded buffer,
+    // so the preview accurately reflects reversal/crossing behavior (not just raw thresholds).
+    const tracker = createDerivTracker();
+    let hits = 0, mIdx = 0;
+    const hitIdxs = [];
+    for(let i = 0; i < samples.length; i++){
+      pushDerivHistory(tracker, samples[i]);
+      if(markers.length === 0) continue;
+      const targetKeyframe = markers[mIdx];
+      if(matchesKeyframe(samples[i], targetKeyframe, tracker)){
+        mIdx++;
+        if(mIdx >= markers.length){
+          hits++; mIdx = 0;
+          hitIdxs.push(i);
+        }
+      }
+    }
+    return { hits, hitIdxs };
   }
 
   function renderMarkerCanvas(){
@@ -1782,7 +2025,8 @@
       { key: 'y', clr: 'var(--good)' },
       { key: 'z', clr: 'var(--hazard)' },
       { key: 'pitch', clr: 'var(--pitch-clr)' },
-      { key: 'roll', clr: 'var(--roll-clr)' }
+      { key: 'roll', clr: 'var(--roll-clr)' },
+      { key: 'yaw', clr: 'var(--yaw-clr)' }
     ];
 
     // Render Curves
@@ -1819,27 +2063,24 @@
     ctx.beginPath(); ctx.moveTo(cropEndPx, 0); ctx.lineTo(cropEndPx, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Evaluate Matches
-    let hitsCount = 0;
-    let mIdx = 0;
+    // Evaluate Matches using the same phase-tracking logic as live/game detection
+    const { hits, hitIdxs } = simulateKeyframesOverBuffer(samples, editingMarkers);
+    hitIdxs.forEach(i => {
+      const hitX = idxToX(i);
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--good').trim();
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(hitX, 0); ctx.lineTo(hitX, H); ctx.stroke();
+    });
 
-    for(let i=0; i<samples.length; i++){
-      if(editingMarkers.length === 0) break;
-      const targetKeyframe = editingMarkers[mIdx];
-      const sample = samples[i];
+    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hits} rep(s) in curve.`;
+  }
 
-      if(matchesKeyframe(sample, targetKeyframe)){
-        mIdx++;
-        if(mIdx >= editingMarkers.length){
-          hitsCount++; mIdx = 0;
-          const hitX = idxToX(i);
-          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--good').trim();
-          ctx.lineWidth = 2.5;
-          ctx.beginPath(); ctx.moveTo(hitX, 0); ctx.lineTo(hitX, H); ctx.stroke();
-        }
-      }
-    }
-    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in curve.`;
+  function conditionSummaryLabel(c){
+    const axisLabel = (AXES[c.axis] && AXES[c.axis].label) || c.axis;
+    if(c.type === 'reversal') return `${axisLabel} direction reversal (${c.kind === 'peak' ? 'top of motion' : 'bottom of motion'})`;
+    if(c.type === 'crossing') return `${axisLabel} crosses ${(AXES[c.axisB]&&AXES[c.axisB].label)||c.axisB}`;
+    if(c.type === 'derivative') return `${axisLabel} rate of change ${c.dir === 'above' ? '≥' : '≤'} ${c.val}`;
+    return `${axisLabel} ${c.dir === 'above' ? '≥' : c.dir === 'below' ? '≤' : '≈'} ${c.val}`;
   }
 
   function renderMarkerList(){
@@ -1853,30 +2094,75 @@
       const item = document.createElement('div');
       item.className = 'marker-item';
 
-      let condRowsHtml = keyframe.conditions.map((c, cIdx) => `
-        <div class="condition-row">
-          <span>IF</span>
-          <select data-action="cond-axis" data-kidx="${kIdx}" data-cidx="${cIdx}">
-            <option value="pitch" ${c.axis==='pitch'?'selected':''}>Pitch (Tilt °)</option>
-            <option value="y" ${c.axis==='y'?'selected':''}>Y (Vertical Accel)</option>
-            <option value="roll" ${c.axis==='roll'?'selected':''}>Roll (Lean °)</option>
-            <option value="x" ${c.axis==='x'?'selected':''}>X (Lateral Accel)</option>
-            <option value="z" ${c.axis==='z'?'selected':''}>Z (Depth Accel)</option>
-            <option value="mag" ${c.axis==='mag'?'selected':''}>Magnitude</option>
-          </select>
-          <select data-action="cond-dir" data-kidx="${kIdx}" data-cidx="${cIdx}">
-            <option value="above" ${c.dir==='above'?'selected':''}>≥</option>
-            <option value="below" ${c.dir==='below'?'selected':''}>≤</option>
-            <option value="within" ${c.dir==='within'?'selected':''}>≈</option>
-          </select>
-          <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:50px;">
-          <span>±</span>
-          <input type="number" step="0.5" min="0" data-action="cond-margin" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.margin !== undefined ? c.margin : 3}" style="width:45px;" title="Tolerance margin">
-          <button style="background:none;border:none;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">
-            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      `).join('');
+      let condRowsHtml = keyframe.conditions.map((c, cIdx) => {
+        const type = c.type || 'threshold';
+        const axisOptions = Object.keys(AXES).filter(a => a !== 'mag').map(a =>
+          `<option value="${a}" ${c.axis===a?'selected':''}>${AXES[a].label}</option>`
+        ).join('') + `<option value="mag" ${c.axis==='mag'?'selected':''}>Magnitude</option>`;
+
+        let extraFieldsHtml = '';
+        if(type === 'reversal'){
+          extraFieldsHtml = `
+            <select data-action="cond-kind" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <option value="peak" ${c.kind==='peak'?'selected':''}>Peak (turns downward)</option>
+              <option value="valley" ${c.kind==='valley'?'selected':''}>Valley (turns upward)</option>
+            </select>
+            <span>sensitivity</span>
+            <input type="number" step="0.01" min="0" data-action="cond-ratefloor" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.rateFloor !== undefined ? c.rateFloor : 0.15}" style="width:55px;" title="Minimum rate of change to count as a real reversal">
+          `;
+        } else if(type === 'crossing'){
+          extraFieldsHtml = `
+            <span>crosses</span>
+            <select data-action="cond-axisb" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              ${Object.keys(AXES).map(a => `<option value="${a}" ${c.axisB===a?'selected':''}>${AXES[a].label}</option>`).join('')}
+            </select>
+            <select data-action="cond-direction" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <option value="either" ${(!c.direction||c.direction==='either')?'selected':''}>either direction</option>
+              <option value="AtoB" ${c.direction==='AtoB'?'selected':''}>going below</option>
+              <option value="BtoA" ${c.direction==='BtoA'?'selected':''}>going above</option>
+            </select>
+          `;
+        } else if(type === 'derivative'){
+          extraFieldsHtml = `
+            <select data-action="cond-dir" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <option value="above" ${c.dir==='above'?'selected':''}>rate ≥</option>
+              <option value="below" ${c.dir==='below'?'selected':''}>rate ≤</option>
+            </select>
+            <input type="number" step="0.1" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:50px;">
+          `;
+        } else {
+          extraFieldsHtml = `
+            <select data-action="cond-dir" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <option value="above" ${c.dir==='above'?'selected':''}>≥</option>
+              <option value="below" ${c.dir==='below'?'selected':''}>≤</option>
+              <option value="within" ${c.dir==='within'?'selected':''}>≈</option>
+            </select>
+            <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:50px;">
+            <span>±</span>
+            <input type="number" step="0.5" min="0" data-action="cond-margin" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.margin !== undefined ? c.margin : 3}" style="width:45px;" title="Tolerance margin">
+          `;
+        }
+
+        return `
+          <div class="condition-row">
+            <span>IF</span>
+            <select data-action="cond-type" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <option value="reversal" ${type==='reversal'?'selected':''}>Direction Reversal</option>
+              <option value="crossing" ${type==='crossing'?'selected':''}>Axis Crossing</option>
+              <option value="derivative" ${type==='derivative'?'selected':''}>Rate of Change</option>
+              <option value="threshold" ${type==='threshold'?'selected':''}>Fixed Value (legacy)</option>
+            </select>
+            <select data-action="cond-axis" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              ${axisOptions}
+            </select>
+            ${extraFieldsHtml}
+            <button style="background:none;border:none;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="fine-print" style="text-align:left;margin:-2px 0 2px 4px;">${conditionSummaryLabel(c)}</div>
+        `;
+      }).join('');
 
       item.innerHTML = `
         <div class="marker-header">
@@ -1895,13 +2181,13 @@
     markerListEl.querySelectorAll('[data-action]').forEach(el => {
       const act = el.getAttribute('data-action');
       const kIdx = parseInt(el.getAttribute('data-kidx'));
-      const cIdx = parseInt(el.getAttribute('data-cidx'));
+      const cIdx = el.hasAttribute('data-cidx') ? parseInt(el.getAttribute('data-cidx')) : null;
 
       if(act === 'del-keyframe'){
         el.addEventListener('click', () => { editingMarkers.splice(kIdx, 1); renderMarkerList(); renderMarkerCanvas(); });
       } else if(act === 'add-cond'){
         el.addEventListener('click', () => {
-          editingMarkers[kIdx].conditions.push({ axis: 'pitch', dir: 'above', val: 20, margin: 3 });
+          editingMarkers[kIdx].conditions.push({ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 0.15 });
           renderMarkerList(); renderMarkerCanvas();
         });
       } else if(act === 'del-cond'){
@@ -1909,13 +2195,35 @@
           editingMarkers[kIdx].conditions.splice(cIdx, 1);
           renderMarkerList(); renderMarkerCanvas();
         });
-      } else if(act === 'cond-axis' || act === 'cond-dir' || act === 'cond-val' || act === 'cond-margin'){
+      } else if(act === 'cond-type'){
+        el.addEventListener('change', (e) => {
+          const newType = e.target.value;
+          const cond = editingMarkers[kIdx].conditions[cIdx];
+          const axis = cond.axis || 'pitch';
+          if(newType === 'reversal'){
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'reversal', axis, kind: 'peak', rateFloor: 0.15 };
+          } else if(newType === 'crossing'){
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'crossing', axis, axisB: axis === 'roll' ? 'pitch' : 'roll', direction: 'either' };
+          } else if(newType === 'derivative'){
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'derivative', axis, dir: 'above', val: 1 };
+          } else {
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'threshold', axis, dir: 'above', val: 20, margin: 3 };
+          }
+          renderMarkerList(); renderMarkerCanvas();
+        });
+      } else if(['cond-axis','cond-dir','cond-val','cond-margin','cond-kind','cond-ratefloor','cond-axisb','cond-direction'].includes(act)){
         el.addEventListener('change', (e) => {
           let val = e.target.value;
-          if(act === 'cond-val' || act === 'cond-margin') val = parseFloat(val) || 0;
-          const key = act.replace('cond-', '');
-          editingMarkers[kIdx].conditions[cIdx][key] = val;
-          renderMarkerCanvas();
+          const cond = editingMarkers[kIdx].conditions[cIdx];
+          if(act === 'cond-axis') cond.axis = val;
+          else if(act === 'cond-dir') cond.dir = val;
+          else if(act === 'cond-val') cond.val = parseFloat(val) || 0;
+          else if(act === 'cond-margin') cond.margin = parseFloat(val) || 0;
+          else if(act === 'cond-kind') cond.kind = val;
+          else if(act === 'cond-ratefloor') cond.rateFloor = parseFloat(val) || 0;
+          else if(act === 'cond-axisb') cond.axisB = val;
+          else if(act === 'cond-direction') cond.direction = val;
+          renderMarkerList(); renderMarkerCanvas();
         });
       }
     });
@@ -1925,7 +2233,7 @@
     editingMarkers.push({
       id: Date.now(),
       label: "Custom Keyframe",
-      conditions: [{ axis: 'pitch', dir: 'above', val: 25, margin: 3 }]
+      conditions: [{ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 0.15 }]
     });
     renderMarkerList(); renderMarkerCanvas();
   });
@@ -1974,7 +2282,8 @@
       { key: 'y', clr: 'var(--good)' },
       { key: 'z', clr: 'var(--hazard)' },
       { key: 'pitch', clr: 'var(--pitch-clr)' },
-      { key: 'roll', clr: 'var(--roll-clr)' }
+      { key: 'roll', clr: 'var(--roll-clr)' },
+      { key: 'yaw', clr: 'var(--yaw-clr)' }
     ];
 
     axes.forEach(a => {
@@ -1992,8 +2301,8 @@
     sessionSummary.textContent = `Samples logged: ${samples.length} · Rep events: ${events.filter(e=>e.type==='rep').length}`;
   }
 
-  sessionBtn.addEventListener('click', () => { renderSessionCanvas(); showOnly(sessionScreen); });
-  lastSessionBtn.addEventListener('click', () => { renderSessionCanvas(); showOnly(sessionScreen); });
+  sessionBtn.addEventListener('click', () => { sessionCanvasController.reset(); showOnly(sessionScreen); });
+  lastSessionBtn.addEventListener('click', () => { sessionCanvasController.reset(); showOnly(sessionScreen); });
   sessionBackBtn.addEventListener('click', goHome);
   endSessionBtn.addEventListener('click', endGame);
 
