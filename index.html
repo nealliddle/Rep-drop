@@ -72,7 +72,7 @@
     position: relative;
   }
   
-  /* Modern Single Tone Flat Icon System */
+  /* Icon System */
   .icon {
     width: 18px;
     height: 18px;
@@ -86,12 +86,8 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  .icon-solid {
-    fill: currentColor;
-    stroke: none;
-  }
+  .icon-solid { fill: currentColor; stroke: none; }
   .icon-sm { width: 14px; height: 14px; }
-  .icon-lg { width: 22px; height: 22px; }
 
   h1.wordmark {
     font-family: 'Oswald', sans-serif;
@@ -104,7 +100,7 @@
   .wordmark span { color: var(--accent); }
   p.tagline { margin: 4px 0 0; color: var(--ink-dim); font-size: 0.88rem; max-width: 38ch; }
 
-  /* Home Screen Tabs Styling */
+  /* Home Screen Tabs */
   .home-tabs {
     display: flex;
     gap: 6px;
@@ -143,7 +139,7 @@
     gap: 12px;
   }
 
-  /* Screens Layout */
+  /* Screens */
   .screen {
     display: none;
     flex: 1;
@@ -164,7 +160,7 @@
   }
   .chip-row { display: flex; gap: 8px; justify-content: space-between; flex-shrink: 0; }
   
-  /* Canvas Interactive Graph Styling */
+  /* Universal Interactive Graph Styling */
   .graph-container {
     position: relative;
     width: 100%;
@@ -179,12 +175,10 @@
   canvas.motion-canvas {
     display: block;
     width: 100%;
-    height: 220px;
+    height: 200px;
     cursor: grab;
   }
-  canvas.motion-canvas:active {
-    cursor: grabbing;
-  }
+  canvas.motion-canvas:active { cursor: grabbing; }
   .gesture-hint {
     font-size: 0.72rem; color: var(--ink-dim); text-align: center; margin-top: 4px;
     display: flex; justify-content: space-between; align-items: center;
@@ -313,7 +307,7 @@
   }
   .marker-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.85rem; }
   .condition-row {
-    display: flex; gap: 6px; align-items: center; font-size: 0.78rem; flex-wrap: wrap;
+    display: flex; gap: 5px; align-items: center; font-size: 0.78rem; flex-wrap: wrap;
     background: var(--bg); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--track);
   }
   .condition-row select, .condition-row input {
@@ -366,11 +360,11 @@
       </div>
     </div>
 
-    <!-- TAB 2: SETUP (EXCLUSIVELY TRAIN & MAP CURVES) -->
+    <!-- TAB 2: SETUP -->
     <div id="tab-setup" class="home-tab-content" style="display:none;">
       <div class="card">
         <div class="exercise-row"><b>Kettlebell Motion Curves</b></div>
-        <p style="font-size:0.78rem;color:var(--ink-dim);margin:6px 0 10px;">Train, record, and map multi-axis compound motion keyframe curves for each exercise movement.</p>
+        <p style="font-size:0.78rem;color:var(--ink-dim);margin:6px 0 10px;">Train, record, crop, and map multi-axis compound motion keyframe curves for each exercise movement.</p>
         <button class="ghost" id="train-nav-btn" style="width:100%;">
           <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
           Train &amp; Map Kettlebell Curves
@@ -378,7 +372,7 @@
       </div>
     </div>
 
-    <!-- TAB 3: SETTINGS (ALL CONFIGURATIONS & PREFERENCES) -->
+    <!-- TAB 3: SETTINGS -->
     <div id="tab-settings" class="home-tab-content" style="display:none;">
       <div class="card">
         <div class="exercise-row"><b>Fall Time Per Set</b><span id="fall-speed-value">30s</span></div>
@@ -450,7 +444,7 @@
     </div>
     <div class="card" style="text-align:center;">
       <div id="rep-test-count" style="font-family:'Oswald',sans-serif;font-size:2rem;">0</div>
-      <div style="color:var(--ink-dim);font-size:0.75rem;">Test Reps Detected (Perform motion)</div>
+      <div style="color:var(--ink-dim);font-size:0.75rem;">Test Reps Detected</div>
     </div>
     <div>
       <button class="primary" id="motion-ok-btn">Sensors Ready — Start Workout</button>
@@ -483,7 +477,7 @@
     </button>
     <div>
       <h1 class="wordmark">LIVE<br><span>TEST</span></h1>
-      <p class="tagline">Select exercise and observe live real-time motion graphs and keyframe line-crossing triggers.</p>
+      <p class="tagline">Select exercise and observe live real-time motion graphs and keyframe triggers.</p>
     </div>
     
     <div class="card">
@@ -497,7 +491,7 @@
       <div class="checkpoint-steps" id="test-checkpoints"></div>
     </div>
 
-    <!-- Live Real-Time Motion Graph Canvas Card -->
+    <!-- Live Motion Graph Card -->
     <div class="card">
       <div class="exercise-row"><b>Live Oscilloscope Stream</b><span id="test-live-fps" style="font-size:0.75rem;">LIVE</span></div>
       <div class="series-toggles" id="test-series-toggles" style="margin-top:8px;">
@@ -507,7 +501,14 @@
         <div class="toggle-chip active" data-series="mag"><span class="toggle-dot" style="background:var(--mag-clr);"></span>Mag</div>
       </div>
       <div class="graph-container">
-        <canvas id="test-live-canvas" class="motion-canvas" style="height:180px;cursor:default;"></canvas>
+        <canvas id="test-live-canvas" class="motion-canvas"></canvas>
+      </div>
+      <div class="gesture-hint">
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
+          2D Drag | 2-Finger Midpoint Zoom
+        </span>
+        <button id="test-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
     </div>
 
@@ -557,7 +558,7 @@
       <div class="gesture-hint">
         <span style="display:inline-flex;align-items:center;gap:4px;">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
-          Drag to Pan | Pinch to Zoom
+          2D Drag | 2-Finger Midpoint Zoom
         </span>
         <button id="marker-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
       </div>
@@ -565,11 +566,33 @@
       <div id="marker-sim" class="fine-print" style="margin-top:6px;font-weight:600;color:var(--good);"></div>
     </div>
 
+    <!-- Motion Cropping / Trimming Card -->
+    <div class="card" id="trim-card" style="display:none;">
+      <div class="exercise-row"><b>Motion Recording Trim / Crop</b></div>
+      <p style="font-size:0.75rem;color:var(--ink-dim);margin:4px 0 8px;">
+        Set start and end bounds to crop setup lag or idle motion before and after movement.
+      </p>
+      <div class="slider-row">
+        <span style="font-size:0.75rem;color:var(--ink-dim);min-width:32px;">Start</span>
+        <input type="range" id="trim-start-slider" min="0" max="100" value="0">
+        <span style="font-size:0.75rem;color:var(--ink-dim);min-width:36px;text-align:right;" id="trim-start-val">0%</span>
+      </div>
+      <div class="slider-row" style="margin-top:6px;">
+        <span style="font-size:0.75rem;color:var(--ink-dim);min-width:32px;">End</span>
+        <input type="range" id="trim-end-slider" min="0" max="100" value="100">
+        <span style="font-size:0.75rem;color:var(--ink-dim);min-width:36px;text-align:right;" id="trim-end-val">100%</span>
+      </div>
+      <button class="ghost" id="apply-crop-btn" style="margin-top:8px;width:100%;background:var(--bg);font-weight:600;">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+        Apply Permanent Crop
+      </button>
+    </div>
+
     <!-- Automated Line Crossing Keyframe Generator -->
     <div class="card" id="auto-key-card" style="display:none;">
       <div class="exercise-row"><b>Automated Curve Intersections</b></div>
       <p style="font-size:0.75rem;color:var(--ink-dim);margin:4px 0 8px;">
-        Automatically detects points where motion curves cross each other (e.g. Pitch crossing Roll or Y acceleration) to set reliable compound anchor keyframes.
+        Automatically detects points where motion curves cross each other (e.g. Pitch crossing Roll or Y acceleration) to set compound keyframes.
       </p>
       <button class="ghost" id="auto-gen-crossings-btn" style="background:var(--bg);font-weight:600;width:100%;">
         <svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
@@ -636,6 +659,13 @@
       <div class="graph-container">
         <canvas id="session-canvas" class="motion-canvas"></canvas>
       </div>
+      <div class="gesture-hint">
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6"/><polyline points="18 18 18 6"/></svg>
+          2D Drag | 2-Finger Midpoint Zoom
+        </span>
+        <button id="session-reset-view-btn" style="background:none;border:none;color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;">Reset View</button>
+      </div>
     </div>
     <button class="ghost" id="session-back-btn">Back</button>
   </div>
@@ -657,7 +687,7 @@
 
 <script>
 (function(){
-  // --- Audio Synthesis Engine ---
+  // Audio Synthesis Engine
   let audioOn = true;
   let audioCtx = null;
 
@@ -819,10 +849,17 @@
   const markerAddBtn = document.getElementById('marker-add-btn');
   const markerSaveBtn = document.getElementById('marker-save-btn');
   const markerBackBtn = document.getElementById('marker-back-btn');
-  const markerResetViewBtn = document.getElementById('marker-reset-view-btn');
   const markerSim = document.getElementById('marker-sim');
   const autoKeyCard = document.getElementById('auto-key-card');
   const autoGenCrossingsBtn = document.getElementById('auto-gen-crossings-btn');
+
+  // Trimming DOM
+  const trimCard = document.getElementById('trim-card');
+  const trimStartSlider = document.getElementById('trim-start-slider');
+  const trimEndSlider = document.getElementById('trim-end-slider');
+  const trimStartVal = document.getElementById('trim-start-val');
+  const trimEndVal = document.getElementById('trim-end-val');
+  const applyCropBtn = document.getElementById('apply-crop-btn');
 
   const sessionScreen = document.getElementById('session-screen');
   const sessionCanvas = document.getElementById('session-canvas');
@@ -834,7 +871,7 @@
   const endSessionBtn = document.getElementById('end-session-btn');
   const checkSensorsBtn = document.getElementById('check-sensors-btn');
 
-  // Home Screen Tab Switching Logic
+  // Navigation Tabs
   document.querySelectorAll('[data-home-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-home-tab]').forEach(b => b.classList.remove('active'));
@@ -897,6 +934,122 @@
     updateLastSessionBtn();
   }
   document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
+
+  // ==========================================
+  // UNIVERSAL GRAPH INTERACTIVITY ENGINE
+  // (Dual-Axis 2D Midpoint Focal Zoom & Pan)
+  // ==========================================
+  function attachGraphInteractivity(canvas, renderCallback) {
+    const state = { scaleX: 1.0, scaleY: 1.0, panX: 0.0, panY: 0.0 };
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0;
+    let initialPanX = 0, initialPanY = 0;
+    let initialPinchDist = 0;
+    let initialPinchScaleX = 1.0, initialPinchScaleY = 1.0;
+    let pinchFocal = { x: 0, y: 0 };
+
+    function getCanvasPoint(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    // Mouse Dragging
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      initialPanX = state.panX;
+      initialPanY = state.panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if(!isDragging) return;
+      state.panX = initialPanX + (e.clientX - dragStartX);
+      state.panY = initialPanY + (e.clientY - dragStartY);
+      renderCallback();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch Dragging & Dual-Touch Midpoint Zoom
+    canvas.addEventListener('touchstart', (e) => {
+      if(e.touches.length === 1) {
+        isDragging = true;
+        dragStartX = e.touches[0].clientX;
+        dragStartY = e.touches[0].clientY;
+        initialPanX = state.panX;
+        initialPanY = state.panY;
+      } else if(e.touches.length === 2) {
+        isDragging = false;
+        const t1 = e.touches[0], t2 = e.touches[1];
+        initialPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        initialPinchScaleX = state.scaleX;
+        initialPinchScaleY = state.scaleY;
+        
+        // Compute Midpoint Focal Point
+        const midX = (t1.clientX + t2.clientX) / 2;
+        const midY = (t1.clientY + t2.clientY) / 2;
+        pinchFocal = getCanvasPoint(midX, midY);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if(isDragging && e.touches.length === 1) {
+        state.panX = initialPanX + (e.touches[0].clientX - dragStartX);
+        state.panY = initialPanY + (e.touches[0].clientY - dragStartY);
+        renderCallback();
+      } else if(e.touches.length === 2) {
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        if(initialPinchDist > 0) {
+          const ratio = dist / initialPinchDist;
+          const newScaleX = Math.max(0.2, Math.min(15.0, initialPinchScaleX * ratio));
+          const newScaleY = Math.max(0.2, Math.min(15.0, initialPinchScaleY * ratio));
+
+          // Apply Dual-Axis Focal Point Offset Transformation
+          state.panX = pinchFocal.x - (pinchFocal.x - state.panX) * (newScaleX / state.scaleX);
+          state.panY = pinchFocal.y - (pinchFocal.y - state.panY) * (newScaleY / state.scaleY);
+          state.scaleX = newScaleX;
+          state.scaleY = newScaleY;
+          renderCallback();
+        }
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => { isDragging = false; });
+
+    // Mouse Wheel Focal Zoom
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const pt = getCanvasPoint(e.clientX, e.clientY);
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      const newScaleX = Math.max(0.2, Math.min(15.0, state.scaleX * zoomFactor));
+      const newScaleY = Math.max(0.2, Math.min(15.0, state.scaleY * zoomFactor));
+
+      state.panX = pt.x - (pt.x - state.panX) * (newScaleX / state.scaleX);
+      state.panY = pt.y - (pt.y - state.panY) * (newScaleY / state.scaleY);
+      state.scaleX = newScaleX;
+      state.scaleY = newScaleY;
+      renderCallback();
+    }, { passive: false });
+
+    function reset() {
+      state.scaleX = 1.0; state.scaleY = 1.0;
+      state.panX = 0.0; state.panY = 0.0;
+      renderCallback();
+    }
+
+    return { state, reset };
+  }
+
+  // Bind Graph Interactive Controllers
+  const markerCanvasController = attachGraphInteractivity(markerCanvas, () => renderMarkerCanvas());
+  const testLiveCanvasController = attachGraphInteractivity(testLiveCanvas, () => renderLiveTestCanvas());
+  const sessionCanvasController = attachGraphInteractivity(sessionCanvas, () => renderSessionCanvas());
+
+  document.getElementById('marker-reset-view-btn').addEventListener('click', () => markerCanvasController.reset());
+  document.getElementById('test-reset-view-btn').addEventListener('click', () => testLiveCanvasController.reset());
+  document.getElementById('session-reset-view-btn').addEventListener('click', () => sessionCanvasController.reset());
 
   let state = null;
   let rafId = null;
@@ -1065,7 +1218,7 @@
   let isTestingPaused = false;
   let isMarkerRecording = false;
 
-  // Real-Time Exponential Moving Average (EMA) Filter
+  // Smoothing Filter
   let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, mag: 0 };
   const ALPHA = 0.35;
 
@@ -1086,8 +1239,7 @@
 
     const sample = {
       t, x: smoothedState.x, y: smoothedState.y, z: smoothedState.z,
-      mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll, dirY,
-      rawX: x, rawY: y, rawZ: z, rawPitch, rawRoll, rawMag
+      mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll, dirY
     };
 
     motionBuffer.push(sample);
@@ -1131,12 +1283,17 @@
     }
   }
 
+  // ==========================================
+  // MARGIN / TOLERANCE SENSING MATCHING ENGINE
+  // ==========================================
   function matchesKeyframe(sample, keyframe){
     if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
     return keyframe.conditions.every(c => {
       let val = sample[c.axis] !== undefined ? sample[c.axis] : sample.mag;
-      if(c.dir === 'above') return val >= c.val;
-      if(c.dir === 'below') return val <= c.val;
+      let margin = c.margin !== undefined ? Math.abs(parseFloat(c.margin)) : 0;
+      if(c.dir === 'above') return val >= (c.val - margin);
+      if(c.dir === 'below') return val <= (c.val + margin);
+      if(c.dir === 'within') return Math.abs(val - c.val) <= margin;
       return false;
     });
   }
@@ -1316,12 +1473,12 @@
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = rect.width * dpr;
-    canvas.height = 180 * dpr;
+    canvas.height = 200 * dpr;
     ctx.scale(dpr, dpr);
 
-    const W = rect.width;
-    const H = 180;
+    const W = rect.width, H = 200;
     const samples = motionBuffer;
+    const gState = testLiveCanvasController.state;
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
@@ -1329,12 +1486,12 @@
 
     if(samples.length < 2) return;
 
-    const valToY = v => (H / 2) - (v / 40) * (H - 20);
-    const idxToX = i => (i / (samples.length - 1)) * W;
+    const valToY = v => (H / 2) - ((v / 40) * (H - 20) * gState.scaleY) + gState.panY;
+    const idxToX = i => ((i / (samples.length - 1)) * W * gState.scaleX) + gState.panX;
 
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
     ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, (H/2) + gState.panY); ctx.lineTo(W, (H/2) + gState.panY); ctx.stroke();
     ctx.setLineDash([]);
 
     const seriesList = [
@@ -1383,77 +1540,6 @@
   let editingMarkers = [];
   let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true };
 
-  let viewScaleX = 1.0;
-  let viewPanX = 0.0;
-  let viewScaleY = 1.0;
-  let isDragging = false;
-  let dragStartX = 0;
-  let initialPanX = 0;
-  let initialPinchDistance = 0;
-  let initialPinchScale = 1.0;
-
-  const canvasEl = markerCanvas;
-
-  canvasEl.addEventListener('touchstart', (e) => {
-    if(e.touches.length === 1){
-      isDragging = true;
-      dragStartX = e.touches[0].clientX;
-      initialPanX = viewPanX;
-    } else if(e.touches.length === 2){
-      isDragging = false;
-      initialPinchDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialPinchScale = viewScaleX;
-    }
-  }, { passive: true });
-
-  canvasEl.addEventListener('touchmove', (e) => {
-    if(isDragging && e.touches.length === 1){
-      const dx = e.touches[0].clientX - dragStartX;
-      viewPanX = initialPanX + dx;
-      renderMarkerCanvas();
-    } else if(e.touches.length === 2){
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      if(initialPinchDistance > 0){
-        const factor = dist / initialPinchDistance;
-        viewScaleX = Math.max(0.5, Math.min(8.0, initialPinchScale * factor));
-        renderMarkerCanvas();
-      }
-    }
-  }, { passive: true });
-
-  canvasEl.addEventListener('touchend', () => { isDragging = false; });
-
-  canvasEl.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    dragStartX = e.clientX;
-    initialPanX = viewPanX;
-  });
-  window.addEventListener('mousemove', (e) => {
-    if(!isDragging) return;
-    const dx = e.clientX - dragStartX;
-    viewPanX = initialPanX + dx;
-    renderMarkerCanvas();
-  });
-  window.addEventListener('mouseup', () => { isDragging = false; });
-
-  canvasEl.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-    viewScaleX = Math.max(0.5, Math.min(8.0, viewScaleX * zoomFactor));
-    renderMarkerCanvas();
-  }, { passive: false });
-
-  markerResetViewBtn.addEventListener('click', () => {
-    viewScaleX = 1.0; viewPanX = 0; viewScaleY = 1.0;
-    renderMarkerCanvas();
-  });
-
   document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.getAttribute('data-series');
@@ -1463,6 +1549,40 @@
     });
   });
 
+  // Trimming Sliders Listeners
+  trimStartSlider.addEventListener('input', () => {
+    if(parseInt(trimStartSlider.value) >= parseInt(trimEndSlider.value)){
+      trimStartSlider.value = Math.max(0, parseInt(trimEndSlider.value) - 1);
+    }
+    trimStartVal.textContent = trimStartSlider.value + '%';
+    renderMarkerCanvas();
+  });
+
+  trimEndSlider.addEventListener('input', () => {
+    if(parseInt(trimEndSlider.value) <= parseInt(trimStartSlider.value)){
+      trimEndSlider.value = Math.min(100, parseInt(trimStartSlider.value) + 1);
+    }
+    trimEndVal.textContent = trimEndSlider.value + '%';
+    renderMarkerCanvas();
+  });
+
+  applyCropBtn.addEventListener('click', () => {
+    if(markerRecordBuffer.length < 5) return;
+    const startPct = parseInt(trimStartSlider.value) / 100;
+    const endPct = parseInt(trimEndSlider.value) / 100;
+
+    const startIdx = Math.floor(startPct * (markerRecordBuffer.length - 1));
+    const endIdx = Math.ceil(endPct * (markerRecordBuffer.length - 1));
+
+    markerRecordBuffer = markerRecordBuffer.slice(startIdx, Math.max(startIdx + 2, endIdx + 1));
+
+    trimStartSlider.value = 0; trimStartVal.textContent = '0%';
+    trimEndSlider.value = 100; trimEndVal.textContent = '100%';
+
+    markerRecStatus.textContent = `Cropped to ${markerRecordBuffer.length} motion samples`;
+    autoGenerateLineCrossingKeyframes();
+  });
+
   window.openMarkerEditor = function(exercise){
     currentMarkerExercise = exercise;
     markerTitle.innerHTML = 'MOTION<br><span style="color:var(--accent)">' + exercise.toUpperCase() + '</span>';
@@ -1470,21 +1590,27 @@
     const markerData = loadMarkerData();
     const existing = markerData[exercise];
 
-    viewScaleX = 1.0; viewPanX = 0;
+    markerCanvasController.reset();
 
     if(existing && existing.recording && existing.recording.length > 5){
       markerRecordBuffer = existing.recording;
       editingMarkers = existing.markers || [];
 
       markerChartCard.style.display = 'block';
+      trimCard.style.display = 'block';
       autoKeyCard.style.display = 'block';
       markerActions.style.display = 'block';
       markerClearRecBtn.style.display = 'inline-block';
       markerRecStatus.textContent = `${markerRecordBuffer.length} motion samples logged`;
+      
+      trimStartSlider.value = 0; trimStartVal.textContent = '0%';
+      trimEndSlider.value = 100; trimEndVal.textContent = '100%';
+
       renderMarkerCanvas();
       renderMarkerList();
     } else {
       markerChartCard.style.display = 'none';
+      trimCard.style.display = 'none';
       autoKeyCard.style.display = 'none';
       markerActions.style.display = 'none';
       markerClearRecBtn.style.display = 'none';
@@ -1506,10 +1632,14 @@
       
       if(markerRecordBuffer.length > 5){
         markerChartCard.style.display = 'block';
+        trimCard.style.display = 'block';
         autoKeyCard.style.display = 'block';
         markerActions.style.display = 'block';
         markerClearRecBtn.style.display = 'inline-block';
         
+        trimStartSlider.value = 0; trimStartVal.textContent = '0%';
+        trimEndSlider.value = 100; trimEndVal.textContent = '100%';
+
         if(editingMarkers.length === 0){
           autoGenerateLineCrossingKeyframes();
         } else {
@@ -1534,6 +1664,7 @@
     markerRecordBuffer = [];
     editingMarkers = [];
     markerChartCard.style.display = 'none';
+    trimCard.style.display = 'none';
     autoKeyCard.style.display = 'none';
     markerActions.style.display = 'none';
     markerClearRecBtn.style.display = 'none';
@@ -1546,7 +1677,6 @@
   function autoGenerateLineCrossingKeyframes(){
     if(markerRecordBuffer.length < 5) return;
     const samples = markerRecordBuffer;
-    
     let crossings = [];
 
     for(let i = 1; i < samples.length - 1; i++){
@@ -1584,15 +1714,15 @@
         {
           id: 1, label: "Bottom Pose Intersection",
           conditions: [
-            { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 4) },
-            { axis: 'y', dir: 'below', val: parseFloat((minS.y + 1.5).toFixed(1)) }
+            { axis: 'pitch', dir: 'below', val: Math.round(minPitch + 4), margin: 3 },
+            { axis: 'y', dir: 'below', val: parseFloat((minS.y + 1.5).toFixed(1)), margin: 1 }
           ]
         },
         {
           id: 2, label: "Apex Pose Crossing",
           conditions: [
-            { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 4) },
-            { axis: 'y', dir: 'above', val: parseFloat((maxS.y - 1.5).toFixed(1)) }
+            { axis: 'pitch', dir: 'above', val: Math.round(maxPitch - 4), margin: 3 },
+            { axis: 'y', dir: 'above', val: parseFloat((maxS.y - 1.5).toFixed(1)), margin: 1 }
           ]
         }
       ];
@@ -1606,8 +1736,8 @@
           id: Date.now() + idx,
           label: `Crossing #${idx+1}: ${c.type}`,
           conditions: [
-            { axis: c.axisA, dir: dirA, val: valA },
-            { axis: c.axisB, dir: 'above', val: valB }
+            { axis: c.axisA, dir: dirA, val: valA, margin: 3 },
+            { axis: c.axisB, dir: 'above', val: valB, margin: 1.5 }
           ]
         };
       });
@@ -1624,12 +1754,12 @@
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = rect.width * dpr;
-    canvas.height = 220 * dpr;
+    canvas.height = 200 * dpr;
     ctx.scale(dpr, dpr);
 
-    const W = rect.width;
-    const H = 220;
+    const W = rect.width, H = 200;
     const samples = markerRecordBuffer;
+    const gState = markerCanvasController.state;
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
@@ -1638,14 +1768,13 @@
     if(samples.length < 3) return;
 
     const totalPts = samples.length;
-    const renderW = W * viewScaleX;
+    const valToY = v => (H / 2) - ((v / 40) * (H - 20) * gState.scaleY) + gState.panY;
+    const idxToX = i => ((i / (totalPts - 1)) * W * gState.scaleX) + gState.panX;
 
-    const valToY = v => (H / 2) - (v / 40) * (H - 20);
-    const idxToX = i => ((i / (totalPts - 1)) * renderW) + viewPanX;
-
+    // Draw Zero Axis Line
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--track').trim();
     ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, (H/2) + gState.panY); ctx.lineTo(W, (H/2) + gState.panY); ctx.stroke();
     ctx.setLineDash([]);
 
     const seriesList = [
@@ -1656,6 +1785,7 @@
       { key: 'roll', clr: 'var(--roll-clr)' }
     ];
 
+    // Render Curves
     seriesList.forEach(s => {
       if(!activeSeries[s.key]) return;
       const clrVal = getComputedStyle(document.documentElement).getPropertyValue(s.clr.replace('var(','').replace(')','')).trim();
@@ -1672,6 +1802,24 @@
       ctx.stroke();
     });
 
+    // Render Trimming Crop Overlays
+    const startPct = parseInt(trimStartSlider.value) / 100;
+    const endPct = parseInt(trimEndSlider.value) / 100;
+    const cropStartPx = idxToX(Math.floor(startPct * (totalPts - 1)));
+    const cropEndPx = idxToX(Math.floor(endPct * (totalPts - 1)));
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    if(cropStartPx > 0) ctx.fillRect(0, 0, cropStartPx, H);
+    if(cropEndPx < W) ctx.fillRect(cropEndPx, 0, W - cropEndPx, H);
+
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(cropStartPx, 0); ctx.lineTo(cropStartPx, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cropEndPx, 0); ctx.lineTo(cropEndPx, H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Evaluate Matches
     let hitsCount = 0;
     let mIdx = 0;
 
@@ -1691,7 +1839,7 @@
         }
       }
     }
-    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in recorded curve.`;
+    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hitsCount} rep(s) in curve.`;
   }
 
   function renderMarkerList(){
@@ -1719,8 +1867,11 @@
           <select data-action="cond-dir" data-kidx="${kIdx}" data-cidx="${cIdx}">
             <option value="above" ${c.dir==='above'?'selected':''}>≥</option>
             <option value="below" ${c.dir==='below'?'selected':''}>≤</option>
+            <option value="within" ${c.dir==='within'?'selected':''}>≈</option>
           </select>
-          <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:60px;">
+          <input type="number" step="0.5" data-action="cond-val" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.val}" style="width:50px;">
+          <span>±</span>
+          <input type="number" step="0.5" min="0" data-action="cond-margin" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.margin !== undefined ? c.margin : 3}" style="width:45px;" title="Tolerance margin">
           <button style="background:none;border:none;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;" data-action="del-cond" data-kidx="${kIdx}" data-cidx="${cIdx}">
             <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -1750,7 +1901,7 @@
         el.addEventListener('click', () => { editingMarkers.splice(kIdx, 1); renderMarkerList(); renderMarkerCanvas(); });
       } else if(act === 'add-cond'){
         el.addEventListener('click', () => {
-          editingMarkers[kIdx].conditions.push({ axis: 'pitch', dir: 'above', val: 20 });
+          editingMarkers[kIdx].conditions.push({ axis: 'pitch', dir: 'above', val: 20, margin: 3 });
           renderMarkerList(); renderMarkerCanvas();
         });
       } else if(act === 'del-cond'){
@@ -1758,10 +1909,10 @@
           editingMarkers[kIdx].conditions.splice(cIdx, 1);
           renderMarkerList(); renderMarkerCanvas();
         });
-      } else if(act === 'cond-axis' || act === 'cond-dir' || act === 'cond-val'){
+      } else if(act === 'cond-axis' || act === 'cond-dir' || act === 'cond-val' || act === 'cond-margin'){
         el.addEventListener('change', (e) => {
           let val = e.target.value;
-          if(act === 'cond-val') val = parseFloat(val) || 0;
+          if(act === 'cond-val' || act === 'cond-margin') val = parseFloat(val) || 0;
           const key = act.replace('cond-', '');
           editingMarkers[kIdx].conditions[cIdx][key] = val;
           renderMarkerCanvas();
@@ -1774,7 +1925,7 @@
     editingMarkers.push({
       id: Date.now(),
       label: "Custom Keyframe",
-      conditions: [{ axis: 'pitch', dir: 'above', val: 25 }]
+      conditions: [{ axis: 'pitch', dir: 'above', val: 25, margin: 3 }]
     });
     renderMarkerList(); renderMarkerCanvas();
   });
@@ -1800,18 +1951,19 @@
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = rect.width * dpr;
-    canvas.height = 220 * dpr;
+    canvas.height = 200 * dpr;
     ctx.scale(dpr, dpr);
 
-    const W = rect.width; const H = 220;
+    const W = rect.width, H = 200;
 
     if(!lastSession || !lastSession.samples || lastSession.samples.length < 5){ return; }
 
     const samples = lastSession.samples;
     const events = lastSession.events || [];
+    const gState = sessionCanvasController.state;
 
-    const valToY = v => (H / 2) - (v / 40) * (H - 20);
-    const idxToX = i => (i / (samples.length - 1)) * W;
+    const valToY = v => (H / 2) - ((v / 40) * (H - 20) * gState.scaleY) + gState.panY;
+    const idxToX = i => ((i / (samples.length - 1)) * W * gState.scaleX) + gState.panX;
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
