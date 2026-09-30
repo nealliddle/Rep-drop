@@ -735,64 +735,50 @@
     } catch(e){}
   }
 
-  function playMetalClang(isHighPitch = false) {
-    if(!audioOn) return;
-    initAudio();
-    if(!audioCtx) return;
-    try {
-      const t = audioCtx.currentTime;
-      const bufferSize = Math.floor(audioCtx.sampleRate * 0.04);
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
-      }
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const noiseFilter = audioCtx.createBiquadFilter();
-      noiseFilter.type = 'highpass';
-      noiseFilter.frequency.setValueAtTime(1400, t);
-      const noiseGain = audioCtx.createGain();
-      noiseGain.gain.setValueAtTime(0.5, t);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
-      noise.start(t);
-
-      const baseFreq = isHighPitch ? 620 : 440;
-      const modalRatios = [1.0, 1.58, 2.24, 2.91, 3.82];
-      const decays = [0.4, 0.3, 0.22, 0.18, 0.12];
-
-      modalRatios.forEach((ratio, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
-        const freq = baseFreq * ratio;
-        osc.frequency.setValueAtTime(freq, t);
-        const d = decays[idx] || 0.2;
-        gain.gain.setValueAtTime(0.2 / (idx + 1), t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + d);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(t); osc.stop(t + d + 0.01);
-      });
-    } catch(e){}
+  // Sound design: soft synthesized tones (no samples to download).
+  //  step  = quiet, short wooden tick (progress through the rep, not a reward)
+  //  rep   = warm two-note bell chime (the reward); higher variant for sensor tests
+  //  set   = quick rising arpeggio when a set is cleared
+  function tone(freq, start, dur, vol, type, attack){
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(vol, start + (attack || 0.008));
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g); g.connect(sfxOut());
+    o.start(start); o.stop(start + dur + 0.02);
   }
-
-  function playCrossingTone() {
+  let sfxBus = null;
+  function sfxOut(){
+    if(sfxBus) return sfxBus;
+    // Gentle low-pass + compressor keeps every sound soft-edged and at a consistent level
+    const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5000;
+    const comp = audioCtx.createDynamicsCompressor();
+    lp.connect(comp); comp.connect(audioCtx.destination);
+    return (sfxBus = lp);
+  }
+  function withAudio(fn){
     if(!audioOn) return;
     initAudio();
     if(!audioCtx) return;
-    try {
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, t);
-      osc.frequency.exponentialRampToValueAtTime(1320, t + 0.08);
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 0.11);
-    } catch(e){}
+    try { fn(audioCtx.currentTime + 0.005); } catch(e){}
+  }
+  // Rep chime (name kept for existing callers). isHighPitch = in-game rep, else sensor test.
+  function playMetalClang(isHighPitch = false){
+    withAudio(t => {
+      const base = isHighPitch ? 784 : 659;          // G5 / E5
+      tone(base, t, 0.45, 0.28, 'sine');
+      tone(base * 2, t, 0.25, 0.05, 'sine');         // soft shimmer overtone
+      tone(base * 1.5, t + 0.09, 0.55, 0.24, 'sine'); // perfect fifth above
+    });
+  }
+  // Step tick (name kept for existing callers)
+  function playCrossingTone(){
+    withAudio(t => { tone(1320, t, 0.05, 0.08, 'triangle', 0.002); tone(660, t, 0.07, 0.06, 'sine', 0.002); });
+  }
+  function playSetComplete(){
+    withAudio(t => [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.4 + i * 0.05, 0.2, 'sine')));
   }
 
   function speak(text, interrupt){
@@ -1288,6 +1274,7 @@
     cancelAnimationFrame(rafId);
     pushEvent('end', { success });
     if(success){
+      playSetComplete();
       speak('Set complete!');
       falling.classList.add('success');
       state.score++; state.streak++;
@@ -1730,6 +1717,11 @@
     let step = 0, stepStart = 0, lastRep = -Infinity, ema = null, win = {};
     let filt = makeProgressFilter(m);
     let runMax = -Infinity, runMin = Infinity;
+    // Optional extra phase after the top zone (e.g. the press after the clean): the phone angle
+    // is already at the top, so the rep only counts once HEIGHT rises a further `extra.D`.
+    const extra = (m.topExtra && m.topExtra.enabled !== false && m.source === 'tilt') ? m.topExtra : null;
+    let hFilt = extra ? makeProgressFilter({ source: 'height', detrendMs: extra.detrendMs }) : null;
+    let waitExtra = false, extraArmed = false, hMax = -Infinity, hMin = Infinity, extraStart = 0;
     const hit = (z, e, v) => relative
       ? (z.kind === 'bottom' ? e <= runMax - D : e >= runMin + D)
       : inZone(z, v);
@@ -1738,16 +1730,32 @@
       : inZone(z, v);
     return {
       model: m,
-      steps: seq.length,
+      steps: seq.length + (extra ? 1 : 0),
       get step(){ return step; },
-      reset(){ step = 0; ema = null; win = {}; runMax = -Infinity; runMin = Infinity; filt = makeProgressFilter(m); },
+      reset(){
+        step = 0; ema = null; win = {}; runMax = -Infinity; runMin = Infinity; filt = makeProgressFilter(m);
+        waitExtra = false; if(extra) hFilt = makeProgressFilter({ source: 'height', detrendMs: extra.detrendMs });
+      },
       update(s){
         const t = s.t;
         ema = filt(s);
+        const h = hFilt ? hFilt(s) : 0;
         const v = (ema - m.bottom) / span;
         if(ema > runMax) runMax = ema;
         if(ema < runMin) runMin = ema;
         const out = { advanced: false, rep: false, timedOut: false, step, v };
+        if(waitExtra){
+          if(!extraArmed){ if(h > hMax) hMax = h; if(h < hMax - 0.1){ extraArmed = true; hMin = h; } }
+          else if(h < hMin || v < m.highZone) hMin = h;   // the push must happen with the angle still at the top
+          if(extraArmed && h >= hMin + extra.D){
+            waitExtra = false; step = 0; out.advanced = true; out.step = 0;
+            if(t - lastRep >= m.minRepMs){ out.rep = true; lastRep = t; }
+            return out;
+          }
+          if(inZone(seq[0], v) || t - extraStart > m.maxStepMs){
+            waitExtra = false; step = 0; out.timedOut = true;   // no push: not a rep; let the bottom register below
+          } else return out;
+        }
         // Secondary-axis window stats (min/max) since leaving the previous zone
         for(const ch of checks){
           const x = s[ch.axis]; if(typeof x !== 'number') continue;
@@ -1766,8 +1774,11 @@
           if(ok){
             step++; out.advanced = true;
             if(step >= seq.length){
-              step = 0;
-              if(t - lastRep >= m.minRepMs){ out.rep = true; lastRep = t; }   // impossibly fast = not a rep
+              if(extra){ waitExtra = true; extraArmed = false; hMax = h; hMin = h; extraStart = t; }
+              else {
+                step = 0;
+                if(t - lastRep >= m.minRepMs){ out.rep = true; lastRep = t; }   // impossibly fast = not a rep
+              }
             }
           } else { step = 0; out.timedOut = true; }
         }
@@ -1831,6 +1842,33 @@
     }
     if(!best) return { error: 'Not enough movement detected — make sure the phone moves with the weight.' };
     return best;
+  }
+
+  // Measure the extra UPWARD push made while the phone angle is already at the top (a press
+  // after a clean, a raise after a curl...). Used when the user switches "extra push" on.
+  // Returns { enabled, D, detrendMs, rises } or null if the recording has no usable height data.
+  function detectTopExtra(m, samples, reps){
+    if(m.source !== 'tilt' || !samples.some(s => typeof s.vp === 'number')) return null;
+    const detrendMs = Math.round(clamp(m.cycleMs, 1500, 8000));
+    const hf = makeProgressFilter({ source: 'height', detrendMs });
+    const d = createZoneDetector(Object.assign({}, m, { topExtra: null }));
+    const hs = [], rises = []; let win = null;
+    // Measure the rise only AFTER the height has peaked and dropped back (the clean's own
+    // upward swing), so a swing's float-up is never mistaken for a second push.
+    samples.forEach(s => {
+      const h = hf(s), r = d.update(s); hs.push(h);
+      if(win){
+        if(!win.armed){ if(h > win.max) win.max = h; if(h < win.max - 0.1){ win.armed = true; win.min = h; } }
+        else { if(h < win.min || r.v < m.highZone) win.min = h; if(h - win.min > win.rise) win.rise = h - win.min; }
+      }
+      if(r.rep) win = { max: h, armed: false, min: h, rise: 0 };            // entered the top zone
+      else if(r.advanced && r.step === 1 && win){ rises.push(win.rise); win = null; }   // back at the bottom
+    });
+    if(win) rises.push(win.rise);
+    if(rises.length < 1) return null;
+    const med = median(rises);
+    if(!(med > 0.05)) return null;
+    return { enabled: true, D: +(0.5 * med).toFixed(3), detrendMs, rises: rises.map(r => +r.toFixed(2)) };
   }
 
   // ==========================================
@@ -2512,7 +2550,7 @@
   // Test hook (read-only helpers) for headless verification — no effect on the app.
   window.__repDropTest = {
     createKeyframeEngine, migrateMarkers, calibrateZones, createDetectorFor, countZoneReps,
-    calibrateDtw, zoneHitTimes, resampleAll, countDtw,
+    calibrateDtw, zoneHitTimes, resampleAll, countDtw, detectTopExtra,
     feed: (ig, lin, rot, t) => processSensorReading(ig, lin, rot, t),
     lastSample: () => motionBuffer[motionBuffer.length - 1]
   };
@@ -2992,10 +3030,27 @@
           <span>Step timeout ms</span>${num('maxStepMs', 100, 500, 20000, 70, 'Step timeout')}
         </div>
         <div class="fine-print" style="text-align:left;">Thick line = rep progress (0 = your typical bottom, 1 = your typical top). A rep counts each time it passes from the bottom zone into the top zone.</div>
+        ${z.source === 'tilt' ? `
+        <div class="condition-row">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" data-extra="1" ${z.topExtra && z.topExtra.enabled ? 'checked' : ''}>
+            Rep counts after an extra push up at the top (e.g. a press)
+          </label>
+        </div>
+        <div class="fine-print" style="text-align:left;">Use when the phone angle stops changing before the rep is finished — it then waits for the phone to rise again before counting.${z.topExtra && z.topExtra.enabled ? ` Push size learned from your recording: ${z.topExtra.rises.join(', ')}.` : ''}</div>` : ''}
         ${checksHtml}
         <button class="ghost" data-zadd="1" style="font-size:0.75rem;padding:6px;">+ Add Window Check (secondary axis)</button>
       </div>`;
 
+    const extraBox = zoneEditorEl.querySelector('[data-extra]');
+    if(extraBox) extraBox.addEventListener('change', e => {
+      if(e.target.checked){
+        const ex = detectTopExtra(z, markerRecordBuffer, parseInt(calibReps.value) || 0);
+        if(!ex){ e.target.checked = false; calibInfo.textContent = 'No extra upward push found at the top of your reps in this recording.'; return; }
+        z.topExtra = ex;
+      } else z.topExtra = null;
+      renderZoneEditor(); renderMarkerCanvas();
+    });
     zoneEditorEl.querySelector('[data-src]').addEventListener('change', e => { editSource = e.target.value; runCalibration(); });
     zoneEditorEl.querySelectorAll('[data-z]').forEach(el => el.addEventListener('change', e => {
       const key = el.getAttribute('data-z');
