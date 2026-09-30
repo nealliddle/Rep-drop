@@ -107,6 +107,50 @@
     border-radius:14px; padding:12px 14px; font-size:13px; font-weight:600; box-shadow:0 0 20px var(--glow-soft);
     opacity:0; transform:translateY(10px); transition:.2s; pointer-events:none; z-index:30; }
   #toast.on { opacity:1; transform:none; }
+
+  /* ===== Stage 2: form controls ===== */
+  .field { font:inherit; font-size:15px; width:100%; padding:13px 14px; border-radius:14px; border:1px solid var(--line);
+    background:var(--card-2); color:var(--ink); outline:none; }
+  .field:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--glow-soft); }
+  .title-field { font:inherit; font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; width:100%;
+    background:transparent; color:var(--ink); border:none; border-bottom:2px solid var(--line); padding:6px 0; outline:none; }
+  .title-field:focus { border-color:var(--accent); }
+  .stepper { display:inline-flex; align-items:center; background:var(--card-2); border:1px solid var(--line); border-radius:12px; }
+  .stepper button { appearance:none; border:none; background:none; width:34px; height:34px; display:inline-flex; align-items:center;
+    justify-content:center; cursor:pointer; color:var(--accent); }
+  .stepper span { min-width:30px; text-align:center; font-weight:800; font-variant-numeric:tabular-nums; }
+  .tg { appearance:none; width:48px; height:28px; border-radius:99px; background:var(--line); position:relative; cursor:pointer;
+    flex-shrink:0; border:none; transition:background .15s; margin:0; }
+  .tg::after { content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--ink);
+    opacity:.6; transition:.15s; }
+  .tg:checked { background:var(--accent); box-shadow:0 0 10px var(--glow); }
+  .tg:checked::after { left:23px; background:var(--accent-ink); opacity:1; }
+  .opt { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .opt:last-child { border-bottom:none; }
+  .opt .sub { font-size:12px; color:var(--dim); margin-top:2px; }
+  .subopt { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 0 12px; font-size:13px; color:var(--dim); }
+  .iconbtn.plain { background:none; border:none; width:36px; height:36px; color:var(--dim); }
+  .iconbtn:disabled { opacity:.3; }
+
+  /* ===== Bottom sheet ===== */
+  #sheet-bg { position:absolute; inset:0; background:rgba(0,0,0,.55); display:none; z-index:40; }
+  #sheet { position:absolute; left:0; right:0; bottom:0; z-index:41; background:var(--card); border-top:1px solid var(--line);
+    border-radius:24px 24px 0 0; padding:12px 18px calc(18px + env(safe-area-inset-bottom)); display:flex; flex-direction:column;
+    gap:12px; max-height:80%; overflow-y:auto; transform:translateY(105%); visibility:hidden;
+    transition:transform .22s ease, visibility 0s linear .22s; }
+  #sheet.on { transform:none; visibility:visible; transition:transform .22s ease; }
+  .grab { width:42px; height:5px; border-radius:3px; background:var(--line); align-self:center; }
+  .pick { display:flex; align-items:center; gap:12px; width:100%; text-align:left; appearance:none; cursor:pointer;
+    background:var(--card-2); border:1px solid var(--line); border-radius:14px; padding:10px 12px; font-weight:700; }
+  .pick:active { border-color:var(--accent); }
+
+  /* ===== Exercise test view ===== */
+  .meter { position:relative; height:180px; border-radius:18px; background:var(--card-2); border:1px solid var(--line); overflow:hidden; }
+  .meter .zone { position:absolute; left:0; right:0; font-size:10px; font-weight:800; letter-spacing:1px; color:var(--dim); padding:4px 10px; }
+  .meter .top { top:0; height:25%; border-bottom:1px dashed var(--line); background:var(--glow-soft); }
+  .meter .bottom { bottom:0; height:25%; border-top:1px dashed var(--line); display:flex; align-items:flex-end; }
+  .meter .dot { position:absolute; left:50%; width:22px; height:22px; margin-left:-11px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 16px var(--glow); transition:bottom .12s linear; }
 </style>
 </head>
 <body>
@@ -186,8 +230,72 @@
       </div>
     </section>
 
+    <!-- ===== WORKOUT BUILDER ===== -->
+    <section class="screen" id="s-builder" data-tab="workouts">
+      <div class="row"><button class="iconbtn" id="b-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+        <span class="label" style="flex:1" id="b-mode">Edit workout</span>
+        <button class="iconbtn" id="b-del" aria-label="Delete workout"><svg class="i"><use href="#i-trash"/></svg></button></div>
+      <input class="title-field" id="b-name" aria-label="Workout name" maxlength="40">
+      <div class="card">
+        <div class="row"><span class="label">Exercises</span><span class="dim" id="b-sum"></span></div>
+        <div id="b-items"></div>
+        <button class="btn ghost" id="b-add" style="margin-top:10px"><svg class="i"><use href="#i-plus"/></svg>Add exercise</button>
+      </div>
+      <div class="card" style="padding-top:4px;padding-bottom:4px">
+        <div class="opt"><div><div class="h2">Shuffle set order</div><div class="sub">Never the same exercise twice in a row</div></div><input type="checkbox" class="tg" data-flag="shuffle" aria-label="Shuffle set order"></div>
+        <div class="opt"><div><div class="h2">Breaks</div><div class="sub">Rest with a countdown between sets</div></div><input type="checkbox" class="tg" data-flag="breaks" aria-label="Breaks"></div>
+        <div class="subopt" data-show="breaks">Every <span class="stepper" data-num="breakEvery"></span> sets for <span class="stepper" data-num="breakSec"></span> s</div>
+        <div class="opt"><div><div class="h2">Time limit per set</div><div class="sub">Beat the clock for bonus XP. The workout always continues.</div></div><input type="checkbox" class="tg" data-flag="limit" aria-label="Time limit per set"></div>
+        <div class="subopt" data-show="limit"><span class="stepper" data-num="secPerRep"></span> seconds per rep</div>
+        <div class="opt"><div><div class="h2">Session timer</div><div class="sub">Show total time during the workout</div></div><input type="checkbox" class="tg" data-flag="timer" aria-label="Session timer"></div>
+      </div>
+      <button class="btn" id="b-save"><svg class="i"><use href="#i-check"/></svg>Save workout</button>
+    </section>
+
+    <!-- ===== EXERCISES ===== -->
+    <section class="screen" id="s-exercises" data-tab="exercises">
+      <div class="h1">Exercises</div>
+      <div class="dim">Calibrate each exercise once so the app can count your reps. Only calibrated exercises can go into a workout.</div>
+      <div id="ex-list" class="stack"></div>
+      <button class="btn ghost" id="ex-new"><svg class="i"><use href="#i-plus"/></svg>Add exercise</button>
+    </section>
+
+    <!-- ===== EXERCISE DETAIL ===== -->
+    <section class="screen" id="s-exdetail" data-tab="exercises">
+      <div class="row"><button class="iconbtn" data-back aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+        <span class="label" style="flex:1">Exercise</span>
+        <button class="iconbtn" id="x-rename" aria-label="Rename exercise"><svg class="i"><use href="#i-edit"/></svg></button>
+        <button class="iconbtn" id="x-del" aria-label="Delete exercise"><svg class="i"><use href="#i-trash"/></svg></button></div>
+      <div class="card hero stack">
+        <div class="h1" id="x-name"></div>
+        <div id="x-status"></div>
+        <div class="kv" id="x-stats"></div>
+      </div>
+      <div class="card stack">
+        <div class="row" style="justify-content:flex-start;gap:12px"><span class="badge"><svg class="i"><use href="#i-wave"/></svg></span>
+          <div class="grow"><div class="h2">Calibrate</div><div class="dim">Record 3–5 reps and tell it how many you did. It learns what one rep looks like for you.</div></div></div>
+        <button class="btn" id="x-cal"><svg class="i"><use href="#i-wave"/></svg><span>Calibrate</span></button>
+      </div>
+      <div class="card stack">
+        <div class="row" style="justify-content:flex-start;gap:12px"><span class="badge"><svg class="i"><use href="#i-play"/></svg></span>
+          <div class="grow"><div class="h2">Test live</div><div class="dim">Do a few reps and watch them count, with no workout running.</div></div></div>
+        <button class="btn ghost" id="x-test"><svg class="i"><use href="#i-play"/></svg>Test live</button>
+      </div>
+    </section>
+
+    <!-- ===== EXERCISE TEST ===== -->
+    <section class="screen" id="s-extest" data-tab="exercises">
+      <div class="row"><button class="iconbtn" data-back aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+        <span class="label" style="flex:1">Test live</span></div>
+      <div class="row" style="align-items:flex-end"><div><div class="h1" id="t-name"></div><div class="dim" id="t-state">Move to begin</div></div>
+        <div style="text-align:right"><div class="num" style="font-size:56px;line-height:1" id="t-reps">0</div><div class="dim">reps</div></div></div>
+      <div class="meter" aria-label="Rep progress"><div class="zone top">TOP</div><div class="zone bottom">BOTTOM</div><div class="dot" id="t-dot" style="bottom:10%"></div></div>
+      <div class="dim" style="text-align:center">The dot is your rep progress. A rep counts each time it goes from the bottom zone to the top zone.</div>
+      <div class="row"><button class="btn ghost" id="t-reset" style="flex:1">Reset</button><button class="btn" id="t-sim" style="flex:2">Simulate a rep</button></div>
+      <div class="dim" style="text-align:center;font-size:11px">Prototype: the button stands in for the phone's motion sensor.</div>
+    </section>
+
     <!-- ===== Placeholders for later stages ===== -->
-    <section class="screen" id="s-exercises" data-tab="exercises"><div class="h1">Exercises</div><div class="card dim">Coming in stage 2.</div></section>
     <section class="screen" id="s-skills" data-tab="skills"><div class="h1">Skill tree</div><div class="card dim">Coming in stage 4.</div></section>
     <section class="screen" id="s-profile" data-tab="profile"><div class="h1">Profile</div><div class="card dim">History calendar and settings come in stage 4.</div></section>
   </main>
@@ -200,6 +308,8 @@
     <button data-go="profile"><svg class="i"><use href="#i-user"/></svg>Profile</button>
   </nav>
   <div id="toast"></div>
+  <div id="sheet-bg"></div>
+  <div id="sheet" role="dialog" aria-modal="true"></div>
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -219,6 +329,13 @@
   <symbol id="i-hammer" viewBox="0 0 24 24"><path d="m15 12-8.5 8.5a2.1 2.1 0 0 1-3-3L12 9"/><path d="M17.6 15 22 10.6"/><path d="m20.9 11.7-1.3-1.3c-.6-.6-.9-1.4-.9-2.2v-.9L16 4.6A5.6 5.6 0 0 0 12.1 3H9l.9.8A6.2 6.2 0 0 1 12 8.4V10l2 2h2.5l2.3 1.9"/></symbol>
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h3l3-8 4 16 3-8h7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
 </svg>
 
 <script>
@@ -236,8 +353,8 @@
     settings:{ theme:'dark' },
     player:{ xp:1320 },
     exercises:[
-      { id:'swing', name:'Kettlebell Swings', calibrated:true, method:'Zones · tilt' },
-      { id:'squat', name:'Goblet Squat', calibrated:true, method:'Zones · height' },
+      { id:'swing', name:'Kettlebell Swings', calibrated:true, method:'Zones · tilt', best:1.6, totalReps:420 },
+      { id:'squat', name:'Goblet Squat', calibrated:true, method:'Zones · height', best:2.4, totalReps:216 },
       { id:'cp', name:'Clean & Press', calibrated:true, method:'Zones · tilt + press' },
       { id:'halo', name:'Halos', calibrated:false, method:'' }
     ],
@@ -342,10 +459,10 @@
     }).join('') || '<div class="card dim">No workouts yet.</div>';
     $$('[data-open]').forEach(c => c.onclick = () => openDetail(c.dataset.open));
   }
-  $('#wo-new').onclick = () => toast('The workout builder comes in stage 2.');
+  $('#wo-new').onclick = () => openBuilder(null);
 
   let detailId = null;
-  function openDetail(id){
+  function openDetail(id, push = true){
     detailId = id; const w = db.workouts.find(x => x.id === id), st = stats(w);
     $('#d-name').textContent = w.name;
     $('#d-ex').textContent = w.items.length; $('#d-sets').textContent = st.sets; $('#d-time').textContent = '~' + st.mins;
@@ -366,13 +483,191 @@
           <div><b class="num accent">${best.score.toLocaleString()}</b><span class="dim">best</span></div>
           <div><b class="num">${runs.length}</b><span class="dim">times done</span></div></div>`
       : `<div class="row" style="justify-content:flex-start;gap:10px"><span class="accent">${ic('trophy','sm')}</span><span class="dim">Not done yet. Your first run sets the record.</span></div>`;
-    show('s-detail');
+    show('s-detail', push);
   }
-  $('#d-edit').onclick = () => toast('Editing comes in stage 2.');
+  $('#d-edit').onclick = () => openBuilder(detailId);
   $('#d-start').onclick = () => toast('The Forge session comes in stage 3.');
 
-  function render(){ renderHeader(); renderHome(); renderWorkouts(); }
-  window.__proto = { get db(){ return db; }, show, openDetail, levelInfo, setTheme(t){ db.settings.theme = t; save(); applyTheme(); } };
+  // ---------- Bottom sheet helpers ----------
+  function sheet(html, bind){
+    const s = $('#sheet'); s.innerHTML = '<div class="grab"></div>' + html;
+    $('#sheet-bg').style.display = 'block'; requestAnimationFrame(() => s.classList.add('on'));
+    bind && bind(s);
+  }
+  function closeSheet(){ $('#sheet').classList.remove('on'); $('#sheet-bg').style.display = 'none'; }
+  $('#sheet-bg').onclick = closeSheet;
+  const sheetTitle = t => `<div class="h2" style="font-size:18px">${t}</div>`;
+  function confirmSheet(title, body, yesLabel, onYes){
+    sheet(`${sheetTitle(title)}${body ? `<div class="dim">${body}</div>` : ''}
+      <button class="btn" data-yes>${yesLabel}</button><button class="btn ghost" data-no>Cancel</button>`, s => {
+      s.querySelector('[data-yes]').onclick = () => { closeSheet(); onYes(); };
+      s.querySelector('[data-no]').onclick = closeSheet;
+    });
+  }
+  function inputSheet(title, value, placeholder, okLabel, onOk){
+    sheet(`${sheetTitle(title)}<input class="field" maxlength="40" value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(title)}">
+      <button class="btn" data-ok>${okLabel}</button><button class="btn ghost" data-no>Cancel</button>`, s => {
+      const inp = s.querySelector('input'); setTimeout(() => inp.focus(), 250);
+      const ok = () => { const v = inp.value.trim(); if(!v){ inp.focus(); return; } closeSheet(); onOk(v); };
+      s.querySelector('[data-ok]').onclick = ok; inp.onkeydown = e => { if(e.key === 'Enter') ok(); };
+      s.querySelector('[data-no]').onclick = closeSheet;
+    });
+  }
+
+  // ---------- Workout builder ----------
+  let draft = null, draftOrig = '';
+  const NUM = { breakEvery:[1,10,1], breakSec:[10,180,5], secPerRep:[1,6,0.5], sets:[1,10,1], reps:[1,50,1] };
+  const stepper = (val, field, idx) => {
+    const d = idx !== undefined ? ` data-idx="${idx}"` : '';
+    return `<button data-dec="${field}"${d} aria-label="Decrease">${ic('minus','sm')}</button><span>${val}</span><button data-inc="${field}"${d} aria-label="Increase">${ic('plus','sm')}</button>`;
+  };
+  function openBuilder(id){
+    const src = id ? db.workouts.find(w => w.id === id)
+      : { id:'w' + Date.now(), name:'', game:'forge', shuffle:true, breaks:true, breakEvery:3, breakSec:45, limit:true, secPerRep:2.5, timer:true, items:[] };
+    draft = JSON.parse(JSON.stringify(src)); draftOrig = JSON.stringify(draft); draft._new = !id;
+    $('#b-mode').textContent = id ? 'Edit workout' : 'New workout';
+    $('#b-del').style.visibility = id ? 'visible' : 'hidden';
+    $('#b-name').value = draft.name; $('#b-name').placeholder = 'Workout name';
+    show('s-builder'); renderBuilder();
+  }
+  function renderBuilder(){
+    const w = draft, st = stats(w);
+    $('#b-sum').textContent = w.items.length ? `${st.sets} sets · ~${st.mins} min` : '';
+    $('#b-items').innerHTML = w.items.length ? w.items.map((it, i) => `<div class="li">
+        <div class="grow"><div class="h2">${esc(exById(it.ex)?.name || '?')}</div>
+          <div class="row" style="justify-content:flex-start;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span class="stepper">${stepper(it.sets, 'sets', i)}</span><span class="dim">sets ×</span>
+            <span class="stepper">${stepper(it.reps, 'reps', i)}</span><span class="dim">reps</span></div></div>
+        <div class="stack" style="gap:0">
+          <button class="iconbtn plain" data-up="${i}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>${ic('up','sm')}</button>
+          <button class="iconbtn plain" data-dn="${i}" aria-label="Move down" ${i === w.items.length - 1 ? 'disabled' : ''}>${ic('down','sm')}</button></div>
+        <button class="iconbtn plain" data-rm="${i}" aria-label="Remove">${ic('trash','sm')}</button></div>`).join('')
+      : '<div class="dim" style="padding:12px 0">No exercises yet. Add your first one below.</div>';
+    $$('#s-builder [data-flag]').forEach(t => t.checked = !!w[t.dataset.flag]);
+    $$('#s-builder [data-show]').forEach(el => el.style.display = w[el.dataset.show] ? 'flex' : 'none');
+    $$('#s-builder .subopt [data-num]').forEach(s => s.innerHTML = stepper(w[s.dataset.num], s.dataset.num));
+  }
+  $('#s-builder').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b || !draft || b.disabled) return;
+    const w = draft, idx = b.dataset.idx !== undefined ? +b.dataset.idx : undefined;
+    const bump = (f, dir) => { const [lo, hi, step] = NUM[f], o = idx !== undefined ? w.items[idx] : w;
+      o[f] = Math.min(hi, Math.max(lo, Math.round((o[f] + dir * step) * 10) / 10)); };
+    if(b.dataset.inc) bump(b.dataset.inc, 1);
+    else if(b.dataset.dec) bump(b.dataset.dec, -1);
+    else if(b.dataset.rm !== undefined) w.items.splice(+b.dataset.rm, 1);
+    else if(b.dataset.up !== undefined){ const i = +b.dataset.up; [w.items[i-1], w.items[i]] = [w.items[i], w.items[i-1]]; }
+    else if(b.dataset.dn !== undefined){ const i = +b.dataset.dn; [w.items[i+1], w.items[i]] = [w.items[i], w.items[i+1]]; }
+    else return;
+    renderBuilder();
+  });
+  $$('#s-builder [data-flag]').forEach(t => t.onchange = () => { draft[t.dataset.flag] = t.checked; renderBuilder(); });
+  $('#b-name').oninput = e => { draft.name = e.target.value; };
+  $('#b-add').onclick = () => {
+    const ready = db.exercises.filter(e => e.calibrated), notReady = db.exercises.filter(e => !e.calibrated);
+    sheet(`${sheetTitle('Add exercise')}
+      ${ready.map(e => `<button class="pick" data-pick="${e.id}"><span class="badge">${ic('target')}</span>
+        <span class="grow">${esc(e.name)}${draft.items.some(i => i.ex === e.id) ? '<div class="dim" style="font-weight:500">Already in this workout</div>' : ''}</span>${ic('plus','sm')}</button>`).join('')
+        || '<div class="dim">No calibrated exercises yet.</div>'}
+      ${notReady.length ? `<div class="dim">Calibrate these in Exercises first: ${notReady.map(e => esc(e.name)).join(', ')}</div>` : ''}
+      <button class="btn ghost" data-no>Close</button>`, s => {
+      s.querySelectorAll('[data-pick]').forEach(p => p.onclick = () => { draft.items.push({ ex:p.dataset.pick, sets:3, reps:10 }); closeSheet(); renderBuilder(); });
+      s.querySelector('[data-no]').onclick = closeSheet;
+    });
+  };
+  function leaveBuilder(savedId){
+    draft = null;
+    if(savedId){ if(stack[stack.length - 1] === 's-detail') stack.pop(); openDetail(savedId, false); }
+    else show(stack.pop() || 's-workouts', false);   // cancel: back to wherever the builder was opened from
+  }
+  $('#b-back').onclick = () => {
+    const clean = Object.assign({}, draft); delete clean._new;
+    if(JSON.stringify(clean) === draftOrig) return leaveBuilder();
+    confirmSheet('Discard changes?', 'Your edits to this workout will be lost.', 'Discard', () => leaveBuilder());
+  };
+  $('#b-save').onclick = () => {
+    const w = draft; w.name = w.name.trim();
+    if(!w.name){ $('#b-name').focus(); toast('Give the workout a name.'); return; }
+    if(!w.items.length){ toast('Add at least one exercise.'); return; }
+    delete w._new;
+    const i = db.workouts.findIndex(x => x.id === w.id);
+    if(i >= 0) db.workouts[i] = w; else db.workouts.push(w);
+    save(); render(); leaveBuilder(w.id); toast('Workout saved.');
+  };
+  $('#b-del').onclick = () => confirmSheet(`Delete “${esc(draft.name)}”?`, 'This cannot be undone.', 'Delete workout', () => {
+    db.workouts = db.workouts.filter(w => w.id !== draft.id); save(); draft = null;
+    stack.length = 0; show('s-workouts', false); render(); toast('Workout deleted.');
+  });
+
+  // ---------- Exercises ----------
+  let exId = null;
+  function renderExercises(){
+    $('#ex-list').innerHTML = db.exercises.map(e => `<div class="card tap row" data-ex="${e.id}" style="justify-content:flex-start;gap:12px">
+        <span class="badge">${ic('target')}</span>
+        <div class="grow" style="flex:1"><div class="h2">${esc(e.name)}</div><div class="dim">${e.calibrated ? esc(e.method) : 'Not calibrated yet'}</div></div>
+        ${e.calibrated ? `<span class="chip hot">${ic('check','sm')}Ready</span>` : '<span class="chip">Set up</span>'}</div>`).join('')
+      || '<div class="card dim">No exercises yet.</div>';
+    $$('[data-ex]').forEach(c => c.onclick = () => openExercise(c.dataset.ex));
+  }
+  function openExercise(id, push = true){
+    exId = id; const e = exById(id);
+    $('#x-name').textContent = e.name;
+    $('#x-status').innerHTML = e.calibrated
+      ? `<span class="chip hot">${ic('check','sm')}Calibrated · ${esc(e.method)}</span>`
+      : `<span class="chip">${ic('alert','sm')}Not calibrated yet</span>`;
+    const used = db.workouts.filter(w => w.items.some(i => i.ex === id)).length;
+    $('#x-stats').innerHTML = `<div><b class="num">${e.best ? e.best.toFixed(1) : '—'}</b><span class="dim">best s/rep</span></div>
+      <div><b class="num">${(e.totalReps || 0).toLocaleString()}</b><span class="dim">total reps</span></div>
+      <div><b class="num">${used}</b><span class="dim">in workouts</span></div>`;
+    $('#x-cal span').textContent = e.calibrated ? 'Recalibrate' : 'Calibrate';
+    $('#x-test').disabled = !e.calibrated; $('#x-test').style.opacity = e.calibrated ? 1 : .4;
+    show('s-exdetail', push);
+  }
+  $('#ex-new').onclick = () => inputSheet('New exercise', '', 'e.g. Kettlebell Snatch', 'Add exercise', name => {
+    const e = { id:'e' + Date.now(), name, calibrated:false, method:'' };
+    db.exercises.push(e); save(); render(); openExercise(e.id); toast('Added. Calibrate it next.');
+  });
+  $('#x-rename').onclick = () => { const e = exById(exId);
+    inputSheet('Rename exercise', e.name, 'Exercise name', 'Save', name => { e.name = name; save(); render(); openExercise(exId, false); }); };
+  $('#x-del').onclick = () => { const e = exById(exId), used = db.workouts.filter(w => w.items.some(i => i.ex === exId));
+    confirmSheet(`Delete ${esc(e.name)}?`, used.length ? `It will also be removed from: ${used.map(w => esc(w.name)).join(', ')}.` : 'Its calibration will be lost.', 'Delete exercise', () => {
+      db.exercises = db.exercises.filter(x => x.id !== exId);
+      db.workouts.forEach(w => w.items = w.items.filter(i => i.ex !== exId));
+      save(); render(); show(stack.pop() || 's-exercises', false); toast('Exercise deleted.');
+    }); };
+  $('#x-cal').onclick = () => { const e = exById(exId);
+    const steps = ['Hold the phone the way you will during workouts.', 'Tap Record and do 3–5 normal reps.', 'Tap Stop and enter how many reps you did.', 'Check it shows a tick, then save.'];
+    sheet(`${sheetTitle((e.calibrated ? 'Recalibrate ' : 'Calibrate ') + esc(e.name))}
+      <div class="stack" style="gap:10px">${steps.map((t, i) => `<div class="row" style="justify-content:flex-start;gap:10px">
+        <span class="chip hot" style="min-width:30px;justify-content:center">${i + 1}</span><span>${t}</span></div>`).join('')}</div>
+      <div class="dim">In the full app this opens the recorder. In the prototype it only marks the exercise as calibrated.</div>
+      <button class="btn" data-ok>${ic('check')}Mark as calibrated</button><button class="btn ghost" data-no>Cancel</button>`, s => {
+      s.querySelector('[data-ok]').onclick = () => { e.calibrated = true; e.method = e.method || 'Zones · tilt'; save(); closeSheet(); render(); openExercise(exId, false); toast(`${e.name} is ready to use.`); };
+      s.querySelector('[data-no]').onclick = closeSheet;
+    }); };
+
+  // Live test (simulated: the dot travels bottom -> top -> bottom; a rep counts on entering the top zone)
+  let tReps = 0, tAnim = false;
+  const tState = t => $('#t-state').textContent = t;
+  $('#x-test').onclick = () => { if($('#x-test').disabled) return;
+    tReps = 0; $('#t-name').textContent = exById(exId).name; $('#t-reps').textContent = '0'; tState('Move to begin'); $('#t-dot').style.bottom = '8%';
+    show('s-extest'); };
+  $('#t-reset').onclick = () => { tReps = 0; $('#t-reps').textContent = '0'; tState('Move to begin'); };
+  $('#t-sim').onclick = () => {
+    if(tAnim) return; tAnim = true;
+    let armed = true; const t0 = performance.now(), D = 1300;
+    const step = now => {
+      const u = Math.min(1, (now - t0) / D), p = Math.sin(Math.PI * u);
+      $('#t-dot').style.bottom = (8 + p * 76) + '%';
+      if(armed && p > 0.75){ armed = false; tReps++; $('#t-reps').textContent = tReps; tState('Top zone reached: rep counted'); }
+      else if(armed) tState(p < 0.25 ? 'Bottom zone' : 'Rising…');
+      else if(p < 0.25) tState('Back at the bottom, ready for the next rep');
+      if(u < 1) requestAnimationFrame(step); else tAnim = false;
+    };
+    requestAnimationFrame(step);
+  };
+
+  function render(){ renderHeader(); renderHome(); renderWorkouts(); renderExercises(); }
+  window.__proto = { get db(){ return db; }, show, openDetail, openBuilder, levelInfo, setTheme(t){ db.settings.theme = t; save(); applyTheme(); } };
   applyTheme(); render();
 })();
 </script>
