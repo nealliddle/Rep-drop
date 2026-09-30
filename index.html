@@ -1178,8 +1178,8 @@
     nextRound();
   }
 
-  function renderHudCheckpoints(markers, curIdx){
-    const container = document.getElementById('hud-checkpoints');
+  function renderHudCheckpoints(markers, curIdx, containerId){
+    const container = document.getElementById(containerId || 'hud-checkpoints');
     if(!markers || markers.length === 0){ container.innerHTML = ''; return; }
     container.innerHTML = markers.map((m, i) => {
       let cls = 'step-dot';
@@ -1199,11 +1199,10 @@
     
     const markerData = loadMarkerData();
     const exMarkerObj = markerData[ex.name];
-    state.markers = (exMarkerObj && exMarkerObj.markers) ? exMarkerObj.markers : null;
-    state.markerIndex = 0;
+    state.markers = (exMarkerObj && exMarkerObj.markers && exMarkerObj.markers.length) ? migrateMarkers(exMarkerObj.markers) : null;
+    state.kf = state.markers ? createKeyframeEngine(state.markers) : null;
     state.repDebounce = 250;
     state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
-    resetPhaseTracking(state);
     
     wordText.textContent = ex.name;
     repsNeededEl.textContent = '0 / ' + state.target;
@@ -1292,8 +1291,14 @@
   let isMarkerRecording = false;
 
   // Smoothing Filter (position-like channels: accel + orientation)
-  let smoothedState = { x: 0, y: 0, z: 0, pitch: 0, roll: 0, yaw: 0, mag: 0 };
+  // gx/gy/gz = gravity vector (orientation), ax/ay/az = linear acceleration (gravity removed)
+  let smoothedState = { x: 0, y: 0, z: 0, gx: 0, gy: 0, gz: 0, ax: 0, ay: 0, az: 0, pitch: 0, roll: 0, yaw: 0, mag: 0 };
   const ALPHA = 0.35;
+  // Fallback gravity estimate for devices that don't supply a fused gravity/linear split:
+  // a heavy low-pass of acceleration-including-gravity (~0.2s time constant at 60Hz).
+  const GRAVITY_ALPHA = 0.08;
+  let gravityLP = null;
+  let checkLastRepTime = 0; // sensor-check screen debounce (previously borrowed game `state`)
   // Separate (lighter) smoothing for gyro rate since we want to preserve reversal timing
   const ALPHA_GYRO = 0.5;
 
@@ -1304,27 +1309,53 @@
     DERIV_AXES.forEach(a => hist[a] = []);
     return hist;
   }
+  // Time-based window (not a sample count) so slopes mean the same thing on a 60Hz
+  // and a 100Hz phone. Used identically by live detection, replay and auto-calibration.
+  const SLOPE_WINDOW_MS = 130;
   function pushDerivHistory(tracker, sample){
+    const t = sample.t;
     DERIV_AXES.forEach(a => {
       const arr = tracker[a];
-      arr.push(sample[a] || 0);
-      if(arr.length > 8) arr.shift();
+      arr.push({ t, v: sample[a] || 0 });
+      while(arr.length > 2 && t - arr[0].t > SLOPE_WINDOW_MS) arr.shift();
     });
   }
-  // Simple slope over the short rolling window — robust to per-sample jitter,
-  // responsive enough to catch direction reversals within a handful of samples.
+  // Slope over the rolling time window, in units PER SECOND.
   function getSlope(tracker, axis){
     const arr = tracker[axis];
-    if(!arr || arr.length < 4) return 0;
-    const n = arr.length;
-    return (arr[n-1] - arr[0]) / (n - 1);
+    if(!arr || arr.length < 2) return 0;
+    const a = arr[0], b = arr[arr.length - 1];
+    const dt = (b.t - a.t) / 1000;
+    return dt > 0 ? (b.v - a.v) / dt : 0;
   }
 
-  function processSensorReading(x, y, z, rot) {
+  // ig = accelerationIncludingGravity, lin = acceleration (gravity removed). Either may be null.
+  function processSensorReading(ig, lin, rot) {
     const t = performance.now();
+    let gx, gy, gz, ax, ay, az;
+    if(ig && lin){
+      // Fused split from the OS: gravity = total - linear
+      ax = lin.x || 0; ay = lin.y || 0; az = lin.z || 0;
+      gx = (ig.x || 0) - ax; gy = (ig.y || 0) - ay; gz = (ig.z || 0) - az;
+    } else if(ig){
+      // No split available: estimate gravity with a heavy low-pass
+      if(!gravityLP) gravityLP = { x: ig.x || 0, y: ig.y || 0, z: ig.z || 0 };
+      gravityLP.x += GRAVITY_ALPHA * ((ig.x || 0) - gravityLP.x);
+      gravityLP.y += GRAVITY_ALPHA * ((ig.y || 0) - gravityLP.y);
+      gravityLP.z += GRAVITY_ALPHA * ((ig.z || 0) - gravityLP.z);
+      gx = gravityLP.x; gy = gravityLP.y; gz = gravityLP.z;
+      ax = (ig.x || 0) - gx; ay = (ig.y || 0) - gy; az = (ig.z || 0) - gz;
+    } else {
+      // Linear acceleration only (rare): no orientation reference available
+      ax = lin.x || 0; ay = lin.y || 0; az = lin.z || 0;
+      gx = 0; gy = 0; gz = 0;
+    }
+    const x = gx + ax, y = gy + ay, z = gz + az; // total accel (display, magnitude, legacy curves)
     const rawMag = Math.sqrt(x*x + y*y + z*z);
-    const rawPitch = Math.atan2(y, Math.sqrt(x*x + z*z)) * (180 / Math.PI);
-    const rawRoll = Math.atan2(-x, Math.sqrt(y*y + z*z)) * (180 / Math.PI);
+    // Tilt from the GRAVITY vector only, so the bell's own acceleration during a
+    // swing/snatch no longer corrupts pitch & roll.
+    const rawPitch = Math.atan2(gy, Math.sqrt(gx*gx + gz*gz)) * (180 / Math.PI);
+    const rawRoll = Math.atan2(-gx, Math.sqrt(gy*gy + gz*gz)) * (180 / Math.PI);
     // Yaw: accelerometer alone can't observe rotation about gravity, so we use
     // gyroscope Z rotation rate (deg/s) as our third rotational axis instead of
     // an (unobservable) absolute compass heading. This captures twisting motion
@@ -1334,6 +1365,12 @@
     smoothedState.x = smoothedState.x + ALPHA * (x - smoothedState.x);
     smoothedState.y = smoothedState.y + ALPHA * (y - smoothedState.y);
     smoothedState.z = smoothedState.z + ALPHA * (z - smoothedState.z);
+    smoothedState.gx += ALPHA * (gx - smoothedState.gx);
+    smoothedState.gy += ALPHA * (gy - smoothedState.gy);
+    smoothedState.gz += ALPHA * (gz - smoothedState.gz);
+    smoothedState.ax += ALPHA * (ax - smoothedState.ax);
+    smoothedState.ay += ALPHA * (ay - smoothedState.ay);
+    smoothedState.az += ALPHA * (az - smoothedState.az);
     smoothedState.pitch = smoothedState.pitch + ALPHA * (rawPitch - smoothedState.pitch);
     smoothedState.roll = smoothedState.roll + ALPHA * (rawRoll - smoothedState.roll);
     smoothedState.yaw = smoothedState.yaw + ALPHA_GYRO * (rawYawRate - smoothedState.yaw);
@@ -1343,6 +1380,8 @@
 
     const sample = {
       t, x: smoothedState.x, y: smoothedState.y, z: smoothedState.z,
+      gx: smoothedState.gx, gy: smoothedState.gy, gz: smoothedState.gz,
+      ax: smoothedState.ax, ay: smoothedState.ay, az: smoothedState.az,
       mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll,
       yaw: smoothedState.yaw, dirY
     };
@@ -1366,9 +1405,8 @@
       deltaFill.style.width = Math.min(100, (delta / 4) * 100) + '%';
       document.getElementById('delta-threshold-line').style.left = (threshold / 4 * 100) + '%';
 
-      if(delta > threshold && t - (state?.lastRepTime || 0) > 400){
-        if(!state) state = {};
-        state.lastRepTime = t;
+      if(delta > threshold && t - checkLastRepTime > 400){
+        checkLastRepTime = t;
         testReps++;
         repTestCountEl.textContent = testReps;
         playMetalClang(false);
@@ -1380,21 +1418,16 @@
       markerRecStatus.textContent = `Recording... ${markerRecordBuffer.length} samples logged`;
     }
 
-    if(state && !state.resolved && state.markers && state.markers.length > 0){
-      pushDerivHistory(state.derivTracker, sample);
+    if(state && !state.resolved && state.kf){
       checkCompoundMarkersForRep(sample);
     }
     
     if(isTestingActive && !isTestingPaused){
-      pushDerivHistory(liveDerivTracker, sample);
       checkLiveTestingCompoundMarkers(sample);
       renderLiveTestCanvas();
     }
   }
 
-  function resetPhaseTracking(ctx){
-    ctx.derivTracker = createDerivTracker();
-  }
 
   // ==========================================
   // PHASE / STRUCTURE-BASED KEYFRAME MATCHING ENGINE
@@ -1407,18 +1440,46 @@
   //
   // Reversal & crossing conditions are amplitude-independent: they trigger on the *shape* of the
   // motion rather than a fixed magnitude, which makes them robust across rep depth/speed variation.
-  function matchesCondition(sample, tracker, c){
+  //
+  // Each condition now keeps its OWN state (st) and is evaluated on EVERY sample, so
+  // nothing goes stale when another condition is false. A keyframe matches when all
+  // of its conditions were true within EVENT_WINDOW_MS of each other — one-sample
+  // events (a reversal, a crossing) can therefore be ANDed with each other or with a state.
+  const EVENT_WINDOW_MS = 250;
+  const STEP_TIMEOUT_MS = 4000;   // abandon a half-finished rep if the next step never arrives
+  const DEFAULT_RATE_FLOOR = 8;   // units/second
+  const LEGACY_SAMPLE_HZ = 60;    // old keyframes stored rates per SAMPLE; convert to per second
+
+  function migrateMarkers(markers){
+    return (markers || []).map(k => Object.assign({}, k, {
+      conditions: (k.conditions || []).map(c => {
+        const n = Object.assign({}, c);
+        if(n.rateUnits !== 'perSec'){
+          if(n.type === 'reversal') n.rateFloor = parseFloat(((n.rateFloor !== undefined ? n.rateFloor : 0.15) * LEGACY_SAMPLE_HZ).toFixed(2));
+          if(n.type === 'derivative' && n.val !== undefined) n.val = parseFloat((n.val * LEGACY_SAMPLE_HZ).toFixed(2));
+          n.rateUnits = 'perSec';
+        }
+        return n;
+      })
+    }));
+  }
+
+  function matchesCondition(sample, tracker, c, st){
     const axis = c.axis || 'mag';
     const val = sample[axis] !== undefined ? sample[axis] : sample.mag;
     const margin = c.margin !== undefined ? Math.abs(parseFloat(c.margin)) : 0;
 
     if(c.type === 'reversal'){
+      // True sign flip: remember the last SIGNIFICANT direction. Slowing down or pausing
+      // (|slope| under the floor) no longer counts as a reversal — only actually turning around does.
       const slope = getSlope(tracker, axis);
-      const prevSlope = tracker['_prevSlope_' + axis] || 0;
-      tracker['_prevSlope_' + axis] = slope;
-      const noiseFloor = c.rateFloor !== undefined ? Math.abs(c.rateFloor) : 0.15;
-      if(c.kind === 'peak') return prevSlope > noiseFloor && slope <= noiseFloor * 0.3;
-      if(c.kind === 'valley') return prevSlope < -noiseFloor && slope >= -noiseFloor * 0.3;
+      const floor = c.rateFloor !== undefined ? Math.abs(c.rateFloor) : DEFAULT_RATE_FLOOR;
+      const sig = slope > floor ? 1 : (slope < -floor ? -1 : 0);
+      if(sig === 0) return false;
+      const prev = st.sign || 0;
+      st.sign = sig;
+      if(c.kind === 'peak') return prev === 1 && sig === -1;
+      if(c.kind === 'valley') return prev === -1 && sig === 1;
       return false;
     }
 
@@ -1426,9 +1487,8 @@
       const axisB = c.axisB || 'roll';
       const valB = sample[axisB] !== undefined ? sample[axisB] : 0;
       const diff = val - valB;
-      const key = '_prevDiff_' + axis + '_' + axisB;
-      const prevDiff = tracker[key] !== undefined ? tracker[key] : diff;
-      tracker[key] = diff;
+      const prevDiff = st.prevDiff !== undefined ? st.prevDiff : diff;
+      st.prevDiff = diff;
       if(c.direction === 'AtoB') return prevDiff >= 0 && diff < 0; // A was above B, now below
       if(c.direction === 'BtoA') return prevDiff <= 0 && diff > 0; // A was below B, now above
       return (prevDiff >= 0 && diff < 0) || (prevDiff <= 0 && diff > 0);
@@ -1449,61 +1509,87 @@
     return false;
   }
 
-  function matchesKeyframe(sample, keyframe, tracker){
-    if(!keyframe || !keyframe.conditions || keyframe.conditions.length === 0) return false;
-    return keyframe.conditions.every(c => matchesCondition(sample, tracker, c));
+  // Stateful keyframe sequence detector. update(sample) -> { advanced, rep, timedOut, step }
+  function createKeyframeEngine(rawMarkers){
+    const markers = migrateMarkers(rawMarkers);
+    const tracker = createDerivTracker();
+    const condState = markers.map(k => (k.conditions || []).map(() => ({ lastTrue: -Infinity, sign: 0 })));
+    let step = 0, stepStart = 0;
+    return {
+      markers,
+      get step(){ return step; },
+      reset(){ step = 0; },
+      update(sample){
+        const t = sample.t;
+        pushDerivHistory(tracker, sample);
+        // 1. Advance every condition's state on every sample (no short-circuit)
+        markers.forEach((k, ki) => (k.conditions || []).forEach((c, ci) => {
+          if(matchesCondition(sample, tracker, c, condState[ki][ci])) condState[ki][ci].lastTrue = t;
+        }));
+        const out = { advanced: false, rep: false, timedOut: false, step };
+        // 2. Timeout: a half-finished rep is abandoned instead of waiting forever
+        if(step > 0 && t - stepStart > (markers[step].maxStepMs || STEP_TIMEOUT_MS)){
+          step = 0; out.timedOut = true;
+        }
+        // 3. Current keyframe matches if all its conditions fired within the window
+        const cs = condState[step];
+        if(cs && cs.length && cs.every(s => t - s.lastTrue <= EVENT_WINDOW_MS)){
+          cs.forEach(s => { s.lastTrue = -Infinity; }); // consume, so one event can't count twice
+          step++; stepStart = t; out.advanced = true;
+          if(step >= markers.length){ step = 0; out.rep = true; }
+        }
+        out.step = step;
+        return out;
+      }
+    };
   }
 
   function checkCompoundMarkersForRep(sample){
-    if(!state.markers || state.markers.length === 0) return;
-    const targetKeyframe = state.markers[state.markerIndex || 0];
-    
-    if(matchesKeyframe(sample, targetKeyframe, state.derivTracker)){
-      state.markerIndex = (state.markerIndex || 0) + 1;
-      renderHudCheckpoints(state.markers, state.markerIndex);
-      playCrossingTone();
-      if(state.markerIndex >= state.markers.length){
-        state.markerIndex = 0;
-        registerRep();
-        renderHudCheckpoints(state.markers, 0);
-      }
-    }
+    const r = state.kf.update(sample);
+    if(r.advanced && !r.rep) playCrossingTone();
+    if(r.advanced || r.timedOut) renderHudCheckpoints(state.markers, r.step);
+    if(r.rep) registerRep();
   }
 
   let testMarkerIndex = 0;
   let testCrossingTriggerHistory = [];
-  let liveDerivTracker = createDerivTracker();
+  let testKf = null;      // live-test engine, rebuilt lazily (null = reset)
+  let testKfEx = null;
 
   function checkLiveTestingCompoundMarkers(sample){
     const activeEx = testExerciseSelect.value;
-    const markerData = loadMarkerData();
-    const mData = markerData[activeEx];
-    if(!mData || !mData.markers || mData.markers.length === 0){
+    if(!testKf || testKfEx !== activeEx){
+      // Build once per exercise instead of parsing localStorage on every sensor sample
+      const mData = loadMarkerData()[activeEx];
+      testKfEx = activeEx;
+      testKf = (mData && mData.markers && mData.markers.length) ? createKeyframeEngine(mData.markers) : false;
+    }
+    if(!testKf){
       testResultLabel.textContent = 'No Keyframes Set';
       testResultConf.textContent = 'Record motion demo for ' + activeEx + ' first.';
       return;
     }
 
-    const targetKeyframe = mData.markers[testMarkerIndex];
+    const r = testKf.update(sample);
+    if(r.timedOut){
+      renderHudCheckpoints(testKf.markers, r.step, 'test-checkpoints');
+      testResultConf.textContent = 'Step timed out — rep reset.';
+    }
+    if(!r.advanced) return;
 
-    if(matchesKeyframe(sample, targetKeyframe, liveDerivTracker)){
-      testCrossingTriggerHistory.push({ t: sample.t, step: testMarkerIndex + 1 });
-      if(testCrossingTriggerHistory.length > 50) testCrossingTriggerHistory.shift();
+    testCrossingTriggerHistory.push({ t: sample.t, step: r.rep ? testKf.markers.length : r.step });
+    if(testCrossingTriggerHistory.length > 50) testCrossingTriggerHistory.shift();
+    testMarkerIndex = r.step;
+    renderHudCheckpoints(testKf.markers, r.step, 'test-checkpoints');
 
-      testMarkerIndex++;
-      renderHudCheckpoints(mData.markers, testMarkerIndex);
+    if(r.rep){
+      playMetalClang(true);
+      testResultLabel.textContent = 'Rep Complete!';
+      testResultConf.textContent = `${activeEx} multi-axis compound match!`;
+    } else {
       playCrossingTone();
-
-      if(testMarkerIndex >= mData.markers.length){
-        testMarkerIndex = 0;
-        playMetalClang(true);
-        testResultLabel.textContent = 'Rep Complete!';
-        testResultConf.textContent = `${activeEx} multi-axis compound match!`;
-        renderHudCheckpoints(mData.markers, 0);
-      } else {
-        testResultLabel.textContent = `Step #${testMarkerIndex} Matched`;
-        testResultConf.textContent = `Moving towards Step #${testMarkerIndex + 1}...`;
-      }
+      testResultLabel.textContent = `Step #${r.step} Matched`;
+      testResultConf.textContent = `Moving towards Step #${r.step + 1}...`;
     }
   }
 
@@ -1531,10 +1617,13 @@
   }
 
   function onDeviceMotion(ev){
-    let acc = ev.accelerationIncludingGravity || ev.acceleration;
-    if(!acc || acc.x === null) return;
+    const ig = ev.accelerationIncludingGravity;
+    const lin = ev.acceleration;
+    const hasIG = !!(ig && ig.x !== null && ig.x !== undefined);
+    const hasLin = !!(lin && lin.x !== null && lin.x !== undefined);
+    if(!hasIG && !hasLin) return;
     const rot = ev.rotationRate || null; // {alpha, beta, gamma} deg/s -- alpha = rotation about Z (yaw rate)
-    processSensorReading(acc.x || 0, acc.y || 0, acc.z || 0, rot);
+    processSensorReading(hasIG ? ig : null, hasLin ? lin : null, rot);
   }
 
   enableBtn.addEventListener('click', () => {
@@ -1583,7 +1672,7 @@
     isTestingPaused = false;
     testMarkerIndex = 0;
     testCrossingTriggerHistory = [];
-    liveDerivTracker = createDerivTracker();
+    testKf = null;
     
     testExerciseSelect.innerHTML = EXERCISES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
     updateTestExerciseSelection();
@@ -1593,17 +1682,17 @@
 
   function updateTestExerciseSelection(){
     testMarkerIndex = 0;
-    liveDerivTracker = createDerivTracker();
+    testKf = null;
     const activeEx = testExerciseSelect.value;
     const markerData = loadMarkerData();
     const mData = markerData[activeEx];
     
     if(mData && mData.markers && mData.markers.length > 0){
-      renderHudCheckpoints(mData.markers, 0);
+      renderHudCheckpoints(mData.markers, 0, 'test-checkpoints');
       testResultLabel.textContent = 'Ready';
       testResultConf.textContent = `Perform ${activeEx} motion...`;
     } else {
-      renderHudCheckpoints([], 0);
+      renderHudCheckpoints([], 0, 'test-checkpoints');
       testResultLabel.textContent = 'No Keyframes Set';
       testResultConf.textContent = 'Record demo in Training Hub first.';
     }
@@ -1620,7 +1709,7 @@
   testResetBtn.addEventListener('click', () => {
     testMarkerIndex = 0;
     testCrossingTriggerHistory = [];
-    liveDerivTracker = createDerivTracker();
+    testKf = null;
     updateTestExerciseSelection();
   });
 
@@ -1762,7 +1851,7 @@
 
     if(existing && existing.recording && existing.recording.length > 5){
       markerRecordBuffer = existing.recording;
-      editingMarkers = existing.markers || [];
+      editingMarkers = migrateMarkers(existing.markers || []);
 
       markerChartCard.style.display = 'block';
       trimCard.style.display = 'block';
@@ -1879,16 +1968,10 @@
       if(range > bestRange){ bestRange = range; dominant = axis; }
     });
 
-    // 2. Build slope series over dominant axis using the same short rolling window
-    //    logic as the live detector, so calibration matches runtime behavior.
-    const WINDOW = 4;
-    const slopes = [];
-    for(let i = 0; i < samples.length; i++){
-      const lo = Math.max(0, i - WINDOW + 1);
-      const windowSlice = samples.slice(lo, i + 1).map(s => s[dominant] || 0);
-      if(windowSlice.length < 2){ slopes.push(0); continue; }
-      slopes.push((windowSlice[windowSlice.length-1] - windowSlice[0]) / (windowSlice.length - 1));
-    }
+    // 2. Slope series over the dominant axis using the SAME time-window tracker as the
+    //    live detector (units/second), so calibration matches runtime behaviour on any phone.
+    const calTracker = createDerivTracker();
+    const slopes = samples.map(s => { pushDerivHistory(calTracker, s); return getSlope(calTracker, dominant); });
     const maxAbsSlope = slopes.reduce((m,v) => Math.max(m, Math.abs(v)), 0.0001);
     const rateFloor = maxAbsSlope * 0.18; // auto-tuned noise floor, ~18% of peak rate
 
@@ -1944,14 +2027,14 @@
         id: Date.now(),
         label: `Bottom / Start Reversal (${dominantMeta.label})`,
         conditions: [
-          { type: 'reversal', axis: dominant, kind: 'valley', rateFloor: parseFloat(rateFloor.toFixed(3)) }
+          { type: 'reversal', axis: dominant, kind: 'valley', rateFloor: parseFloat(rateFloor.toFixed(2)), rateUnits: 'perSec' }
         ]
       },
       {
         id: Date.now() + 1,
         label: `Top / End Reversal (${dominantMeta.label})`,
         conditions: [
-          { type: 'reversal', axis: dominant, kind: 'peak', rateFloor: parseFloat(rateFloor.toFixed(3)) }
+          { type: 'reversal', axis: dominant, kind: 'peak', rateFloor: parseFloat(rateFloor.toFixed(2)), rateUnits: 'perSec' }
         ]
       }
     ];
@@ -1970,25 +2053,22 @@
   }
 
   function simulateKeyframesOverBuffer(samples, markers){
-    // Run the same phase-tracker logic used live, over the static recorded buffer,
-    // so the preview accurately reflects reversal/crossing behavior (not just raw thresholds).
-    const tracker = createDerivTracker();
-    let hits = 0, mIdx = 0;
+    // Replay the recording through the exact engine used live, so the preview is truthful.
     const hitIdxs = [];
+    if(markers.length === 0) return { hits: 0, hitIdxs };
+    const engine = createKeyframeEngine(markers);
     for(let i = 0; i < samples.length; i++){
-      pushDerivHistory(tracker, samples[i]);
-      if(markers.length === 0) continue;
-      const targetKeyframe = markers[mIdx];
-      if(matchesKeyframe(samples[i], targetKeyframe, tracker)){
-        mIdx++;
-        if(mIdx >= markers.length){
-          hits++; mIdx = 0;
-          hitIdxs.push(i);
-        }
-      }
+      if(engine.update(samples[i]).rep) hitIdxs.push(i);
     }
-    return { hits, hitIdxs };
+    return { hits: hitIdxs.length, hitIdxs };
   }
+
+  // Test hook (read-only helpers) for headless verification — no effect on the app.
+  window.__repDropTest = {
+    createKeyframeEngine, migrateMarkers,
+    feed: (ig, lin, rot) => processSensorReading(ig, lin, rot),
+    lastSample: () => motionBuffer[motionBuffer.length - 1]
+  };
 
   function renderMarkerCanvas(){
     const canvas = markerCanvas;
@@ -2079,7 +2159,7 @@
     const axisLabel = (AXES[c.axis] && AXES[c.axis].label) || c.axis;
     if(c.type === 'reversal') return `${axisLabel} direction reversal (${c.kind === 'peak' ? 'top of motion' : 'bottom of motion'})`;
     if(c.type === 'crossing') return `${axisLabel} crosses ${(AXES[c.axisB]&&AXES[c.axisB].label)||c.axisB}`;
-    if(c.type === 'derivative') return `${axisLabel} rate of change ${c.dir === 'above' ? '≥' : '≤'} ${c.val}`;
+    if(c.type === 'derivative') return `${axisLabel} rate of change ${c.dir === 'above' ? '≥' : '≤'} ${c.val}/s`;
     return `${axisLabel} ${c.dir === 'above' ? '≥' : c.dir === 'below' ? '≤' : '≈'} ${c.val}`;
   }
 
@@ -2107,8 +2187,8 @@
               <option value="peak" ${c.kind==='peak'?'selected':''}>Peak (turns downward)</option>
               <option value="valley" ${c.kind==='valley'?'selected':''}>Valley (turns upward)</option>
             </select>
-            <span>sensitivity</span>
-            <input type="number" step="0.01" min="0" data-action="cond-ratefloor" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.rateFloor !== undefined ? c.rateFloor : 0.15}" style="width:55px;" title="Minimum rate of change to count as a real reversal">
+            <span>min rate/s</span>
+            <input type="number" step="0.5" min="0" data-action="cond-ratefloor" data-kidx="${kIdx}" data-cidx="${cIdx}" value="${c.rateFloor !== undefined ? c.rateFloor : 8}" style="width:55px;" title="Minimum rate of change (units per second) to count as real movement in a direction">
           `;
         } else if(type === 'crossing'){
           extraFieldsHtml = `
@@ -2187,7 +2267,7 @@
         el.addEventListener('click', () => { editingMarkers.splice(kIdx, 1); renderMarkerList(); renderMarkerCanvas(); });
       } else if(act === 'add-cond'){
         el.addEventListener('click', () => {
-          editingMarkers[kIdx].conditions.push({ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 0.15 });
+          editingMarkers[kIdx].conditions.push({ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 8, rateUnits: 'perSec' });
           renderMarkerList(); renderMarkerCanvas();
         });
       } else if(act === 'del-cond'){
@@ -2201,11 +2281,11 @@
           const cond = editingMarkers[kIdx].conditions[cIdx];
           const axis = cond.axis || 'pitch';
           if(newType === 'reversal'){
-            editingMarkers[kIdx].conditions[cIdx] = { type: 'reversal', axis, kind: 'peak', rateFloor: 0.15 };
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'reversal', axis, kind: 'peak', rateFloor: 8, rateUnits: 'perSec' };
           } else if(newType === 'crossing'){
             editingMarkers[kIdx].conditions[cIdx] = { type: 'crossing', axis, axisB: axis === 'roll' ? 'pitch' : 'roll', direction: 'either' };
           } else if(newType === 'derivative'){
-            editingMarkers[kIdx].conditions[cIdx] = { type: 'derivative', axis, dir: 'above', val: 1 };
+            editingMarkers[kIdx].conditions[cIdx] = { type: 'derivative', axis, dir: 'above', val: 30, rateUnits: 'perSec' };
           } else {
             editingMarkers[kIdx].conditions[cIdx] = { type: 'threshold', axis, dir: 'above', val: 20, margin: 3 };
           }
@@ -2233,7 +2313,7 @@
     editingMarkers.push({
       id: Date.now(),
       label: "Custom Keyframe",
-      conditions: [{ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 0.15 }]
+      conditions: [{ type: 'reversal', axis: 'pitch', kind: 'peak', rateFloor: 8, rateUnits: 'perSec' }]
     });
     renderMarkerList(); renderMarkerCanvas();
   });
