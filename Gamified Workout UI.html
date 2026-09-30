@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FitQuest - Gamified Workout</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Strict 3-Color Palette
+                        // 1. Dark Base / Slate (#0b0f19)
+                        // 2. Neon Accent / Amber-Orange (#ff5e00)
+                        // 3. Off-White / Crisp Light (#f3f4f6)
+                        'app-bg': '#0b0f19',
+                        'app-card': '#141a29',
+                        'app-card-border': '#1e293b',
+                        'app-accent': '#ff5e00',
+                        'app-accent-glow': 'rgba(255, 94, 0, 0.35)',
+                        'app-text': '#f3f4f6',
+                        'app-muted': '#94a3b8',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Neon Glow Utility */
+        .glow-accent {
+            box-shadow: 0 0 20px rgba(255, 94, 0, 0.4);
+        }
+        .glow-accent-sm {
+            box-shadow: 0 0 10px rgba(255, 94, 0, 0.25);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(255, 94, 0, 0.6);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff5e00;
+        }
+
+        /* Glassmorphism Effect using strict colors */
+        .glass-panel {
+            background: rgba(20, 26, 41, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 94, 0, 0.15);
+        }
+
+        /* Skill Tree Connecting Lines */
+        .skill-node {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Confetti Canvas Container */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 15px #ff5e00); }
+        }
+
+        .boss-pulse {
+            animation: pulseGlow 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen bg-black sm:py-4">
+
+    <!-- Particle Canvas for Level Up / Quest Rewards -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- App Container Frame -->
+    <div id="appContainer" class="w-full max-w-md h-screen sm:h-[880px] bg-app-bg text-app-text flex flex-col relative sm:rounded-[36px] border border-app-card-border overflow-hidden shadow-2xl">
+        
+        <header class="p-5 pb-3 flex items-center justify-between z-10 glass-panel border-b border-app-card-border">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <div class="w-11 h-11 rounded-full border-2 border-app-accent flex items-center justify-center bg-app-card glow-accent-sm overflow-hidden">
+                        <i class="fa-solid font-black text-app-accent text-xl">⚔️</i>
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 bg-app-accent text-black font-extrabold text-[10px] px-1.5 py-0.5 rounded-full uppercase" id="headerLevelBadge">LVL 14</span>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base leading-tight tracking-wide flex items-center gap-1.5">
+                        VALKYRIE-9
+                        <i class="fa-solid fa-circle-check text-app-accent text-xs" title="Verified Champion"></i>
+                    </h1>
+                    <p class="text-xs text-app-muted flex items-center gap-1">
+                        <i class="fa-solid fa-trophy text-app-accent text-[10px]"></i>
+                        <span id="headerLeague">Iron Gladiators</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Action / Audio Toggle & Currency Counter -->
+            <div class="flex items-center space-x-2">
+                <div class="flex items-center bg-app-card border border-app-card-border px-2.5 py-1 rounded-full text-xs font-bold text-app-accent">
+                    <i class="fa-solid fa-coins mr-1.5 text-app-accent"></i>
+                    <span id="coinCount">1,850</span>
+                </div>
+                <button id="audioToggleBtn" onclick="toggleAudio()" class="w-9 h-9 rounded-full bg-app-card border border-app-card-border flex items-center justify-center text-app-muted hover:text-app-accent transition-colors">
+                    <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="mainScroll" class="flex-1 overflow-y-auto px-4 py-4 space-y-5 pb-24">
+            
+            <!-- TAB 1: DASHBOARD / HUB -->
+            <section id="tab-dashboard" class="space-y-5">
+                
+                <!-- Hero Character & Level Progress Card -->
+                <div class="glass-panel p-5 rounded-3xl relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-app-accent opacity-10 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-app-muted">Current Rank</span>
+                            <h2 class="text-xl font-black text-app-accent text-glow" id="userTitle">TITAN CONQUEROR</h2>
+                        </div>
+                        <div class="bg-app-accent/20 border border-app-accent text-app-accent px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 glow-accent-sm">
+                            <i class="fa-solid fa-fire text-app-accent"></i>
+                            <span id="streakDays">12 Day Streak</span>
+                        </div>
+                    </div>
+
+                    <!-- Level & XP Bar -->
+                    <div class="space-y-1.5 mt-2">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span class="text-app-text">Level Progress</span>
+                            <span class="text-app-accent" id="xpText">2,450 / 3,000 XP</span>
+                        </div>
+                        <div class="w-full bg-app-card border border-app-card-border h-3.5 rounded-full p-0.5 relative overflow-hidden">
+                            <div id="xpProgressBar" class="bg-app-accent h-full rounded-full transition-all duration-500 glow-accent-sm" style="width: 81%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stamina / Mana Bar -->
+                    <div class="space-y-1 mt-3">
+                        <div class="flex justify-between text-[11px] font-semibold text-app-muted">
+                            <span class="flex items-center gap-1"><i class="fa-solid fa-bolt text-app-accent"></i> Energy Stamina</span>
+                            <span id="staminaText">85 / 100</span>
+                        </div>
+                        <div class="w-full bg-app-card h-1.5 rounded-full overflow-hidden">
+                            <div id="staminaBar" class="bg-app-accent opacity-80 h-full rounded-full transition-all duration-300" style="width: 85%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gamified Stats Overview Grid -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-app-card border border-app-card-border p-3.5 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <i class="fa-solid fa-dumbbell text-app-accent text-lg mb-1"></i>
+                        <span class="text-lg font-extrabold text-app-text" id="statWorkouts">48</span>
+                        <span class="text-[10px] text-app-muted font-medium uppercase">Workouts</span>
+                    </div>
+                    <div class="bg-app-card border border-app-card-border p-3.5 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <i class="fa-solid fa-fire-flame-curved text-app-accent text-lg mb-1"></i>
+                        <span class="text-lg font-extrabold text-app-text" id="statCalories">14.2k</span>
+                        <span class="text-[10px] text-app-muted font-medium uppercase">Kcal Burned</span>
+                    </div>
+                    <div class="bg-app-card border border-app-card-border p-3.5 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <i class="fa-solid fa-shield-halved text-app-accent text-lg mb-1"></i>
+                        <span class="text-lg font-extrabold text-app-text" id="statQuests">112</span>
+                        <span class="text-[10px] text-app-muted font-medium uppercase">Quests Done</span>
+                    </div>
+                </div>
+
+                <!-- Daily Boss Challenge Preview Banner -->
+                <div class="bg-app-card border border-app-accent/40 rounded-3xl p-4 relative overflow-hidden flex items-center justify-between">
+                    <div class="space-y-1 z-10 max-w-[65%]">
+                        <div class="flex items-center space-x-1.5 text-app-accent text-xs font-extrabold uppercase">
+                            <i class="fa-solid fa-skull"></i>
+                            <span>Daily Boss Challenge</span>
+                        </div>
+                        <h3 class="font-black text-lg text-app-text leading-tight">THE IRON BEHEMOTH</h3>
+                        <p class="text-xs text-app-muted">Deal 500 damage today using bodyweight reps!</p>
+                        <button onclick="switchTab('workouts')" class="mt-2 px-4 py-1.5 bg-app-accent text-black font-extrabold text-xs rounded-full hover:bg-white transition-colors glow-accent-sm">
+                            FIGHT NOW
+                        </button>
+                    </div>
+                    <div class="w-24 h-24 flex items-center justify-center text-6xl text-app-accent opacity-90 boss-pulse">
+                        👹
+                    </div>
+                </div>
+
+                <!-- Active Quests Quick Preview -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="font-extrabold text-sm uppercase tracking-wider text-app-text">Daily Quests</h3>
+                        <button onclick="switchTab('quests')" class="text-xs text-app-accent font-bold hover:underline">View All</button>
+                    </div>
+                    <div id="dashboardQuestPreview" class="space-y-2">
+                        <!-- Rendered via JavaScript -->
+                    </div>
+                </div>
+
+            </section>
+
+            <section id="tab-quests" class="space-y-4 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-black text-app-text">QUEST BOARD</h2>
+                        <p class="text-xs text-app-muted">Complete daily challenges to earn XP and Gold</p>
+                    </div>
+                    <span class="bg-app-accent/10 border border-app-accent text-app-accent text-xs font-bold px-3 py-1 rounded-full">
+                        Resets in 8h
+                    </span>
+                </div>
+
+                <!-- Quest Filter Tabs -->
+                <div class="flex space-x-2 border-b border-app-card-border pb-2">
+                    <button class="px-3 py-1.5 rounded-xl bg-app-accent text-black font-bold text-xs">Daily</button>
+                    <button class="px-3 py-1.5 rounded-xl bg-app-card border border-app-card-border text-app-muted font-bold text-xs">Weekly</button>
+                    <button class="px-3 py-1.5 rounded-xl bg-app-card border border-app-card-border text-app-muted font-bold text-xs">Achievements</button>
+                </div>
+
+                <!-- Quest List -->
+                <div id="fullQuestList" class="space-y-3">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </section>
+
+            <section id="tab-workouts" class="space-y-5 hidden">
+                <div>
+                    <h2 class="text-xl font-black text-app-text">WORKOUT ARENA</h2>
+                    <p class="text-xs text-app-muted">Select an exercise mode or engage in Boss Combat</p>
+                </div>
+
+                <!-- Boss Combat Simulator Card -->
+                <div class="glass-panel border-2 border-app-accent rounded-3xl p-5 text-center relative overflow-hidden">
+                    <span class="bg-app-accent text-black font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">ACTIVE RAID</span>
+                    <h3 class="text-2xl font-black text-app-text mt-2" id="bossName">THE COUCH POTATO MONSTER</h3>
+                    <p class="text-xs text-app-muted mb-4">Each exercise rep deals direct damage to the boss!</p>
+                    
+                    <!-- Boss HP Bar -->
+                    <div class="space-y-1 mb-4">
+                        <div class="flex justify-between text-xs font-extrabold">
+                            <span class="text-app-accent"><i class="fa-solid fa-heart-pulse mr-1"></i> BOSS HP</span>
+                            <span id="bossHpText" class="text-app-text">350 / 500 HP</span>
+                        </div>
+                        <div class="w-full bg-app-card border border-app-card-border h-4 rounded-full p-0.5 overflow-hidden">
+                            <div id="bossHpBar" class="bg-app-accent h-full rounded-full transition-all duration-300 glow-accent" style="width: 70%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center items-center py-4">
+                        <div id="bossAvatar" class="text-7xl boss-pulse transition-transform active:scale-95 cursor-pointer" onclick="attackBoss(10)">
+                            👾
+                        </div>
+                    </div>
+
+                    <button onclick="openWorkoutSession('Boss Encounter', 'Pushups & Squats', 100)" class="w-full py-3 bg-app-accent text-black font-black rounded-2xl text-sm uppercase tracking-wider hover:bg-white transition-all glow-accent">
+                        <i class="fa-solid fa-sword mr-2"></i> ATTACK WITH REPS
+                    </button>
+                </div>
+
+                <!-- Available Workout Routines Grid -->
+                <h3 class="font-extrabold text-sm uppercase tracking-wider text-app-text pt-2">Training Modes</h3>
+                <div class="space-y-3">
+                    
+                    <div onclick="openWorkoutSession('Iron Core Assault', 'Core & Abs', 150)" class="bg-app-card border border-app-card-border hover:border-app-accent p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all">
+                        <div class="flex items-center space-x-3.5">
+                            <div class="w-12 h-12 rounded-xl bg-app-accent/10 border border-app-accent flex items-center justify-center text-app-accent text-xl">
+                                <i class="fa-solid fa-shield-heart"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-base text-app-text">Iron Core Assault</h4>
+                                <p class="text-xs text-app-muted">15 Mins • High Intensity • +150 XP</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-app-muted text-sm"></i>
+                    </div>
+
+                    <div onclick="openWorkoutSession('Titan Legs Workout', 'Lower Body', 200)" class="bg-app-card border border-app-card-border hover:border-app-accent p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all">
+                        <div class="flex items-center space-x-3.5">
+                            <div class="w-12 h-12 rounded-xl bg-app-accent/10 border border-app-accent flex items-center justify-center text-app-accent text-xl">
+                                <i class="fa-solid fa-person-running"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-base text-app-text">Titan Legs Workout</h4>
+                                <p class="text-xs text-app-muted">20 Mins • Strength • +200 XP</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-app-muted text-sm"></i>
+                    </div>
+
+                    <div onclick="openWorkoutSession('Hyper Cardio Blitz', 'Cardio Burn', 250)" class="bg-app-card border border-app-card-border hover:border-app-accent p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all">
+                        <div class="flex items-center space-x-3.5">
+                            <div class="w-12 h-12 rounded-xl bg-app-accent/10 border border-app-accent flex items-center justify-center text-app-accent text-xl">
+                                <i class="fa-solid fa-bolt-lightning"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-base text-app-text">Hyper Cardio Blitz</h4>
+                                <p class="text-xs text-app-muted">25 Mins • Endurance • +250 XP</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-app-muted text-sm"></i>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="tab-skills" class="space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-black text-app-text">SKILL TREE</h2>
+                        <p class="text-xs text-app-muted">Spend Skill Points to unlock passive buffs</p>
+                    </div>
+                    <div class="bg-app-card border border-app-accent px-3 py-1 rounded-full text-xs font-black text-app-accent">
+                        <span id="skillPointsCount">3</span> SP Available
+                    </div>
+                </div>
+
+                <!-- Interactive Skill Tree Node Web -->
+                <div class="bg-app-card border border-app-card-border rounded-3xl p-6 relative flex flex-col items-center justify-center space-y-8 overflow-hidden">
+                    
+                    <!-- Line connections rendered via SVG backdrop -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none stroke-app-card-border" stroke-width="3">
+                        <line x1="50%" y1="20%" x2="25%" y2="50%" />
+                        <line x1="50%" y1="20%" x2="75%" y2="50%" />
+                        <line x1="25%" y1="50%" x2="50%" y2="80%" />
+                        <line x1="75%" y1="50%" x2="50%" y2="80%" />
+                    </svg>
+
+                    <!-- Skill Node Tier 1 -->
+                    <div class="z-10 text-center">
+                        <button onclick="toggleSkill('skill1')" id="skill1" class="skill-node w-16 h-16 rounded-2xl bg-app-accent text-black font-black text-2xl flex items-center justify-center glow-accent border-2 border-white mx-auto">
+                            <i class="fa-solid fa-bolt"></i>
+                        </button>
+                        <p class="text-xs font-bold text-app-text mt-1.5">Stamina Surge</p>
+                        <p class="text-[10px] text-app-accent font-semibold">+15 Max Stamina (Unlocked)</p>
+                    </div>
+
+                    <!-- Skill Node Tier 2 -->
+                    <div class="z-10 flex justify-between w-full px-6">
+                        <div class="text-center">
+                            <button onclick="toggleSkill('skill2')" id="skill2" class="skill-node w-14 h-14 rounded-2xl bg-app-card border-2 border-app-accent text-app-accent font-black text-xl flex items-center justify-center mx-auto hover:bg-app-accent/20">
+                                <i class="fa-solid fa-fire"></i>
+                            </button>
+                            <p class="text-xs font-bold text-app-text mt-1">XP Multiplier</p>
+                            <p class="text-[10px] text-app-muted font-semibold">+10% XP Gain (1 SP)</p>
+                        </div>
+                        <div class="text-center">
+                            <button onclick="toggleSkill('skill3')" id="skill3" class="skill-node w-14 h-14 rounded-2xl bg-app-card border-2 border-app-card-border text-app-muted font-black text-xl flex items-center justify-center mx-auto hover:border-app-accent">
+                                <i class="fa-solid fa-shield-cat"></i>
+                            </button>
+                            <p class="text-xs font-bold text-app-text mt-1">Iron Armor</p>
+                            <p class="text-[10px] text-app-muted font-semibold">-15% Boss Damage (2 SP)</p>
+                        </div>
+                    </div>
+
+                    <!-- Skill Node Tier 3 (Mastery) -->
+                    <div class="z-10 text-center">
+                        <button onclick="toggleSkill('skill4')" id="skill4" class="skill-node w-16 h-16 rounded-2xl bg-app-card border-2 border-app-card-border text-app-muted font-black text-2xl flex items-center justify-center mx-auto hover:border-app-accent">
+                            <i class="fa-solid fa-crown"></i>
+                        </button>
+                        <p class="text-xs font-bold text-app-text mt-1.5">Titan Ascendancy</p>
+                        <p class="text-[10px] text-app-muted font-semibold">Unlock Golden Aura (3 SP)</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="tab-profile" class="space-y-4 hidden">
+                <div class="text-center space-y-2 py-2">
+                    <div class="w-24 h-24 rounded-full border-4 border-app-accent bg-app-card flex items-center justify-center mx-auto text-4xl text-app-accent glow-accent">
+                        ⚔️
+                    </div>
+                    <h2 class="text-2xl font-black text-app-text">VALKYRIE-9</h2>
+                    <p class="text-xs text-app-accent font-bold uppercase tracking-widest">Master Gladiator • Level 14</p>
+                </div>
+
+                <!-- Badges Showcase -->
+                <div class="bg-app-card border border-app-card-border rounded-2xl p-4 space-y-3">
+                    <h3 class="font-extrabold text-xs uppercase text-app-muted tracking-wider">Unlocked Badges</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="p-2.5 bg-app-bg border border-app-accent/40 rounded-xl text-center" title="First Boss Defeated">
+                            <div class="text-2xl">🥇</div>
+                            <span class="text-[9px] text-app-muted font-bold block mt-1">Slayer</span>
+                        </div>
+                        <div class="p-2.5 bg-app-bg border border-app-accent/40 rounded-xl text-center" title="10 Day Streak">
+                            <div class="text-2xl">🔥</div>
+                            <span class="text-[9px] text-app-muted font-bold block mt-1">On Fire</span>
+                        </div>
+                        <div class="p-2.5 bg-app-bg border border-app-accent/40 rounded-xl text-center" title="Core Master">
+                            <div class="text-2xl">💎</div>
+                            <span class="text-[9px] text-app-muted font-bold block mt-1">Iron Core</span>
+                        </div>
+                        <div class="p-2.5 bg-app-bg border border-app-card-border opacity-40 rounded-xl text-center" title="Locked Badge">
+                            <div class="text-2xl">🔒</div>
+                            <span class="text-[9px] text-app-muted font-bold block mt-1">Locked</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings / Reset Progress -->
+                <div class="pt-2">
+                    <button onclick="resetData()" class="w-full py-3 bg-app-card border border-app-card-border text-app-muted hover:text-app-accent hover:border-app-accent font-bold rounded-2xl text-xs uppercase tracking-wider transition-all">
+                        Reset Game Progress
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <div id="workoutModal" class="absolute inset-0 bg-app-bg/95 backdrop-blur-md z-50 flex flex-col justify-between p-6 hidden">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-black uppercase text-app-accent tracking-widest">Active Workout</span>
+                <button onclick="closeWorkoutSession()" class="text-app-muted hover:text-app-text text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="text-center space-y-4 my-auto">
+                <h2 id="modalWorkoutTitle" class="text-2xl font-black text-app-text uppercase tracking-wide">IRON CORE ASSAULT</h2>
+                <p id="modalWorkoutSubtitle" class="text-xs text-app-muted">Perform Reps to finish the session</p>
+
+                <!-- Rep Counter Circle -->
+                <div class="w-48 h-48 rounded-full border-4 border-app-accent bg-app-card flex flex-col items-center justify-center mx-auto my-6 glow-accent">
+                    <span id="repCounterText" class="text-6xl font-black text-app-text">0</span>
+                    <span class="text-xs font-extrabold text-app-accent uppercase tracking-wider mt-1">REPETITIONS</span>
+                </div>
+
+                <div class="flex justify-center space-x-3">
+                    <button onclick="incrementRep(1)" class="px-6 py-3 bg-app-accent text-black font-black text-lg rounded-2xl hover:bg-white transition-transform active:scale-95 glow-accent">
+                        +1 REP
+                    </button>
+                    <button onclick="incrementRep(10)" class="px-6 py-3 bg-app-card border border-app-accent text-app-accent font-black text-lg rounded-2xl hover:bg-app-accent/20 transition-transform active:scale-95">
+                        +10 REPS
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="finishWorkoutSession()" class="w-full py-4 bg-app-accent text-black font-black text-sm uppercase rounded-2xl tracking-wider hover:bg-white transition-all glow-accent">
+                COMPLETE WORKOUT
+            </button>
+        </div>
+
+        <nav class="absolute bottom-0 left-0 right-0 h-20 glass-panel border-t border-app-card-border px-4 flex justify-between items-center z-20">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex flex-col items-center justify-center text-app-accent w-16 h-full transition-all">
+                <i class="fa-solid fa-house text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">Hub</span>
+            </button>
+            <button onclick="switchTab('quests')" id="nav-quests" class="flex flex-col items-center justify-center text-app-muted hover:text-app-text w-16 h-full transition-all">
+                <i class="fa-solid fa-scroll text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">Quests</span>
+            </button>
+            <button onclick="switchTab('workouts')" id="nav-workouts" class="flex flex-col items-center justify-center text-app-muted hover:text-app-text w-16 h-full transition-all">
+                <i class="fa-solid fa-dumbbell text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">Arena</span>
+            </button>
+            <button onclick="switchTab('skills')" id="nav-skills" class="flex flex-col items-center justify-center text-app-muted hover:text-app-text w-16 h-full transition-all">
+                <i class="fa-solid fa-sitemap text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">Skills</span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="flex flex-col items-center justify-center text-app-muted hover:text-app-text w-16 h-full transition-all">
+                <i class="fa-solid fa-user-ninja text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">Profile</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <script>
+        /* Global App State */
+        const state = {
+            level: 14,
+            xp: 2450,
+            xpRequired: 3000,
+            coins: 1850,
+            streak: 12,
+            stamina: 85,
+            maxStamina: 100,
+            stats: {
+                workouts: 48,
+                calories: 14.2,
+                questsCompleted: 112
+            },
+            boss: {
+                name: "THE COUCH POTATO MONSTER",
+                hp: 350,
+                maxHp: 500
+            },
+            skills: {
+                skill1: true,
+                skill2: false,
+                skill3: false,
+                skill4: false
+            },
+            skillPoints: 3,
+            quests: [
+                { id: 1, title: "Complete 50 Pushups", rewardXp: 150, rewardCoins: 50, completed: false },
+                { id: 2, title: "Burn 300 kcal Active", rewardXp: 200, rewardCoins: 80, completed: true },
+                { id: 3, title: "Finish a 20-min HIIT Session", rewardXp: 250, rewardCoins: 100, completed: false },
+                { id: 4, title: "Attack Boss 3 Times", rewardXp: 100, rewardCoins: 40, completed: false }
+            ],
+            audioMuted: false,
+            currentSessionXp: 0,
+            currentReps: 0
+        };
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (state.audioMuted) return;
+            if (!audioCtx) audioCtx = new AudioContext();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'complete') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.08);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+        }
+
+        function toggleAudio() {
+            state.audioMuted = !state.audioMuted;
+            const icon = document.getElementById('audioIcon');
+            if (state.audioMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-app-muted';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-app-accent';
+                playSound('click');
+            }
+        }
+
+        function switchTab(tabId) {
+            playSound('click');
+            const tabs = ['dashboard', 'quests', 'workouts', 'skills', 'profile'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    el.classList.remove('hidden');
+                    navBtn.className = 'flex flex-col items-center justify-center text-app-accent w-16 h-full transition-all';
+                } else {
+                    el.classList.add('hidden');
+                    navBtn.className = 'flex flex-col items-center justify-center text-app-muted hover:text-app-text w-16 h-full transition-all';
+                }
+            });
+        }
+
+        function renderQuests() {
+            const previewContainer = document.getElementById('dashboardQuestPreview');
+            const fullContainer = document.getElementById('fullQuestList');
+
+            previewContainer.innerHTML = '';
+            fullContainer.innerHTML = '';
+
+            state.quests.forEach((q, idx) => {
+                const questHtml = `
+                    <div class="bg-app-card border border-app-card-border hover:border-app-accent/50 p-3.5 rounded-2xl flex items-center justify-between transition-all">
+                        <div class="flex items-center space-x-3">
+                            <button onclick="toggleQuest(${q.id})" class="w-6 h-6 rounded-lg border-2 ${q.completed ? 'bg-app-accent border-app-accent text-black' : 'border-app-card-border text-transparent'} flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-check text-xs"></i>
+                            </button>
+                            <div>
+                                <span class="text-xs font-extrabold ${q.completed ? 'line-through text-app-muted' : 'text-app-text'} block">${q.title}</span>
+                                <span class="text-[10px] text-app-accent font-semibold">+${q.rewardXp} XP • +${q.rewardCoins} Coins</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                fullContainer.insertAdjacentHTML('beforeend', questHtml);
+                if (idx < 2) {
+                    previewContainer.insertAdjacentHTML('beforeend', questHtml);
+                }
+            });
+        }
+
+        function toggleQuest(id) {
+            const quest = state.quests.find(q => q.id === id);
+            if (quest) {
+                quest.completed = !quest.completed;
+                if (quest.completed) {
+                    playSound('complete');
+                    addXp(quest.rewardXp);
+                    state.coins += quest.rewardCoins;
+                    state.stats.questsCompleted += 1;
+                    triggerConfetti();
+                }
+                updateUI();
+            }
+        }
+
+        function attackBoss(damage) {
+            if (state.boss.hp <= 0) return;
+            
+            playSound('hit');
+            state.boss.hp = Math.max(0, state.boss.hp - damage);
+            
+            // Screen vibration effect on boss avatar
+            const avatar = document.getElementById('bossAvatar');
+            avatar.classList.add('scale-125');
+            setTimeout(() => avatar.classList.remove('scale-125'), 150);
+
+            if (state.boss.hp === 0) {
+                playSound('complete');
+                triggerConfetti();
+                addXp(300);
+                setTimeout(() => {
+                    alert("🎉 BOSS DEFEATED! You earned +300 XP!");
+                    state.boss.hp = state.boss.maxHp;
+                    updateUI();
+                }, 300);
+            }
+            updateUI();
+        }
+
+        function toggleSkill(skillId) {
+            playSound('click');
+            if (state.skills[skillId]) return; // Already unlocked
+
+            const skillCosts = { skill2: 1, skill3: 2, skill4: 3 };
+            const cost = skillCosts[skillId] || 1;
+
+            if (state.skillPoints >= cost) {
+                state.skillPoints -= cost;
+                state.skills[skillId] = true;
+                
+                const btn = document.getElementById(skillId);
+                btn.className = "skill-node w-14 h-14 rounded-2xl bg-app-accent text-black font-black text-xl flex items-center justify-center mx-auto glow-accent border-2 border-white";
+                
+                triggerConfetti();
+                updateUI();
+            } else {
+                alert("Not enough Skill Points!");
+            }
+        }
+
+        function openWorkoutSession(title, subtitle, xpReward) {
+            playSound('click');
+            state.currentSessionXp = xpReward;
+            state.currentReps = 0;
+            document.getElementById('modalWorkoutTitle').innerText = title;
+            document.getElementById('modalWorkoutSubtitle').innerText = subtitle;
+            document.getElementById('repCounterText').innerText = "0";
+            document.getElementById('workoutModal').classList.remove('hidden');
+        }
+
+        function closeWorkoutSession() {
+            playSound('click');
+            document.getElementById('workoutModal').classList.add('hidden');
+        }
+
+        function incrementRep(amount) {
+            playSound('hit');
+            state.currentReps += amount;
+            document.getElementById('repCounterText').innerText = state.currentReps;
+            attackBoss(amount * 2);
+        }
+
+        function finishWorkoutSession() {
+            playSound('complete');
+            addXp(state.currentSessionXp);
+            state.stats.workouts += 1;
+            state.stats.calories += parseFloat((state.currentReps * 0.4).toFixed(1));
+            triggerConfetti();
+            closeWorkoutSession();
+            updateUI();
+        }
+
+        function addXp(amount) {
+            state.xp += amount;
+            if (state.xp >= state.xpRequired) {
+                state.level += 1;
+                state.xp -= state.xpRequired;
+                state.xpRequired = Math.floor(state.xpRequired * 1.25);
+                state.skillPoints += 1;
+                triggerConfetti();
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            // Header
+            document.getElementById('headerLevelBadge').innerText = `LVL ${state.level}`;
+            document.getElementById('coinCount').innerText = state.coins.toLocaleString();
+
+            // Hero Card
+            document.getElementById('streakDays').innerText = `${state.streak} Day Streak`;
+            document.getElementById('xpText').innerText = `${state.xp} / ${state.xpRequired} XP`;
+            const xpPct = Math.min(100, Math.floor((state.xp / state.xpRequired) * 100));
+            document.getElementById('xpProgressBar').style.width = `${xpPct}%`;
+
+            document.getElementById('staminaText').innerText = `${state.stamina} / ${state.maxStamina}`;
+            document.getElementById('staminaBar').style.width = `${(state.stamina / state.maxStamina) * 100}%`;
+
+            // Stats
+            document.getElementById('statWorkouts').innerText = state.stats.workouts;
+            document.getElementById('statCalories').innerText = `${state.stats.calories.toFixed(1)}k`;
+            document.getElementById('statQuests').innerText = state.stats.questsCompleted;
+
+            // Boss
+            document.getElementById('bossName').innerText = state.boss.name;
+            document.getElementById('bossHpText').innerText = `${state.boss.hp} / ${state.boss.maxHp} HP`;
+            const bossHpPct = Math.min(100, Math.floor((state.boss.hp / state.boss.maxHp) * 100));
+            document.getElementById('bossHpBar').style.width = `${bossHpPct}%`;
+
+            // Skill Points
+            document.getElementById('skillPointsCount').innerText = state.skillPoints;
+
+            renderQuests();
+        }
+
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerConfetti() {
+            for (let i = 0; i < 60; i++) {
+                particles.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12 - 4,
+                    size: Math.random() * 6 + 4,
+                    color: '#ff5e00',
+                    alpha: 1
+                });
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // Gravity
+                p.alpha -= 0.02;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                ctx.restore();
+
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        function resetData() {
+            if (confirm("Reset all game stats?")) {
+                location.reload();
+            }
+        }
+
+        // Initialize App on window load
+        window.onload = function() {
+            updateUI();
+        };
+    </script>
+</body>
+</html>
