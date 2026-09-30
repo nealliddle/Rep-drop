@@ -498,6 +498,7 @@
     <div class="card">
       <div class="exercise-row"><b>Live Oscilloscope Stream</b><span id="test-live-fps" style="font-size:0.75rem;">LIVE</span></div>
       <div class="series-toggles" id="test-series-toggles" style="margin-top:8px;">
+        <div class="toggle-chip active" data-series="progress"><span class="toggle-dot" style="background:var(--ink);"></span>Progress</div>
         <div class="toggle-chip active" data-series="pitch"><span class="toggle-dot" style="background:var(--pitch-clr);"></span>Pitch</div>
         <div class="toggle-chip active" data-series="roll"><span class="toggle-dot" style="background:var(--roll-clr);"></span>Roll</div>
         <div class="toggle-chip active" data-series="yaw"><span class="toggle-dot" style="background:var(--yaw-clr);"></span>Yaw</div>
@@ -542,12 +543,13 @@
         </button>
         <button class="ghost" id="marker-clear-rec-btn" style="width:auto;padding:0 12px;display:none;">Clear</button>
       </div>
-      <div id="marker-rec-status" style="margin-top:6px;font-size:0.78rem;color:var(--ink-dim);">Tap to record 1–2 reps naturally</div>
+      <div id="marker-rec-status" style="margin-top:6px;font-size:0.78rem;color:var(--ink-dim);">Tap to record 3–5 reps, then enter how many you did</div>
     </div>
 
     <!-- Canvas Graph Card -->
     <div class="card" id="marker-chart-card" style="display:none;">
       <div class="series-toggles" id="marker-series-toggles">
+        <div class="toggle-chip active" data-series="progress"><span class="toggle-dot" style="background:var(--ink);"></span>Progress</div>
         <div class="toggle-chip active" data-series="x"><span class="toggle-dot" style="background:var(--accent);"></span>X</div>
         <div class="toggle-chip active" data-series="y"><span class="toggle-dot" style="background:var(--good);"></span>Y</div>
         <div class="toggle-chip active" data-series="z"><span class="toggle-dot" style="background:var(--hazard);"></span>Z</div>
@@ -593,6 +595,29 @@
       </button>
     </div>
 
+    <!-- Rep detection: calibrate to the user's own rep count -->
+    <div class="card" id="calib-card" style="display:none;">
+      <div class="exercise-row"><b>Rep Detection</b><span id="calib-verdict" style="font-weight:700;"></span></div>
+      <div class="slider-row" style="margin-top:8px;">
+        <label for="calib-reps" style="font-size:0.82rem;flex:1;">Reps you did in this recording</label>
+        <input type="number" id="calib-reps" class="select-input" min="1" max="50" step="1" value="4" style="width:72px;">
+      </div>
+      <div class="slider-row" style="margin-top:8px;">
+        <label for="calib-mode" style="font-size:0.82rem;min-width:58px;">Method</label>
+        <select id="calib-mode" class="select-input">
+          <option value="zones">Zones: auto (recommended)</option>
+          <option value="keyframes">Custom keyframes: advanced</option>
+        </select>
+      </div>
+      <p id="calib-help" style="font-size:0.75rem;color:var(--ink-dim);margin:6px 0 8px;"></p>
+      <button class="ghost" id="calib-btn" style="background:var(--bg);font-weight:600;width:100%;">
+        <svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+        Auto-Calibrate to My Rep Count
+      </button>
+      <div id="calib-info" class="fine-print" style="margin-top:6px;text-align:left;"></div>
+    </div>
+    <div id="zone-editor" style="display:none;"></div>
+
     <!-- Automated Line Crossing Keyframe Generator -->
     <div class="card" id="auto-key-card" style="display:none;">
       <div class="exercise-row"><b>Auto-Calibrated Motion Keyframes</b></div>
@@ -609,7 +634,7 @@
 
     <div id="marker-actions" style="display:none;">
       <button class="ghost" id="marker-add-btn">+ Add Custom Keyframe Step</button>
-      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Keyframes &amp; Settings</button>
+      <button class="primary" id="marker-save-btn" style="margin-top:8px;">Save Rep Detection</button>
       <button class="ghost" id="marker-back-btn" style="margin-top:8px;">Back to Hub</button>
     </div>
   </div>
@@ -1146,12 +1171,13 @@
     catch(e) { return {}; }
   }
   function saveMarkerData(m){
-    try { localStorage.setItem('repdrop_marker_data', JSON.stringify(m)); } catch(e){}
+    try { localStorage.setItem('repdrop_marker_data', JSON.stringify(m)); return true; }
+    catch(e){ alert('Could not save — phone storage is full. Clear an old exercise and try again.'); return false; }
   }
 
   function getGamePool(){
     const markerData = loadMarkerData();
-    const trained = EXERCISES.filter(e => markerData[e.name] && markerData[e.name].markers && markerData[e.name].markers.length > 0);
+    const trained = EXERCISES.filter(e => createDetectorFor(markerData[e.name]));
     return trained.length > 0 ? trained : EXERCISES;
   }
 
@@ -1199,8 +1225,8 @@
     
     const markerData = loadMarkerData();
     const exMarkerObj = markerData[ex.name];
-    state.markers = (exMarkerObj && exMarkerObj.markers && exMarkerObj.markers.length) ? migrateMarkers(exMarkerObj.markers) : null;
-    state.kf = state.markers ? createKeyframeEngine(state.markers) : null;
+    state.kf = createDetectorFor(exMarkerObj);
+    state.markers = state.kf ? stepDots(state.kf.steps) : null;
     state.repDebounce = 250;
     state.fallDuration = state.baseFallDuration * Math.max(0.6, 1 - state.score * 0.04);
     
@@ -1298,6 +1324,9 @@
   // a heavy low-pass of acceleration-including-gravity (~0.2s time constant at 60Hz).
   const GRAVITY_ALPHA = 0.08;
   let gravityLP = null;
+  // "Height" signal: vertical linear acceleration, leaky-double-integrated (high-passed)
+  const HEIGHT_LEAK_S = 3.0;
+  let vertVel = 0, vertPos = 0, lastSampleT = 0;
   let checkLastRepTime = 0; // sensor-check screen debounce (previously borrowed game `state`)
   // Separate (lighter) smoothing for gyro rate since we want to preserve reversal timing
   const ALPHA_GYRO = 0.5;
@@ -1330,8 +1359,8 @@
   }
 
   // ig = accelerationIncludingGravity, lin = acceleration (gravity removed). Either may be null.
-  function processSensorReading(ig, lin, rot) {
-    const t = performance.now();
+  function processSensorReading(ig, lin, rot, tIn) {
+    const t = tIn !== undefined ? tIn : performance.now();
     let gx, gy, gz, ax, ay, az;
     if(ig && lin){
       // Fused split from the OS: gravity = total - linear
@@ -1376,6 +1405,21 @@
     smoothedState.yaw = smoothedState.yaw + ALPHA_GYRO * (rawYawRate - smoothedState.yaw);
     smoothedState.mag = smoothedState.mag + ALPHA * (rawMag - smoothedState.mag);
 
+    // Vertical movement ("height"): project linear accel onto the gravity direction (so it
+    // works whatever way the phone is held) and leaky-double-integrate it. The leak stops
+    // drift, leaving a position-like signal that rises and falls ONCE per rep, even with a
+    // pause at the top or bottom — unlike raw acceleration, which swings +/- on every move.
+    const dtS = lastSampleT ? Math.min(0.1, Math.max(0, (t - lastSampleT) / 1000)) : 0;
+    lastSampleT = t;
+    const gMag = Math.hypot(smoothedState.gx, smoothedState.gy, smoothedState.gz);
+    const av = gMag > 1
+      ? (smoothedState.ax * smoothedState.gx + smoothedState.ay * smoothedState.gy + smoothedState.az * smoothedState.gz) / gMag
+      : smoothedState.ay;
+    if(dtS > 0){
+      vertVel = (vertVel + av * dtS) * (1 - dtS / HEIGHT_LEAK_S);
+      vertPos = (vertPos + vertVel * dtS) * (1 - dtS / HEIGHT_LEAK_S);
+    }
+
     const dirY = smoothedState.y > 1.8 ? '↑ Moving Up' : (smoothedState.y < -1.8 ? '↓ Moving Down' : '• Neutral');
 
     const sample = {
@@ -1383,7 +1427,7 @@
       gx: smoothedState.gx, gy: smoothedState.gy, gz: smoothedState.gz,
       ax: smoothedState.ax, ay: smoothedState.ay, az: smoothedState.az,
       mag: smoothedState.mag, pitch: smoothedState.pitch, roll: smoothedState.roll,
-      yaw: smoothedState.yaw, dirY
+      yaw: smoothedState.yaw, vp: vertPos, dirY
     };
 
     motionBuffer.push(sample);
@@ -1517,6 +1561,7 @@
     let step = 0, stepStart = 0;
     return {
       markers,
+      steps: markers.length,
       get step(){ return step; },
       reset(){ step = 0; },
       update(sample){
@@ -1544,6 +1589,233 @@
     };
   }
 
+  // ==========================================
+  // ZONE ENGINE: one auto-built "rep progress" signal + zones with hysteresis
+  // ==========================================
+  // A rep = the progress signal entering the BOTTOM zone, then the TOP zone (repeated
+  // cyclesPerRep times). Thresholds are relative to YOUR recorded reps (0 = typical bottom,
+  // 1 = typical top), so depth/speed don't matter, and the gap between the zones means
+  // jitter, stops and pauses in the middle can never add extra reps.
+  //   source 'tilt'   = phone angle (gravity direction, best axis found by PCA)  -> swings, snatch, halos, rows
+  //   source 'height' = vertical movement of the phone                            -> goblet squat, lunge, press
+  const PROG_ALPHA = 0.3;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function median(arr){ if(!arr.length) return NaN; const s = arr.slice().sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; }
+  function quantile(arr, p){ const s = arr.slice().sort((a, b) => a - b); return s[Math.round(clamp(p, 0, 1) * (s.length - 1))]; }
+  // Pre-stage-1 recordings have no gravity split; fall back to total acceleration.
+  function gravityOf(s){ return s.gx !== undefined ? [s.gx, s.gy, s.gz] : [s.x || 0, s.y || 0, s.z || 0]; }
+
+  // First principal component of the gravity vector = the direction the phone tilts most.
+  function gravityPCA(samples){
+    const n = samples.length, G = samples.map(gravityOf);
+    const mean = [0, 0, 0];
+    G.forEach(v => { for(let i = 0; i < 3; i++) mean[i] += v[i] / n; });
+    const C = [[0,0,0],[0,0,0],[0,0,0]];
+    G.forEach(v => { for(let i = 0; i < 3; i++) for(let j = 0; j < 3; j++) C[i][j] += (v[i] - mean[i]) * (v[j] - mean[j]) / n; });
+    let w = [0.58, 0.57, 0.56];
+    for(let it = 0; it < 100; it++){
+      const nw = [0, 1, 2].map(i => C[i][0]*w[0] + C[i][1]*w[1] + C[i][2]*w[2]);
+      const norm = Math.hypot(nw[0], nw[1], nw[2]);
+      if(!(norm > 1e-12)) break;
+      w = nw.map(x => x / norm);
+    }
+    let k = 0; for(let i = 1; i < 3; i++) if(Math.abs(w[i]) > Math.abs(w[k])) k = i;
+    if(w[k] < 0) w = w.map(x => -x);
+    return { w, mean };
+  }
+
+  function rawProgress(m, s){
+    if(m.source === 'height') return s.vp || 0;
+    const g = gravityOf(s);
+    return m.w[0]*(g[0]-m.mean[0]) + m.w[1]*(g[1]-m.mean[1]) + m.w[2]*(g[2]-m.mean[2]);
+  }
+  function smoothSeries(m, samples){ let e = null; return samples.map(s => { const r = rawProgress(m, s); e = e === null ? r : e + PROG_ALPHA * (r - e); return e; }); }
+  function progressSeries(m, samples){ const span = (m.top - m.bottom) || 1; return smoothSeries(m, samples).map(v => (v - m.bottom) / span); }
+  function describeSignal(m){
+    if(m.source === 'height') return 'Height (up/down movement of the phone)';
+    const names = ['Gravity X', 'Gravity Y', 'Gravity Z'];
+    const tot = m.w.reduce((a, x) => a + x*x, 0) || 1;
+    return 'Tilt (phone angle: ' + m.w.map((x, i) => ({ n: names[i], p: x*x/tot })).filter(o => o.p >= 0.1)
+      .sort((a, b) => b.p - a.p).map(o => `${o.n} ${Math.round(o.p*100)}%`).join(', ') + ')';
+  }
+
+  // Turning points with hysteresis: a max only counts once the signal has fallen `delta` below it.
+  function findExtrema(vals, times, delta){
+    const out = []; let mode = 0, mxV = -Infinity, mxI = 0, mnV = Infinity, mnI = 0;
+    for(let i = 0; i < vals.length; i++){
+      const v = vals[i];
+      if(v > mxV){ mxV = v; mxI = i; }
+      if(v < mnV){ mnV = v; mnI = i; }
+      if(mode >= 0 && v < mxV - delta){ if(mode === 1) out.push({ kind: 'max', v: mxV, t: times[mxI] }); mode = -1; mnV = v; mnI = i; }
+      else if(mode <= 0 && v > mnV + delta){ if(mode === -1) out.push({ kind: 'min', v: mnV, t: times[mnI] }); mode = 1; mxV = v; mxI = i; }
+    }
+    return out;
+  }
+
+  function applyZoneTiming(m){
+    m.minRepMs = Math.round(m.cycleMs * m.cyclesPerRep * m.minRepFactor);
+    m.maxStepMs = Math.round(Math.max(1500, m.cycleMs * 1.5));
+  }
+
+  function buildZoneModel(samples, source){
+    const m = { type: 'zones', source, w: [0, 0, 0], mean: [0, 0, 0], lowZone: 0.25, highZone: 0.75, cyclesPerRep: 1, minRepFactor: 0.5, checks: [] };
+    if(source === 'tilt'){ const pc = gravityPCA(samples); m.w = pc.w; m.mean = pc.mean; }
+    const vals = smoothSeries(m, samples), times = samples.map(s => s.t);
+    const range = quantile(vals, 0.95) - quantile(vals, 0.05);
+    const ext = findExtrema(vals, times, range * 0.35);
+    const maxes = ext.filter(e => e.kind === 'max'), mins = ext.filter(e => e.kind === 'min');
+    m.top = maxes.length ? median(maxes.map(e => e.v)) : quantile(vals, 0.95);
+    m.bottom = mins.length ? median(mins.map(e => e.v)) : quantile(vals, 0.05);
+    if(!(m.top - m.bottom > 1e-6)){ m.bottom = quantile(vals, 0.05); m.top = m.bottom + Math.max(range, 1e-3); }
+    const periods = []; for(let i = 1; i < maxes.length; i++) periods.push(maxes[i].t - maxes[i-1].t);
+    m.cycles = Math.max(1, maxes.length);
+    m.cycleMs = Math.round(periods.length ? median(periods) : (times[times.length-1] - times[0]) / m.cycles);
+    m.range = range;
+    applyZoneTiming(m);
+    return m;
+  }
+
+  function zoneSequence(m){
+    const seq = [];
+    for(let c = 0; c < (m.cyclesPerRep || 1); c++){ seq.push({ kind: 'bottom', below: m.lowZone }); seq.push({ kind: 'top', above: m.highZone }); }
+    return seq;
+  }
+  function inZone(z, v){ return z.below !== undefined ? v < z.below : v > z.above; }
+  function checkStat(ch, w){
+    if(!w) return false;
+    const x = ch.stat === 'min' ? w.min : ch.stat === 'max' ? w.max : w.max - w.min;
+    return ch.op === '<=' ? x <= ch.val : x >= ch.val;
+  }
+
+  // Same update() shape as the keyframe engine: { advanced, rep, timedOut, step, v }
+  //  - tilt:   ABSOLUTE zones (phone angle has a true reference: gravity never drifts)
+  //  - height: RELATIVE zones. Integrated height slowly drifts, so a zone is "reached" by
+  //            moving (highZone - lowZone) x typical rep height away from the last turning
+  //            point, i.e. drop that far below the last peak = bottom, rise that far above the
+  //            last low = top. Drift-proof, and small jiggles still can't reach it.
+  function createZoneDetector(m){
+    const seq = zoneSequence(m), span = (m.top - m.bottom) || 1, checks = m.checks || [];
+    const relative = m.source === 'height';
+    const D = Math.max(0.05, m.highZone - m.lowZone) * span;
+    let step = 0, stepStart = 0, lastRep = -Infinity, ema = null, win = {};
+    let runMax = -Infinity, runMin = Infinity;
+    const hit = (z, e, v) => relative
+      ? (z.kind === 'bottom' ? e <= runMax - D : e >= runMin + D)
+      : inZone(z, v);
+    const stillIn = (z, e, v) => relative
+      ? (z.kind === 'bottom' ? e - runMin < 0.15 * D : runMax - e < 0.15 * D)
+      : inZone(z, v);
+    return {
+      model: m,
+      steps: seq.length,
+      get step(){ return step; },
+      reset(){ step = 0; ema = null; win = {}; runMax = -Infinity; runMin = Infinity; },
+      update(s){
+        const t = s.t, r = rawProgress(m, s);
+        ema = ema === null ? r : ema + PROG_ALPHA * (r - ema);
+        const v = (ema - m.bottom) / span;
+        if(ema > runMax) runMax = ema;
+        if(ema < runMin) runMin = ema;
+        const out = { advanced: false, rep: false, timedOut: false, step, v };
+        // Secondary-axis window stats (min/max) since leaving the previous zone
+        for(const ch of checks){
+          const x = s[ch.axis]; if(typeof x !== 'number') continue;
+          const w = win[ch.axis] || (win[ch.axis] = { min: x, max: x });
+          if(x < w.min) w.min = x; if(x > w.max) w.max = x;
+        }
+        const prevZone = seq[(step - 1 + seq.length) % seq.length];
+        if(stillIn(prevZone, ema, v)){ stepStart = t; win = {}; }   // timer + window start once we LEAVE the last zone
+        else if(step > 0 && t - stepStart > m.maxStepMs){ step = 0; win = {}; out.timedOut = true; }
+        const target = seq[step];
+        if(hit(target, ema, v)){
+          const ok = checks.every(ch => ch.step !== step || checkStat(ch, win[ch.axis]));
+          win = {}; stepStart = t;
+          // New reference for the next relative move starts at this turning region
+          if(target.kind === 'bottom') runMin = ema; else runMax = ema;
+          if(ok){
+            step++; out.advanced = true;
+            if(step >= seq.length){
+              step = 0;
+              if(t - lastRep >= m.minRepMs){ out.rep = true; lastRep = t; }   // impossibly fast = not a rep
+            }
+          } else { step = 0; out.timedOut = true; }
+        }
+        out.step = step;
+        return out;
+      }
+    };
+  }
+
+  function countZoneReps(m, samples){ const d = createZoneDetector(m); let n = 0; samples.forEach(s => { if(d.update(s).rep) n++; }); return n; }
+
+  // Search zone width, cycles-per-rep and min-rep-time until the replay matches the user's
+  // rep count. Among passing zone widths pick the MOST FORGIVING one (zones closest to the
+  // middle, capped so a 30% dead band always remains) so shallower/faster reps than the
+  // recording still count, while small jiggles never can.
+  function autoTuneZones(model, samples, reps){
+    const lows = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35];
+    const cprs = [model.cyclesPerRep].concat([1, 2, 3].filter(c => c !== model.cyclesPerRep));
+    const factors = [0.5, 0.35, 0.2];
+    let best = null;
+    outer:
+    for(const cpr of cprs){
+      for(const f of factors){
+        const passing = []; let closest = null;
+        for(const lo of lows){
+          const m = Object.assign({}, model, { lowZone: lo, highZone: +(1 - lo).toFixed(2), cyclesPerRep: cpr, minRepFactor: f });
+          applyZoneTiming(m);
+          const n = countZoneReps(m, samples), err = Math.abs(n - reps);
+          if(err === 0) passing.push(lo);
+          if(!closest || err < closest.err) closest = { err, lo, n };
+        }
+        const cand = passing.length ? { err: 0, lo: passing[passing.length - 1], n: reps } : closest;
+        if(!best || cand.err < best.err) best = Object.assign(cand, { cpr, f });
+        if(best.err === 0) break outer;
+      }
+    }
+    Object.assign(model, { lowZone: best.lo, highZone: +(1 - best.lo).toFixed(2), cyclesPerRep: best.cpr, minRepFactor: best.f });
+    applyZoneTiming(model);
+    return best;
+  }
+
+  // sourcePref: 'auto' | 'tilt' | 'height'. Auto prefers tilt when the phone angle clearly
+  // changes (≳15°), otherwise height; tries the other if the first can't match the rep count.
+  function calibrateZones(samples, reps, sourcePref){
+    if(!samples || samples.length < 30) return { error: 'Recording too short — record 3–5 reps.' };
+    const hasHeight = samples.some(s => typeof s.vp === 'number');
+    const tilt = buildZoneModel(samples, 'tilt');
+    const height = hasHeight ? buildZoneModel(samples, 'height') : null;
+    let order;
+    if(sourcePref === 'tilt' || !height) order = [tilt];
+    else if(sourcePref === 'height') order = [height];
+    else order = tilt.range >= 2.5 ? [tilt, height] : [height, tilt];
+    let best = null;
+    for(const m of order){
+      if(!(m.range > (m.source === 'tilt' ? 0.8 : 0.03))) continue;   // this signal barely moved
+      m.cyclesPerRep = reps > 0 ? clamp(Math.round(m.cycles / reps), 1, 3) : 1;
+      applyZoneTiming(m);
+      const tune = reps > 0 ? autoTuneZones(m, samples, reps) : { err: 0, n: countZoneReps(m, samples) };
+      if(!best || tune.err < best.tune.err) best = { model: m, tune };
+      if(tune.err === 0) break;
+    }
+    if(!best) return { error: 'Not enough movement detected — make sure the phone moves with the weight.' };
+    return best;
+  }
+
+  // One entry point for game / live test / preview, whatever the method.
+  function detectionMode(data){
+    if(!data) return null;
+    if(data.mode) return data.mode;
+    return (data.markers && data.markers.length) ? 'keyframes' : null;
+  }
+  function createDetectorFor(data){
+    const mode = detectionMode(data);
+    if(mode === 'zones' && data.zones) return createZoneDetector(data.zones);
+    if(mode === 'keyframes' && data.markers && data.markers.length) return createKeyframeEngine(data.markers);
+    return null;
+  }
+  const stepDots = n => Array.from({ length: n || 0 });
+
   function checkCompoundMarkersForRep(sample){
     const r = state.kf.update(sample);
     if(r.advanced && !r.rep) playCrossingTone();
@@ -1562,25 +1834,27 @@
       // Build once per exercise instead of parsing localStorage on every sensor sample
       const mData = loadMarkerData()[activeEx];
       testKfEx = activeEx;
-      testKf = (mData && mData.markers && mData.markers.length) ? createKeyframeEngine(mData.markers) : false;
+      testKf = createDetectorFor(mData) || false;
     }
     if(!testKf){
-      testResultLabel.textContent = 'No Keyframes Set';
-      testResultConf.textContent = 'Record motion demo for ' + activeEx + ' first.';
+      testResultLabel.textContent = 'Not Calibrated';
+      testResultConf.textContent = 'Record & calibrate ' + activeEx + ' in the Training Hub first.';
       return;
     }
 
     const r = testKf.update(sample);
+    if(r.v !== undefined) sample.prog = r.v;   // drawn as the progress line on the live graph
+    const dots = stepDots(testKf.steps);
     if(r.timedOut){
-      renderHudCheckpoints(testKf.markers, r.step, 'test-checkpoints');
+      renderHudCheckpoints(dots, r.step, 'test-checkpoints');
       testResultConf.textContent = 'Step timed out — rep reset.';
     }
     if(!r.advanced) return;
 
-    testCrossingTriggerHistory.push({ t: sample.t, step: r.rep ? testKf.markers.length : r.step });
+    testCrossingTriggerHistory.push({ t: sample.t, step: r.rep ? testKf.steps : r.step });
     if(testCrossingTriggerHistory.length > 50) testCrossingTriggerHistory.shift();
     testMarkerIndex = r.step;
-    renderHudCheckpoints(testKf.markers, r.step, 'test-checkpoints');
+    renderHudCheckpoints(dots, r.step, 'test-checkpoints');
 
     if(r.rep){
       playMetalClang(true);
@@ -1642,8 +1916,10 @@
     trainExerciseList.innerHTML = EXERCISES.map(ex => {
       const data = markerData[ex.name];
       const hasRec = data && data.recording && data.recording.length > 5;
-      const keyframeCount = (data && data.markers) ? data.markers.length : 0;
-      const statusText = hasRec ? `${keyframeCount} keyframe(s) set` : 'Not trained';
+      const mode = detectionMode(data);
+      const statusText = createDetectorFor(data)
+        ? (mode === 'zones' ? `Zones · ${data.zones.source === 'height' ? 'height' : 'tilt'}` : `${data.markers.length} keyframe(s) set`)
+        : (hasRec ? 'Recorded — not calibrated' : 'Not trained');
       
       return `
         <div class="card">
@@ -1687,13 +1963,14 @@
     const markerData = loadMarkerData();
     const mData = markerData[activeEx];
     
-    if(mData && mData.markers && mData.markers.length > 0){
-      renderHudCheckpoints(mData.markers, 0, 'test-checkpoints');
+    const selDet = createDetectorFor(mData);
+    if(selDet){
+      renderHudCheckpoints(stepDots(selDet.steps), 0, 'test-checkpoints');
       testResultLabel.textContent = 'Ready';
       testResultConf.textContent = `Perform ${activeEx} motion...`;
     } else {
       renderHudCheckpoints([], 0, 'test-checkpoints');
-      testResultLabel.textContent = 'No Keyframes Set';
+      testResultLabel.textContent = 'Not Calibrated';
       testResultConf.textContent = 'Record demo in Training Hub first.';
     }
   }
@@ -1715,7 +1992,7 @@
 
   testBackBtn.addEventListener('click', () => { isTestingActive = false; showOnly(trainHub); });
 
-  let liveSeriesActive = { pitch: true, roll: true, yaw: true, y: true, mag: true };
+  let liveSeriesActive = { progress: true, pitch: true, roll: true, yaw: true, y: true, mag: true };
   document.querySelectorAll('#test-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.getAttribute('data-series');
@@ -1776,6 +2053,11 @@
       ctx.stroke();
     });
 
+    if(liveSeriesActive.progress && samples.some(s => s.prog !== undefined)){
+      const selData = loadLiveZones();
+      if(selData) drawProgressOverlay(ctx, W, H, samples.map(s => s.prog !== undefined ? s.prog : NaN), idxToX, selData);
+    }
+
     const now = performance.now();
     testCrossingTriggerHistory.forEach(trig => {
       const age = now - trig.t;
@@ -1797,7 +2079,7 @@
   let currentMarkerExercise = null;
   let markerRecordBuffer = [];
   let editingMarkers = [];
-  let activeSeries = { x: true, y: true, z: true, pitch: true, roll: true, yaw: true };
+  let activeSeries = { progress: true, x: true, y: true, z: true, pitch: true, roll: true, yaw: true };
 
   document.querySelectorAll('#marker-series-toggles .toggle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1839,7 +2121,7 @@
     trimEndSlider.value = 100; trimEndVal.textContent = '100%';
 
     markerRecStatus.textContent = `Cropped to ${markerRecordBuffer.length} motion samples`;
-    autoGenerateLineCrossingKeyframes();
+    runCalibration();
   });
 
   window.openMarkerEditor = function(exercise){
@@ -1871,7 +2153,7 @@
       autoKeyCard.style.display = 'none';
       markerActions.style.display = 'none';
       markerClearRecBtn.style.display = 'none';
-      markerRecStatus.textContent = 'Tap to record 1–2 reps naturally';
+      markerRecStatus.textContent = 'Tap to record 3–5 reps, then enter how many you did';
       markerListEl.innerHTML = '';
       editingMarkers = [];
       markerCanvasController.reset();
@@ -1898,12 +2180,11 @@
         trimStartSlider.value = 0; trimStartVal.textContent = '0%';
         trimEndSlider.value = 100; trimEndVal.textContent = '100%';
 
-        if(editingMarkers.length === 0){
-          autoGenerateLineCrossingKeyframes();
-        } else {
-          markerCanvasController.reset();
-          renderMarkerList();
-        }
+        calibCard.style.display = 'block';
+        if(editMode === 'zones') runCalibration();
+        else if(editingMarkers.length === 0) autoGenerateLineCrossingKeyframes();
+        else { markerCanvasController.reset(); renderMarkerList(); }
+        renderModeUI();
       }
     } else {
       ensureMotionArmed();
@@ -1926,7 +2207,7 @@
     autoKeyCard.style.display = 'none';
     markerActions.style.display = 'none';
     markerClearRecBtn.style.display = 'none';
-    markerRecStatus.textContent = 'Tap to record 1–2 reps naturally';
+    markerRecStatus.textContent = 'Tap to record 3–5 reps, then enter how many you did';
     markerListEl.innerHTML = '';
   });
 
@@ -2065,8 +2346,8 @@
 
   // Test hook (read-only helpers) for headless verification — no effect on the app.
   window.__repDropTest = {
-    createKeyframeEngine, migrateMarkers,
-    feed: (ig, lin, rot) => processSensorReading(ig, lin, rot),
+    createKeyframeEngine, migrateMarkers, calibrateZones, createDetectorFor, countZoneReps,
+    feed: (ig, lin, rot, t) => processSensorReading(ig, lin, rot, t),
     lastSample: () => motionBuffer[motionBuffer.length - 1]
   };
 
@@ -2109,7 +2390,9 @@
       { key: 'yaw', clr: 'var(--yaw-clr)' }
     ];
 
-    // Render Curves
+    // Render Curves (dimmed when the zone progress line is shown, so it reads clearly)
+    const showProgress = editMode === 'zones' && editZones && activeSeries.progress;
+    ctx.globalAlpha = showProgress ? 0.3 : 1;
     seriesList.forEach(s => {
       if(!activeSeries[s.key]) return;
       const clrVal = getComputedStyle(document.documentElement).getPropertyValue(s.clr.replace('var(','').replace(')','')).trim();
@@ -2125,6 +2408,9 @@
       });
       ctx.stroke();
     });
+
+    ctx.globalAlpha = 1;
+    if(showProgress) drawProgressOverlay(ctx, W, H, progressSeries(editZones, samples), idxToX, editZones);
 
     // Render Trimming Crop Overlays
     const startPct = parseInt(trimStartSlider.value) / 100;
@@ -2143,8 +2429,8 @@
     ctx.beginPath(); ctx.moveTo(cropEndPx, 0); ctx.lineTo(cropEndPx, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Evaluate Matches using the same phase-tracking logic as live/game detection
-    const { hits, hitIdxs } = simulateKeyframesOverBuffer(samples, editingMarkers);
+    // Replay the recording through the exact detector used live/in-game
+    const { hits, hitIdxs } = replayCurrent(samples);
     hitIdxs.forEach(i => {
       const hitX = idxToX(i);
       ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--good').trim();
@@ -2152,7 +2438,10 @@
       ctx.beginPath(); ctx.moveTo(hitX, 0); ctx.lineTo(hitX, H); ctx.stroke();
     });
 
-    markerSim.textContent = `Compound Matching: ${editingMarkers.length} step(s) trigger ${hits} rep(s) in curve.`;
+    const target = parseInt(calibReps.value) || 0;
+    markerSim.textContent = `${editMode === 'zones' ? 'Zones' : 'Keyframes'}: ${hits} rep(s) detected in this recording` + (target ? ` (you did ${target})` : '') + '.';
+    calibVerdict.textContent = target ? `${hits} / ${target} ${hits === target ? '✓' : '✗'}` : '';
+    calibVerdict.style.color = hits === target ? 'var(--good)' : 'var(--accent)';
   }
 
   function conditionSummaryLabel(c){
@@ -2323,14 +2612,219 @@
     const markerData = loadMarkerData();
     markerData[currentMarkerExercise] = {
       recording: markerRecordBuffer,
-      markers: editingMarkers
+      markers: editingMarkers,
+      mode: editMode,
+      zones: editZones,
+      zonesSourcePref: editSource,
+      repsPerformed: parseInt(calibReps.value) || 0
     };
-    saveMarkerData(markerData);
+    if(!saveMarkerData(markerData)) return;
+    testKf = null; // live test rebuilds from the saved settings
     renderTrainHub();
     showOnly(trainHub);
   });
 
   markerBackBtn.addEventListener('click', () => { showOnly(trainHub); });
+
+  // ==========================================
+  // REP DETECTION UI: calibrate to the user's rep count + zone editor
+  // ==========================================
+  const calibCard = document.getElementById('calib-card');
+  const calibVerdict = document.getElementById('calib-verdict');
+  const calibReps = document.getElementById('calib-reps');
+  const calibMode = document.getElementById('calib-mode');
+  const calibHelp = document.getElementById('calib-help');
+  const calibBtn = document.getElementById('calib-btn');
+  const calibInfo = document.getElementById('calib-info');
+  const zoneEditorEl = document.getElementById('zone-editor');
+  let editMode = 'zones', editZones = null, editSource = 'auto';
+
+  const MODE_HELP = {
+    zones: 'Builds one "rep progress" line from your recording (phone tilt, or height if the phone stays level) and counts a rep each time it goes from the bottom zone to the top zone. Pauses and stops in between never add reps. Enter how many reps you did so it can learn what one rep looks like for you.',
+    keyframes: 'Hand-built steps using direction reversals, axis crossings, rates and fixed values. For fine control when Zones cannot capture the movement.'
+  };
+
+  function currentEditData(){ return { mode: editMode, zones: editZones, markers: editingMarkers }; }
+  function replayCurrent(samples){
+    const det = createDetectorFor(currentEditData());
+    const hitIdxs = [];
+    if(det) samples.forEach((s, i) => { if(det.update(s).rep) hitIdxs.push(i); });
+    return { hits: hitIdxs.length, hitIdxs };
+  }
+  // Zones model the live graph should draw (from the running live-test detector, no storage reads)
+  function loadLiveZones(){ return (testKf && testKf.model) || null; }
+
+  // Thick progress line on its own 0..1 scale plus the two zone thresholds.
+  function drawProgressOverlay(ctx, W, H, prog, idxToX, zones){
+    const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const pY = p => H - 8 - ((clamp(p, -0.15, 1.15) + 0.15) / 1.3) * (H - 16);
+    ctx.save();
+    ctx.fillStyle = css('--good'); ctx.globalAlpha = 0.12;
+    ctx.fillRect(0, 0, W, pY(zones.highZone));                  // top zone band
+    ctx.fillStyle = css('--accent');
+    ctx.fillRect(0, pY(zones.lowZone), W, H - pY(zones.lowZone)); // bottom zone band
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = css('--ink-dim'); ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+    [zones.lowZone, zones.highZone].forEach(z => { ctx.beginPath(); ctx.moveTo(0, pY(z)); ctx.lineTo(W, pY(z)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    ctx.fillStyle = css('--ink-dim'); ctx.font = 'bold 9px sans-serif';
+    const guide = zones.source === 'height' ? ' (GUIDE)' : '';
+    ctx.fillText('TOP ZONE' + guide, 4, pY(zones.highZone) - 4);
+    ctx.fillText('BOTTOM ZONE' + guide, 4, pY(zones.lowZone) + 12);
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    let started = false;
+    prog.forEach((p, i) => {
+      if(!isFinite(p)){ started = false; return; }
+      const x = idxToX(i), y = pY(p);
+      if(!started){ ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function runCalibration(){
+    if(editMode === 'keyframes'){ autoGenerateLineCrossingKeyframes(); renderModeUI(); return; }
+    const reps = parseInt(calibReps.value) || 0;
+    const res = calibrateZones(markerRecordBuffer, reps, editSource);
+    if(res.error){
+      editZones = null;
+      calibInfo.textContent = res.error;
+    } else {
+      const oldChecks = (editZones && editZones.checks) || [];
+      editZones = res.model;
+      editZones.checks = oldChecks.filter(c => c.step < zoneSequence(editZones).length);
+      calibInfo.textContent = `Signal: ${describeSignal(editZones)}. Found ${editZones.cycles} up/down cycle(s), ~${(editZones.cycleMs / 1000).toFixed(1)}s apart → ${editZones.cyclesPerRep} cycle(s) = 1 rep.`
+        + (res.tune.err ? ` Best match was ${res.tune.n} of ${reps}: try trimming idle motion at the ends, or re-record.` : '');
+    }
+    markerCanvasController.reset();
+    renderModeUI();
+  }
+
+  function renderModeUI(){
+    calibMode.value = editMode;
+    calibHelp.textContent = MODE_HELP[editMode];
+    const kf = editMode === 'keyframes';
+    autoKeyCard.style.display = kf ? 'block' : 'none';
+    markerListEl.style.display = kf ? 'flex' : 'none';
+    markerAddBtn.style.display = kf ? '' : 'none';
+    zoneEditorEl.style.display = kf ? 'none' : 'block';
+    if(!kf) renderZoneEditor();
+    renderMarkerCanvas();
+  }
+
+  function renderZoneEditor(){
+    if(!editZones){
+      zoneEditorEl.innerHTML = '<div class="card fine-print">Enter how many reps you did above, then tap Auto-Calibrate.</div>';
+      return;
+    }
+    const z = editZones, seq = zoneSequence(z);
+    const stepOpts = sel => seq.map((q, k) => `<option value="${k}" ${k === sel ? 'selected' : ''}>Step ${k + 1} (${q.kind})</option>`).join('');
+    const axisOpts = sel => Object.keys(AXES).map(a => `<option value="${a}" ${a === sel ? 'selected' : ''}>${AXES[a].label}</option>`).join('');
+    const num = (key, step, min, max, w, label) =>
+      `<input type="number" data-z="${key}" step="${step}" min="${min}" max="${max}" value="${z[key]}" style="width:${w}px;" aria-label="${label}">`;
+    const checksHtml = (z.checks || []).map((ch, i) => `
+      <div class="condition-row">
+        <span>While moving to</span>
+        <select data-c="step" data-i="${i}" aria-label="Step">${stepOpts(ch.step)}</select>
+        <select data-c="stat" data-i="${i}" aria-label="Statistic">
+          ${['max', 'min', 'range'].map(o => `<option value="${o}" ${ch.stat === o ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>
+        <span>of</span>
+        <select data-c="axis" data-i="${i}" aria-label="Axis">${axisOpts(ch.axis)}</select>
+        <select data-c="op" data-i="${i}" aria-label="Comparison">
+          <option value=">=" ${ch.op !== '<=' ? 'selected' : ''}>≥</option>
+          <option value="<=" ${ch.op === '<=' ? 'selected' : ''}>≤</option>
+        </select>
+        <input type="number" step="0.5" data-c="val" data-i="${i}" value="${ch.val}" style="width:55px;" aria-label="Value">
+        <button data-c="del" data-i="${i}" aria-label="Delete check" style="background:none;border:none;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+
+    zoneEditorEl.innerHTML = `
+      <div class="marker-item">
+        <div class="marker-header"><span>Zone Settings</span></div>
+        <div class="condition-row">
+          <span>Signal</span>
+          <select data-src="1" aria-label="Signal source">
+            <option value="auto" ${editSource === 'auto' ? 'selected' : ''}>Auto</option>
+            <option value="tilt" ${editSource === 'tilt' ? 'selected' : ''}>Tilt (phone angle)</option>
+            <option value="height" ${editSource === 'height' ? 'selected' : ''}>Height (up/down)</option>
+          </select>
+          <span>${describeSignal(z)}</span>
+        </div>
+        <div class="condition-row">
+          <span>Bottom zone below</span>${num('lowZone', 0.05, 0, 0.5, 55, 'Bottom zone threshold')}
+          <span>Top zone above</span>${num('highZone', 0.05, 0.5, 1, 55, 'Top zone threshold')}
+        </div>
+        <div class="condition-row">
+          <span>Cycles per rep</span>${num('cyclesPerRep', 1, 1, 4, 45, 'Cycles per rep')}
+          <span>Min rep ms</span>${num('minRepMs', 50, 0, 10000, 65, 'Minimum rep time')}
+          <span>Step timeout ms</span>${num('maxStepMs', 100, 500, 20000, 70, 'Step timeout')}
+        </div>
+        <div class="fine-print" style="text-align:left;">Thick line = rep progress (0 = your typical bottom, 1 = your typical top). A rep counts each time it passes from the bottom zone into the top zone.</div>
+        ${checksHtml}
+        <button class="ghost" data-zadd="1" style="font-size:0.75rem;padding:6px;">+ Add Window Check (secondary axis)</button>
+      </div>`;
+
+    zoneEditorEl.querySelector('[data-src]').addEventListener('change', e => { editSource = e.target.value; runCalibration(); });
+    zoneEditorEl.querySelectorAll('[data-z]').forEach(el => el.addEventListener('change', e => {
+      const key = el.getAttribute('data-z');
+      const v = parseFloat(e.target.value);
+      if(!isFinite(v)) return;
+      z[key] = key === 'cyclesPerRep' ? clamp(Math.round(v), 1, 4) : v;
+      if(key === 'cyclesPerRep') z.checks = (z.checks || []).filter(c => c.step < zoneSequence(z).length);
+      renderZoneEditor(); renderMarkerCanvas();
+    }));
+    zoneEditorEl.querySelectorAll('[data-c]').forEach(el => {
+      const act = el.getAttribute('data-c'), i = parseInt(el.getAttribute('data-i'));
+      if(act === 'del'){
+        el.addEventListener('click', () => { z.checks.splice(i, 1); renderZoneEditor(); renderMarkerCanvas(); });
+        return;
+      }
+      el.addEventListener('change', e => {
+        const ch = z.checks[i];
+        if(act === 'step') ch.step = parseInt(e.target.value);
+        else if(act === 'val') ch.val = parseFloat(e.target.value) || 0;
+        else ch[act] = e.target.value;
+        renderZoneEditor(); renderMarkerCanvas();
+      });
+    });
+    zoneEditorEl.querySelector('[data-zadd]').addEventListener('click', () => {
+      // Default: roll must change by ~40% of what it did in the recording
+      const rolls = markerRecordBuffer.map(s => s.roll || 0);
+      const range = rolls.length ? Math.max(...rolls) - Math.min(...rolls) : 20;
+      z.checks = z.checks || [];
+      z.checks.push({ step: seq.length - 1, axis: 'roll', stat: 'range', op: '>=', val: Math.round(range * 0.4) });
+      renderZoneEditor(); renderMarkerCanvas();
+    });
+  }
+
+  calibBtn.addEventListener('click', runCalibration);
+  calibReps.addEventListener('input', () => renderMarkerCanvas());
+  calibMode.addEventListener('change', () => { editMode = calibMode.value; renderModeUI(); });
+  markerClearRecBtn.addEventListener('click', () => {
+    editZones = null;
+    calibCard.style.display = 'none';
+    zoneEditorEl.style.display = 'none';
+  });
+
+  // Wrap the editor opener: load the saved method before the first redraw, show the new cards after.
+  const openMarkerEditorBase = window.openMarkerEditor;
+  window.openMarkerEditor = function(exercise){
+    const existing = loadMarkerData()[exercise];
+    editZones = (existing && existing.zones) ? JSON.parse(JSON.stringify(existing.zones)) : null;
+    // Pre-stage-2 exercises open in Zones mode (not yet calibrated) — nothing changes until Save.
+    editMode = (existing && existing.mode) || 'zones';
+    editSource = (existing && existing.zonesSourcePref) || 'auto';
+    calibReps.value = (existing && existing.repsPerformed) || 4;
+    calibInfo.textContent = editZones ? `Signal: ${describeSignal(editZones)}.` : '';
+    openMarkerEditorBase(exercise);
+    const hasRec = existing && existing.recording && existing.recording.length > 5;
+    calibCard.style.display = hasRec ? 'block' : 'none';
+    if(hasRec) renderModeUI();
+    else { zoneEditorEl.style.display = 'none'; autoKeyCard.style.display = 'none'; }
+  };
 
   function renderSessionCanvas(){
     const canvas = sessionCanvas;
